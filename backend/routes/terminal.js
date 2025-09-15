@@ -78,35 +78,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// --- Register a terminal ---
-router.post("/register", async (req, res) => {
-  const { sn, name } = req.body;
-
-  if (!sn || !name) {
-    return res
-      .status(400)
-      .json({ error: 'Missing "sn" or "name" in request body' });
-  }
-
-  try {
-    const response = await axios.post(
-      `${COLORLIGHT_BASE_URL}/terminals`,
-      { sn, name },
-      AUTH_HEADER
-    );
-    res.json({ message: "Terminal registered", data: response.data });
-  } catch (err) {
-    console.error(
-      "Error registering terminal:",
-      err.response?.data || err.message
-    );
-    res.status(500).json({
-      error: "Failed to register terminal",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
 // --- Put terminals to sleep ---
 router.post("/sleep", async (req, res) => {
   const { terminalIds } = req.body;
