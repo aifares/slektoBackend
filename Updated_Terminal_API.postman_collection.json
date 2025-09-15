@@ -1,0 +1,467 @@
+{
+  "info": {
+    "_postman_id": "updated-terminal-api-collection",
+    "name": "Updated Terminal API Collection - Multi-Terminal Support",
+    "description": "Collection for managing multiple terminals with batch operations including sleep/wake, brightness, GPS reporting, and reboot commands",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Terminals",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/terminals",
+          "host": ["{{base_url}}"],
+          "path": ["terminals"]
+        },
+        "description": "Retrieve all terminals using the configured terminal IDs"
+      }
+    },
+    {
+      "name": "Register Terminal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sn\": \"TERMINAL_SERIAL_NUMBER\",\n  \"name\": \"My Terminal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/register",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "register"]
+        },
+        "description": "Register a new terminal with serial number and name"
+      }
+    },
+    {
+      "name": "Sleep Terminals (Single)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalIds\": \"2355209\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/sleep",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "sleep"]
+        },
+        "description": "Put a single terminal to sleep mode"
+      }
+    },
+    {
+      "name": "Sleep Terminals (Multiple)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/sleep",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "sleep"]
+        },
+        "description": "Put multiple terminals to sleep mode"
+      }
+    },
+    {
+      "name": "Sleep Terminals (Default)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/sleep",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "sleep"]
+        },
+        "description": "Put default terminal to sleep (uses configured TERMINAL_ID)"
+      }
+    },
+    {
+      "name": "Wake Terminals (Single)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalIds\": \"2355209\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/wake",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "wake"]
+        },
+        "description": "Wake up a single terminal from sleep mode"
+      }
+    },
+    {
+      "name": "Wake Terminals (Multiple)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/wake",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "wake"]
+        },
+        "description": "Wake up multiple terminals from sleep mode"
+      }
+    },
+    {
+      "name": "Set Brightness (Single Terminal)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"brightness\": 75,\n  \"terminalIds\": \"2355209\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/brightness",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "brightness"]
+        },
+        "description": "Set brightness level (0-100) for a single terminal"
+      }
+    },
+    {
+      "name": "Set Brightness (Multiple Terminals)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"brightness\": 80,\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/brightness",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "brightness"]
+        },
+        "description": "Set brightness level (0-100) for multiple terminals"
+      }
+    },
+    {
+      "name": "Set GPS Reporting (Enable - Single)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"interval\": 30,\n  \"terminalIds\": \"2355209\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/gps-reporting",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "gps-reporting"]
+        },
+        "description": "Enable GPS reporting every 30 seconds for a single terminal"
+      }
+    },
+    {
+      "name": "Set GPS Reporting (Enable - Multiple)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"interval\": 60,\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/gps-reporting",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "gps-reporting"]
+        },
+        "description": "Enable GPS reporting every 60 seconds for multiple terminals"
+      }
+    },
+    {
+      "name": "Set GPS Reporting (Disable)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"interval\": 0,\n  \"terminalIds\": [\"2355209\", \"1234567\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/gps-reporting",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "gps-reporting"]
+        },
+        "description": "Disable GPS reporting (interval = 0) for multiple terminals"
+      }
+    },
+    {
+      "name": "Reboot Terminals (Single)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalIds\": \"2355209\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/reboot",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "reboot"]
+        },
+        "description": "Reboot a single terminal"
+      }
+    },
+    {
+      "name": "Reboot Terminals (Multiple)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/reboot",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "reboot"]
+        },
+        "description": "Reboot multiple terminals"
+      }
+    },
+    {
+      "name": "Get GPS Track Data",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminalId\": \"2355209\",\n  \"startTime\": \"2025-08-15T00:46:36\",\n  \"endTime\": \"2025-09-13T00:46:37\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/gps/track",
+          "host": ["{{base_url}}"],
+          "path": ["gps", "track"]
+        },
+        "description": "Get GPS tracking data for a terminal within a time range"
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set common variables",
+          "pm.globals.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Common test for all requests",
+          "pm.test('Status code is successful', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 207]);",
+          "});",
+          "",
+          "pm.test('Response has message', function () {",
+          "    const jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('message');",
+          "});",
+          "",
+          "// Test for multi-terminal responses",
+          "if (pm.response.code === 207) {",
+          "    pm.test('Multi-status response has results and errors', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('results');",
+          "        pm.expect(jsonData).to.have.property('successful');",
+          "        pm.expect(jsonData).to.have.property('failed');",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://slekto-backend.fly.dev",
+      "type": "string"
+    },
+    {
+      "key": "local_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "default_terminal_id",
+      "value": "2355209",
+      "type": "string"
+    },
+    {
+      "key": "test_terminal_ids",
+      "value": "[\"2355209\", \"1234567\", \"7891011\"]",
+      "type": "string"
+    }
+  ]
+}

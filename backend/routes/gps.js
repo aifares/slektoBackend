@@ -3,63 +3,68 @@ const axios = require("axios");
 const router = express.Router();
 
 const {
-  TERMINAL_ID,
-  TRACK_AUTH_HEADER,
   COLORLIGHT_TRACK_URL,
-  COLORLIGHT_LATEST_URL,
+  TRACK_AUTH_HEADER,
+  TERMINAL_ID,
 } = require("../utils");
 
-// --- Get current GPS info for hardcoded terminal ---
-router.get("/current", async (req, res) => {
-  try {
-    const response = await axios.post(
-      COLORLIGHT_LATEST_URL,
-      {
-        terminalId: TERMINAL_ID,
-      },
-      TRACK_AUTH_HEADER
-    );
-
-    res.json({ gps: response.data });
-  } catch (err) {
-    console.error(
-      "Error fetching current GPS info:",
-      err.response?.data || err.message
-    );
-    res.status(500).json({
-      error: "Failed to fetch current GPS info",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
+// --- Get GPS track data for a terminal ---
 router.post("/track", async (req, res) => {
-  const { startTime, endTime } = req.body;
+  const { terminalId, startTime, endTime } = req.body;
 
+  // Use provided terminalId or default to TERMINAL_ID from config
+  const targetTerminalId = terminalId || TERMINAL_ID;
+
+  // Validate required parameters
   if (!startTime || !endTime) {
     return res.status(400).json({
-      error: "startTime and endTime are required in the request body.",
+      error:
+        'Missing required parameters: "startTime" and "endTime" are required',
+      example: {
+        terminalId: "2355209",
+        startTime: "2025-08-15T00:46:36",
+        endTime: "2025-09-13T00:46:37",
+      },
     });
   }
+
+  // Validate date format (basic ISO string check)
+  const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+  if (!dateRegex.test(startTime) || !dateRegex.test(endTime)) {
+    return res.status(400).json({
+      error: "Invalid date format. Use ISO format: YYYY-MM-DDTHH:mm:ss",
+      example: {
+        startTime: "2025-08-15T00:46:36",
+        endTime: "2025-09-13T00:46:37",
+      },
+    });
+  }
+
   try {
     const response = await axios.post(
       COLORLIGHT_TRACK_URL,
       {
-        terminalId: TERMINAL_ID,
+        terminalId: targetTerminalId,
         startTime,
         endTime,
       },
       TRACK_AUTH_HEADER
     );
 
-    res.json(response.data);
+    res.json({
+      message: "GPS track data retrieved successfully",
+      terminalId: targetTerminalId,
+      startTime,
+      endTime,
+      data: response.data,
+    });
   } catch (err) {
     console.error(
-      "Error fetching GPS track info:",
+      "Error fetching GPS track data:",
       err.response?.data || err.message
     );
     res.status(500).json({
-      error: "Failed to fetch GPS track info",
+      error: "Failed to fetch GPS track data",
       details: err.response?.data || err.message,
     });
   }

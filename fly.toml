@@ -1,0 +1,23 @@
+# fly.toml app configuration file generated for slekto-backend on 2024-01-01
+
+app = "slekto-backend"
+primary_region = "ord"
+
+[build]
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+[[statics]]
+  guest_path = "/usr/src/app/public"
+  url_prefix = "/static/"

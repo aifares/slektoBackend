@@ -1,0 +1,461 @@
+{
+  "info": {
+    "_postman_id": "terminal-api-collection",
+    "name": "Terminal API Collection",
+    "description": "Collection for managing terminal operations including registration, sleep/wake controls, and brightness adjustment",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Terminals",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/terminals",
+          "host": ["{{base_url}}"],
+          "path": ["terminals"]
+        },
+        "description": "Retrieve all terminals using the configured terminal IDs"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/terminals",
+              "host": ["{{base_url}}"],
+              "path": ["terminals"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"terminals\": [\n    {\n      \"id\": \"2355209\",\n      \"name\": \"Terminal 1\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Register Terminal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sn\": \"TERMINAL_SERIAL_NUMBER\",\n  \"name\": \"My Terminal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/register",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "register"]
+        },
+        "description": "Register a new terminal with serial number and name"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sn\": \"TERMINAL_SERIAL_NUMBER\",\n  \"name\": \"My Terminal\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/register",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "register"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"message\": \"Terminal registered\",\n  \"data\": {\n    \"id\": \"new_terminal_id\",\n    \"sn\": \"TERMINAL_SERIAL_NUMBER\",\n    \"name\": \"My Terminal\"\n  }\n}"
+        },
+        {
+          "name": "Bad Request - Missing Parameters",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Terminal\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/register",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "register"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"error\": \"Missing \\\"sn\\\" or \\\"name\\\" in request body\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Sleep Terminal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/sleep",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "sleep"]
+        },
+        "description": "Put the terminal to sleep mode"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/sleep",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "sleep"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"message\": \"Terminal put to sleep\",\n  \"data\": {\n    \"status\": \"success\",\n    \"command\": \"sleep\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Wake Terminal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/wake",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "wake"]
+        },
+        "description": "Wake up the terminal from sleep mode"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/wake",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "wake"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"message\": \"Terminal woken up\",\n  \"data\": {\n    \"status\": \"success\",\n    \"command\": \"wakeup\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Set Terminal Brightness",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"brightness\": 75\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/terminals/brightness",
+          "host": ["{{base_url}}"],
+          "path": ["terminals", "brightness"]
+        },
+        "description": "Set the brightness level of the terminal (0-100)"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brightness\": 75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/brightness",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "brightness"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"message\": \"Brightness set to 75\",\n  \"data\": {\n    \"status\": \"success\",\n    \"brightness\": 75\n  }\n}"
+        },
+        {
+          "name": "Bad Request - Missing Brightness",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/brightness",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "brightness"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"error\": \"Missing \\\"brightness\\\" in request body\"\n}"
+        },
+        {
+          "name": "Bad Request - Invalid Brightness Range",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brightness\": 150\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/brightness",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "brightness"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"error\": \"Brightness must be a number between 0 and 100\"\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://slekto-backend.fly.dev",
+      "type": "string"
+    },
+    {
+      "key": "local_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

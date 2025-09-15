@@ -3,6 +3,18 @@ const COLORLIGHT_TRACK_URL =
 const COLORLIGHT_LATEST_URL =
   "https://us33.colorlightcloud.com/wp-json/led/v3/monitor/query/latest/single";
 
+const COLORLIGHT_BASE_URL =
+  "https://us33.colorlightcloud.com/wp-json/wp/v2/leds";
+
+const AUTH_HEADER = {
+  headers: {
+    Authorization: "Basic QWxpRmFyZXM6SHgxMjM0NTZAIw==",
+    "User-Agent": "Mozilla/5.0",
+    Referer: "https://us33.colorlightcloud.com/home",
+    Accept: "application/json",
+  },
+};
+
 const credentials = "AliFares:Hx123456@#";
 const encodedCredentials = Buffer.from(credentials).toString("base64");
 
@@ -27,6 +39,8 @@ const TERMINAL_ID = "2355209";
 module.exports = {
   COLORLIGHT_TRACK_URL,
   COLORLIGHT_LATEST_URL,
+  COLORLIGHT_BASE_URL,
+  AUTH_HEADER,
   TRACK_AUTH_HEADER,
   TERMINAL_ID,
 };
