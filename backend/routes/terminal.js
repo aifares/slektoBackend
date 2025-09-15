@@ -355,4 +355,89 @@ router.post("/reboot", async (req, res) => {
   }
 });
 
+// --- Check power status of terminals ---
+router.get("/powerstatus", async (req, res) => {
+  const { terminalIds, threshold } = req.query;
+
+  try {
+    // Parse terminal IDs - support query parameter or default
+    let targetTerminalIds;
+    if (terminalIds) {
+      // Support comma-separated string or array
+      targetTerminalIds =
+        typeof terminalIds === "string"
+          ? terminalIds.split(",").map((id) => id.trim())
+          : terminalIds;
+    } else {
+      targetTerminalIds = [TERMINAL_ID]; // Default terminal
+    }
+
+    // Get all terminals data from the main endpoint
+    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
+      ...AUTH_HEADER,
+      params: { terminalIds: targetTerminalIds.join(",") },
+    });
+
+    const terminals = response.data;
+    const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
+    // Allow dynamic threshold via query parameter, default to 30 seconds
+    const OFFLINE_THRESHOLD = threshold ? parseInt(threshold) : 30;
+
+    const powerStatusResults = terminals.map((terminal) => {
+      const lastReportTime = terminal.post_meta?._led_latest_report_time;
+
+      if (!lastReportTime) {
+        return {
+          terminalId: terminal.id,
+          status: "unknown",
+          message: "No report time available",
+          lastReportTime: null,
+          timeSinceLastReport: null,
+        };
+      }
+
+      const timeSinceLastReport = currentTime - lastReportTime;
+      const isOnline = timeSinceLastReport <= OFFLINE_THRESHOLD;
+
+      return {
+        terminalId: terminal.id,
+        status: isOnline ? "online" : "offline",
+        message: isOnline
+          ? `Device is online (last report ${timeSinceLastReport}s ago)`
+          : `Device is offline (last report ${timeSinceLastReport}s ago)`,
+        lastReportTime,
+        timeSinceLastReport,
+        threshold: OFFLINE_THRESHOLD,
+        lastReportDate: new Date(lastReportTime * 1000).toISOString(),
+      };
+    });
+
+    const summary = {
+      timestamp: new Date().toISOString(),
+      currentUnixTime: currentTime,
+      threshold: OFFLINE_THRESHOLD,
+      requestedTerminals: targetTerminalIds,
+      totalTerminals: powerStatusResults.length,
+      onlineCount: powerStatusResults.filter((t) => t.status === "online")
+        .length,
+      offlineCount: powerStatusResults.filter((t) => t.status === "offline")
+        .length,
+      unknownCount: powerStatusResults.filter((t) => t.status === "unknown")
+        .length,
+      terminals: powerStatusResults,
+    };
+
+    res.json(summary);
+  } catch (err) {
+    console.error(
+      "Error checking power status:",
+      err.response?.data || err.message
+    );
+    res.status(500).json({
+      error: "Failed to check power status",
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
 module.exports = router;
