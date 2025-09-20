@@ -1,0 +1,666 @@
+{
+  "info": {
+    "_postman_id": "updated-terminal-api-with-playing-collection",
+    "name": "Updated Terminal API Collection - With Playing Analytics",
+    "description": "Complete collection for managing terminals, content analytics, and GPS tracking. Includes terminal control operations, playing content analytics, and GPS data retrieval.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Terminal Operations",
+      "item": [
+        {
+          "name": "Get All Terminals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/terminals",
+              "host": ["{{base_url}}"],
+              "path": ["terminals"]
+            },
+            "description": "Retrieve all terminals using the configured terminal IDs"
+          }
+        },
+        {
+          "name": "Sleep Terminals (Multiple)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/sleep",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "sleep"]
+            },
+            "description": "Put multiple terminals to sleep mode"
+          }
+        },
+        {
+          "name": "Sleep Terminals (Default)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/sleep",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "sleep"]
+            },
+            "description": "Put default terminal to sleep (uses configured TERMINAL_ID)"
+          }
+        },
+        {
+          "name": "Wake Terminals (Multiple)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/wake",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "wake"]
+            },
+            "description": "Wake up multiple terminals from sleep mode"
+          }
+        },
+        {
+          "name": "Set Brightness (Multiple Terminals)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brightness\": 80,\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/brightness",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "brightness"]
+            },
+            "description": "Set brightness level (0-100) for multiple terminals"
+          }
+        },
+        {
+          "name": "Set GPS Reporting (Enable - Multiple)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interval\": 60,\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/gps-reporting",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "gps-reporting"]
+            },
+            "description": "Enable GPS reporting every 60 seconds for multiple terminals"
+          }
+        },
+        {
+          "name": "Set GPS Reporting (Disable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interval\": 0,\n  \"terminalIds\": [\"2355209\", \"1234567\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/gps-reporting",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "gps-reporting"]
+            },
+            "description": "Disable GPS reporting (interval = 0) for multiple terminals"
+          }
+        },
+        {
+          "name": "Reboot Terminals (Multiple)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalIds\": [\"2355209\", \"1234567\", \"7891011\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/reboot",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "reboot"]
+            },
+            "description": "Reboot multiple terminals"
+          }
+        },
+        {
+          "name": "Power Status (Default Terminal)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/terminals/powerstatus",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "powerstatus"]
+            },
+            "description": "Check power status of default terminal with 30-second threshold"
+          }
+        },
+        {
+          "name": "Power Status (Multiple Terminals)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/terminals/powerstatus?terminalIds=2355209,1234567,7891011",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "powerstatus"],
+              "query": [
+                {
+                  "key": "terminalIds",
+                  "value": "2355209,1234567,7891011"
+                }
+              ]
+            },
+            "description": "Check power status of multiple terminals"
+          }
+        },
+        {
+          "name": "Power Status (Custom Threshold)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/terminals/powerstatus?threshold=60",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "powerstatus"],
+              "query": [
+                {
+                  "key": "threshold",
+                  "value": "60"
+                }
+              ]
+            },
+            "description": "Check power status with custom 60-second threshold"
+          }
+        },
+        {
+          "name": "Register Terminal Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalIds\": [\"2355209\"],\n  \"forceUpdate\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/terminals/register",
+              "host": ["{{base_url}}"],
+              "path": ["terminals", "register"]
+            },
+            "description": "Manually register/update terminal data in database"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Playing Content Analytics",
+      "item": [
+        {
+          "name": "Get Currently Playing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/{{default_terminal_id}}/current",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "{{default_terminal_id}}", "current"]
+            },
+            "description": "Get currently playing content for a specific terminal. Includes program files with thumbnail URLs for frontend display."
+          }
+        },
+        {
+          "name": "Get Recently Played",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/{{default_terminal_id}}/recent?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "{{default_terminal_id}}", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get recently played content for a specific terminal"
+          }
+        },
+        {
+          "name": "Get Playback History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/{{default_terminal_id}}/history?recentLimit=10",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "{{default_terminal_id}}", "history"],
+              "query": [
+                {
+                  "key": "recentLimit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get full playback history (current + recent) for a terminal"
+          }
+        },
+        {
+          "name": "Get Duration Analytics - Specific Program",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/{{default_terminal_id}}/duration?program=Lava&date=2025-09-20",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "{{default_terminal_id}}", "duration"],
+              "query": [
+                {
+                  "key": "program",
+                  "value": "Lava"
+                },
+                {
+                  "key": "date",
+                  "value": "2025-09-20"
+                }
+              ]
+            },
+            "description": "Get duration analytics for a specific program on a specific date"
+          }
+        },
+        {
+          "name": "Get Duration Analytics - All Programs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/{{default_terminal_id}}/duration?date=2025-09-20",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "{{default_terminal_id}}", "duration"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-09-20"
+                }
+              ]
+            },
+            "description": "Get duration analytics for all programs on a specific date"
+          }
+        },
+        {
+          "name": "Get Duration Analytics - Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/{{default_terminal_id}}/duration?startDate=2025-09-20&endDate=2025-09-21",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "{{default_terminal_id}}", "duration"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-09-20"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-09-21"
+                }
+              ]
+            },
+            "description": "Get duration analytics for a date range"
+          }
+        },
+        {
+          "name": "Get Program Analytics - All Terminals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/analytics/programs?date=2025-09-20",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "analytics", "programs"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-09-20"
+                }
+              ]
+            },
+            "description": "Get program analytics across all terminals for a specific date"
+          }
+        },
+        {
+          "name": "Get Program Analytics - Specific Terminal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/analytics/programs?terminalId={{default_terminal_id}}&date=2025-09-20",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "analytics", "programs"],
+              "query": [
+                {
+                  "key": "terminalId",
+                  "value": "{{default_terminal_id}}"
+                },
+                {
+                  "key": "date",
+                  "value": "2025-09-20"
+                }
+              ]
+            },
+            "description": "Get program analytics for a specific terminal"
+          }
+        },
+        {
+          "name": "Get Program Analytics - Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/playing/analytics/programs?startDate=2025-09-20&endDate=2025-09-21",
+              "host": ["{{base_url}}"],
+              "path": ["playing", "analytics", "programs"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-09-20"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-09-21"
+                }
+              ]
+            },
+            "description": "Get program analytics for a date range across all terminals"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GPS Tracking",
+      "item": [
+        {
+          "name": "Get GPS Track Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalId\": \"{{default_terminal_id}}\",\n  \"startTime\": \"2025-08-15T00:46:36\",\n  \"endTime\": \"2025-09-13T00:46:37\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/track",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "track"]
+            },
+            "description": "Get GPS tracking data for a terminal within a time range"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set common variables",
+          "pm.globals.set('timestamp', new Date().toISOString());",
+          "pm.globals.set('today', new Date().toISOString().split('T')[0]);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Common test for all requests",
+          "pm.test('Status code is successful', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 207, 404]);",
+          "});",
+          "",
+          "pm.test('Response has expected structure', function () {",
+          "    const jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.be.an('object');",
+          "});",
+          "",
+          "// Test for multi-terminal responses",
+          "if (pm.response.code === 207) {",
+          "    pm.test('Multi-status response has results and errors', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('results');",
+          "        pm.expect(jsonData).to.have.property('successful');",
+          "        pm.expect(jsonData).to.have.property('failed');",
+          "    });",
+          "}",
+          "",
+          "// Test for power status responses",
+          "if (pm.request.url.toString().includes('powerstatus')) {",
+          "    pm.test('Power status response has terminals array', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('terminals');",
+          "        pm.expect(jsonData.terminals).to.be.an('array');",
+          "    });",
+          "}",
+          "",
+          "// Test for playing analytics responses",
+          "if (pm.request.url.toString().includes('/playing/')) {",
+          "    pm.test('Playing response has terminalId', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('terminalId');",
+          "    });",
+          "}",
+          "",
+          "// Test for program analytics responses",
+          "if (pm.request.url.toString().includes('analytics/programs')) {",
+          "    pm.test('Program analytics response has programs array', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('programs');",
+          "        pm.expect(jsonData.programs).to.be.an('array');",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://slekto-backend.fly.dev",
+      "type": "string"
+    },
+    {
+      "key": "local_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "default_terminal_id",
+      "value": "2355209",
+      "type": "string"
+    },
+    {
+      "key": "test_terminal_ids",
+      "value": "2355209,1234567,7891011",
+      "type": "string"
+    }
+  ]
+}

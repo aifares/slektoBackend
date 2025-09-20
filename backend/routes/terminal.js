@@ -3,6 +3,7 @@ const axios = require("axios");
 const router = express.Router();
 
 const { AUTH_HEADER, TERMINAL_ID, COLORLIGHT_BASE_URL } = require("../utils");
+const databaseService = require("../services/database");
 
 // Helper function to execute commands on multiple terminals
 async function executeCommandOnTerminals(terminalIds, commandData) {
@@ -58,14 +59,42 @@ function parseTerminalIds(terminalIds) {
 
 // --- Get all terminals ---
 router.get("/", async (req, res) => {
-  const terminalIds = TERMINAL_ID;
+  const { terminalIds, skipDbUpdate } = req.query;
 
   try {
-    const response = await axios.get(`${COLORLIGHT_BASE_URL}/terminals`, {
+    const targetTerminalIds = parseTerminalIds(terminalIds);
+
+    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
       ...AUTH_HEADER,
-      params: { terminalIds },
+      params: { terminalIds: targetTerminalIds.join(",") },
     });
-    res.json(response.data);
+
+    const terminals = response.data;
+
+    // Auto-update database with latest terminal data (unless explicitly disabled)
+    if (skipDbUpdate !== "true") {
+      const updatePromises = terminals.map(async (terminalData) => {
+        try {
+          await databaseService.registerTerminalData(terminalData, true);
+          console.log(
+            `✅ Auto-updated terminal ${terminalData.id} in database`
+          );
+        } catch (error) {
+          console.error(
+            `❌ Failed to auto-update terminal ${terminalData.id}:`,
+            error.message
+          );
+          // Don't fail the main request if database update fails
+        }
+      });
+
+      // Execute all database updates in parallel (non-blocking)
+      Promise.allSettled(updatePromises).catch(() => {
+        // Silently handle any remaining errors to not affect the main response
+      });
+    }
+
+    res.json(terminals);
   } catch (err) {
     console.error(
       "Error fetching terminals:",
@@ -407,6 +436,84 @@ router.get("/powerstatus", async (req, res) => {
     res.status(500).json({
       error: "Failed to check power status",
       details: err.response?.data || err.message,
+    });
+  }
+});
+
+// --- Register terminal data to database ---
+router.post("/register", async (req, res) => {
+  const { terminalIds, forceUpdate } = req.body;
+
+  try {
+    const targetTerminalIds = parseTerminalIds(terminalIds);
+
+    // Fetch terminal data from the existing endpoint
+    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
+      ...AUTH_HEADER,
+      params: { terminalIds: targetTerminalIds.join(",") },
+    });
+
+    const terminals = response.data;
+    const registrationResults = [];
+    const registrationErrors = [];
+
+    // Process each terminal
+    const skippedTerminals = [];
+    for (const terminalData of terminals) {
+      try {
+        const result = await databaseService.registerTerminalData(
+          terminalData,
+          forceUpdate
+        );
+
+        if (result.skipped) {
+          skippedTerminals.push({
+            terminalId: terminalData.id?.toString() || "unknown",
+            skipped: true,
+            reason: result.reason,
+          });
+        } else {
+          registrationResults.push({
+            terminalId: terminalData.id?.toString() || "unknown",
+            success: true,
+            data: result,
+          });
+        }
+      } catch (error) {
+        registrationErrors.push({
+          terminalId: terminalData.id?.toString() || "unknown",
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
+    const totalProcessed = registrationResults.length + skippedTerminals.length;
+    const summary = {
+      message: `Registration completed: ${registrationResults.length} updated, ${skippedTerminals.length} skipped, ${registrationErrors.length} failed`,
+      successful: registrationResults.length,
+      skipped: skippedTerminals.length,
+      failed: registrationErrors.length,
+      requestedTerminals: targetTerminalIds,
+      results: registrationResults,
+    };
+
+    if (skippedTerminals.length > 0) {
+      summary.skippedTerminals = skippedTerminals;
+    }
+
+    if (registrationErrors.length > 0) {
+      summary.errors = registrationErrors;
+    }
+
+    // Return 207 Multi-Status if there are partial failures, 200 if all successful
+    const statusCode = registrationErrors.length > 0 ? 207 : 200;
+    res.status(statusCode).json(summary);
+  } catch (err) {
+    console.error("Error registering terminal data:", err.message);
+    res.status(500).json({
+      error: "Failed to register terminal data",
+      details: err.message,
     });
   }
 });
