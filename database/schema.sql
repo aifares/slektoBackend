@@ -114,6 +114,36 @@ CREATE TABLE IF NOT EXISTS terminal_status_log (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. GPS Points (daily raw locations)
+CREATE TABLE IF NOT EXISTS terminal_gps_data (
+  id BIGSERIAL PRIMARY KEY,
+  terminal_id TEXT REFERENCES terminals(terminalId),
+  data_date DATE NOT NULL,                    -- UTC date representing the data window (e.g., 2025-08-15)
+  longitude DOUBLE PRECISION NOT NULL,
+  latitude DOUBLE PRECISION NOT NULL,
+  inserted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. Client (single advertiser/customer)
+CREATE TABLE IF NOT EXISTS client (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. Campaigns (each row represents a single campaign)
+CREATE TABLE IF NOT EXISTS campaign (
+  id BIGSERIAL PRIMARY KEY,
+  client_id BIGINT REFERENCES client(id) ON DELETE CASCADE,
+  program_id BIGINT REFERENCES programs(id),
+  hours_bought NUMERIC(10,2) NOT NULL CHECK (hours_bought >= 0),
+  start_at TIMESTAMPTZ NOT NULL,
+  end_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'active', 'paused', 'completed', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK (start_at <= end_at)
+);
+
 -- ==========================================================
 -- 📑 Indexes for Performance
 -- ==========================================================
@@ -148,6 +178,16 @@ CREATE INDEX IF NOT EXISTS idx_terminal_status_log_status ON terminal_status_log
 CREATE INDEX IF NOT EXISTS idx_terminal_status_log_changed_at ON terminal_status_log(status_changed_at);
 CREATE INDEX IF NOT EXISTS idx_terminal_status_log_terminal_status ON terminal_status_log(terminal_id, status);
 CREATE INDEX IF NOT EXISTS idx_terminal_status_log_date_range ON terminal_status_log(status_changed_at, terminal_id);
+
+-- Indexes for terminal_gps_data
+CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_date ON terminal_gps_data(terminal_id, data_date);
+
+-- Indexes for client and campaign
+CREATE INDEX IF NOT EXISTS idx_client_name ON client(name);
+CREATE INDEX IF NOT EXISTS idx_campaign_client_id ON campaign(client_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_program_id ON campaign(program_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_status ON campaign(status);
+CREATE INDEX IF NOT EXISTS idx_campaign_date_range ON campaign(start_at, end_at);
 
 -- ==========================================================
 -- 📑 Row Level Security (RLS) - Optional

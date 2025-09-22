@@ -855,30 +855,20 @@ class DatabaseService {
       ) {
         const now = new Date().toISOString();
 
-        // Update the previous record with its duration (if it exists)
+        // Calculate duration of previous status
+        let durationSeconds = null;
         if (currentStatus) {
           const previousChangeTime = new Date(currentStatus.status_changed_at);
-          const previousDurationSeconds = Math.round(
+          durationSeconds = Math.round(
             (new Date(now) - previousChangeTime) / 1000
           );
-
-          // Update the previous record with its duration
-          await supabase
-            .from("terminal_status_log")
-            .update({
-              duration_seconds: previousDurationSeconds
-            })
-            .eq("id", currentStatus.id);
-
-          console.log(`✅ Updated previous ${currentStatus.status} record with duration: ${previousDurationSeconds}s`);
         }
 
-        // Create new record with no duration (it just started)
         const statusData = {
           terminal_id: terminalId,
           status: isOnline ? "online" : "offline",
           status_changed_at: now,
-          duration_seconds: null, // New status just started, no duration yet
+          duration_seconds: durationSeconds,
           power_status: terminalData.power_status,
           led_activity_at: terminalData.led_latest_time
             ? new Date(terminalData.led_latest_time * 1000).toISOString()
@@ -1069,6 +1059,29 @@ class DatabaseService {
       );
       return [];
     }
+  }
+
+  // ========== GPS POINTS (terminal_gps_data) ==========
+
+  /**
+   * Insert multiple GPS points for a terminal and data_date
+   * @param {Array<{ terminal_id: string, data_date: string, longitude: number, latitude: number }>} rows
+   * @returns {Promise<Array>} Inserted rows
+   */
+  async insertTerminalGpsPoints(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("terminal_gps_data")
+      .insert(rows)
+      .select();
+
+    if (error) {
+      throw new Error(`Failed to insert terminal_gps_data: ${error.message}`);
+    }
+    return data || [];
   }
 }
 

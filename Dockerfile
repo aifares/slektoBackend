@@ -10,8 +10,15 @@ COPY package*.json ./
 # Install any needed packages specified in package.json
 RUN npm ci --only=production
 
+# Install Supercronic for cron-like scheduling in containers
+RUN wget -O /usr/local/bin/supercronic https://github.com/aptible/supercronic/releases/download/v0.2.29/supercronic-linux-amd64 \
+  && chmod +x /usr/local/bin/supercronic
+
 # Copy the rest of the application code
 COPY . .
+
+# Copy crontab
+COPY cron/crontab /etc/crontab
 
 # Make port 3000 available to the world outside this container
 EXPOSE 3000
@@ -19,5 +26,5 @@ EXPOSE 3000
 # Define environment variable
 ENV NODE_ENV=production
 
-# Run the application
+# Default command runs the web app process; cron is configured via Fly processes
 CMD ["node", "backend/server.js"]

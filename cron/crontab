@@ -1,0 +1,3 @@
+# Run daily at 05:00 UTC (midnight Eastern during standard time)
+0 5 * * * node /usr/src/app/backend/jobs/fetch_gps_daily.js
+

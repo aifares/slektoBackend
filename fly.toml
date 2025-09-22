@@ -18,6 +18,11 @@ primary_region = "ord"
   cpus = 1
   memory_mb = 256
 
+# Define a separate cron process using Supercronic
+[processes]
+  app = "node backend/server.js"
+  cron = "supercronic /etc/crontab"
+
 [[statics]]
   guest_path = "/usr/src/app/public"
   url_prefix = "/static/"
