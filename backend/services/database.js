@@ -848,6 +848,16 @@ class DatabaseService {
         this.determineOnlineStatus(terminalData);
       const currentStatus = await this.getCurrentTerminalStatus(terminalId);
 
+      // Normalize commonly used fields from either parsed or raw API data
+      const powerStatus =
+        terminalData?.power_status ??
+        terminalData?.post_meta?._led_status?.powerstatus?.powerstatus?.toString?.() ??
+        null;
+      const ledLatestTime =
+        terminalData?.led_latest_time ??
+        terminalData?.post_meta?._led_latest_report_time ??
+        null;
+
       // If no previous status or status has changed
       if (
         !currentStatus ||
@@ -855,29 +865,52 @@ class DatabaseService {
       ) {
         const now = new Date().toISOString();
 
-        // Calculate duration of previous status
-        let durationSeconds = null;
+        // If there is a previous status session, close it by updating its duration
         if (currentStatus) {
           const previousChangeTime = new Date(currentStatus.status_changed_at);
-          durationSeconds = Math.round(
+          const durationSeconds = Math.round(
             (new Date(now) - previousChangeTime) / 1000
           );
+
+          console.log(
+            `⏱️ Closing previous status row id=${currentStatus.id} (${currentStatus.status}) with duration_seconds=${durationSeconds}`
+          );
+
+          const { error: prevUpdateError } = await supabase
+            .from("terminal_status_log")
+            .update({
+              duration_seconds: durationSeconds,
+              api_response_at: now,
+            })
+            .eq("id", currentStatus.id);
+
+          if (prevUpdateError) {
+            console.warn(
+              `⚠️ Failed to update previous status row ${currentStatus.id}: ${prevUpdateError.message}`
+            );
+          }
         }
 
         const statusData = {
           terminal_id: terminalId,
           status: isOnline ? "online" : "offline",
           status_changed_at: now,
-          duration_seconds: durationSeconds,
-          power_status: terminalData.power_status,
-          led_activity_at: terminalData.led_latest_time
-            ? new Date(terminalData.led_latest_time * 1000).toISOString()
+          duration_seconds: null, // open session; will be set when status changes again
+          power_status: powerStatus,
+          led_activity_at: ledLatestTime
+            ? new Date(ledLatestTime * 1000).toISOString()
             : null,
           api_response_at: now,
           reason: reason,
         };
 
+        console.log(
+          `🆕 Inserting new status row for ${terminalId}: ${statusData.status} (duration_seconds should be null)`
+        );
         const newStatus = await this.logTerminalStatusChange(statusData);
+        console.log(
+          `✅ Inserted status row id=${newStatus.id} status=${newStatus.status} duration_seconds=${newStatus.duration_seconds}`
+        );
         return newStatus;
       }
 
