@@ -75,10 +75,23 @@ router.get("/", async (req, res) => {
     if (skipDbUpdate !== "true") {
       const updatePromises = terminals.map(async (terminalData) => {
         try {
+          // Register terminal data
           await databaseService.registerTerminalData(terminalData, true);
           console.log(
             `✅ Auto-updated terminal ${terminalData.id} in database`
           );
+
+          // Update terminal status (online/offline tracking)
+          const statusChange = await databaseService.updateTerminalStatus(
+            terminalData.id,
+            terminalData
+          );
+
+          if (statusChange) {
+            console.log(
+              `📊 Terminal ${terminalData.id} status changed to ${statusChange.status}`
+            );
+          }
         } catch (error) {
           console.error(
             `❌ Failed to auto-update terminal ${terminalData.id}:`,
@@ -381,7 +394,7 @@ router.get("/powerstatus", async (req, res) => {
     const terminals = response.data;
     const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
     // Allow dynamic threshold via query parameter, default to 30 seconds
-    const OFFLINE_THRESHOLD = threshold ? parseInt(threshold) : 30;
+    const OFFLINE_THRESHOLD = threshold ? parseInt(threshold) : 90;
 
     const powerStatusResults = terminals.map((terminal) => {
       const lastReportTime = terminal.post_meta?._led_latest_report_time;

@@ -100,6 +100,20 @@ CREATE TABLE IF NOT EXISTS connectivity (
   gps TEXT                                    -- status.gps
 );
 
+-- 8. Terminal Status Log (Online/Offline Tracking)
+CREATE TABLE IF NOT EXISTS terminal_status_log (
+  id BIGSERIAL PRIMARY KEY,
+  terminal_id TEXT REFERENCES terminals(terminalId),
+  status TEXT NOT NULL CHECK (status IN ('online', 'offline')),
+  status_changed_at TIMESTAMPTZ NOT NULL,
+  duration_seconds INTEGER,                   -- Duration of previous status
+  power_status TEXT,                          -- 'on' or 'off' from terminal
+  led_activity_at TIMESTAMPTZ,               -- Last LED activity timestamp
+  api_response_at TIMESTAMPTZ,               -- Last API response timestamp
+  reason TEXT,                                -- Why status changed ('power_off', 'timeout', 'api_error', 'manual')
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ==========================================================
 -- 📑 Indexes for Performance
 -- ==========================================================
@@ -127,6 +141,13 @@ CREATE INDEX IF NOT EXISTS idx_device_status_report_time ON device_status(report
 
 -- Indexes for connectivity (terminal_id already indexed as PRIMARY KEY)
 -- No additional indexes needed for connectivity
+
+-- Indexes for terminal_status_log
+CREATE INDEX IF NOT EXISTS idx_terminal_status_log_terminal_id ON terminal_status_log(terminal_id);
+CREATE INDEX IF NOT EXISTS idx_terminal_status_log_status ON terminal_status_log(status);
+CREATE INDEX IF NOT EXISTS idx_terminal_status_log_changed_at ON terminal_status_log(status_changed_at);
+CREATE INDEX IF NOT EXISTS idx_terminal_status_log_terminal_status ON terminal_status_log(terminal_id, status);
+CREATE INDEX IF NOT EXISTS idx_terminal_status_log_date_range ON terminal_status_log(status_changed_at, terminal_id);
 
 -- ==========================================================
 -- 📑 Row Level Security (RLS) - Optional

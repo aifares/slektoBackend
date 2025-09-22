@@ -739,6 +739,337 @@ class DatabaseService {
       throw new Error(`Failed to register terminal data: ${error.message}`);
     }
   }
+
+  // ========== TERMINAL STATUS TRACKING ==========
+
+  /**
+   * Determine if a terminal is online using the same logic as /powerstatus
+   * @param {Object} terminalData - Terminal data from API
+   * @returns {Object} - { isOnline, reason, indicators }
+   */
+  determineOnlineStatus(terminalData) {
+    const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
+    const OFFLINE_THRESHOLD = 90; // 90 seconds threshold (same as /powerstatus)
+
+    const lastReportTime = terminalData.post_meta?._led_latest_report_time;
+
+    if (!lastReportTime) {
+      return {
+        isOnline: false,
+        reason: "no_report_time",
+        indicators: {
+          lastReportTime: null,
+          timeSinceLastReport: null,
+          threshold: OFFLINE_THRESHOLD,
+        },
+      };
+    }
+
+    const timeSinceLastReport = currentTime - lastReportTime;
+    const isOnline = timeSinceLastReport <= OFFLINE_THRESHOLD;
+
+    return {
+      isOnline,
+      reason: isOnline ? "online" : "offline",
+      indicators: {
+        lastReportTime,
+        timeSinceLastReport,
+        threshold: OFFLINE_THRESHOLD,
+        lastReportDate: new Date(lastReportTime * 1000).toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Get the current status of a terminal from the database
+   * @param {string} terminalId - Terminal ID
+   * @returns {Promise<Object|null>} - Current status record or null
+   */
+  async getCurrentTerminalStatus(terminalId) {
+    try {
+      const { data, error } = await supabase
+        .from("terminal_status_log")
+        .select("*")
+        .eq("terminal_id", terminalId)
+        .order("status_changed_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 = no rows found
+        throw new Error(`Failed to get current status: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error(
+        `Error getting current status for ${terminalId}:`,
+        error.message
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Log a terminal status change
+   * @param {Object} statusData - Status change data
+   * @returns {Promise<Object>} - Created status record
+   */
+  async logTerminalStatusChange(statusData) {
+    try {
+      const { data, error } = await supabase
+        .from("terminal_status_log")
+        .insert(statusData)
+        .select()
+        .single();
+
+      if (error)
+        throw new Error(`Failed to log status change: ${error.message}`);
+
+      console.log(
+        `📊 Status logged: ${statusData.terminal_id} is ${statusData.status} (${statusData.reason})`
+      );
+      return data;
+    } catch (error) {
+      console.error(`Error logging status change:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Update terminal status if it has changed
+   * @param {string} terminalId - Terminal ID
+   * @param {Object} terminalData - Current terminal data from API
+   * @returns {Promise<Object|null>} - Status change record or null if no change
+   */
+  async updateTerminalStatus(terminalId, terminalData) {
+    try {
+      const { isOnline, reason, indicators } =
+        this.determineOnlineStatus(terminalData);
+      const currentStatus = await this.getCurrentTerminalStatus(terminalId);
+
+      // If no previous status or status has changed
+      if (
+        !currentStatus ||
+        currentStatus.status !== (isOnline ? "online" : "offline")
+      ) {
+        const now = new Date().toISOString();
+
+        // Update the previous record with its duration (if it exists)
+        if (currentStatus) {
+          const previousChangeTime = new Date(currentStatus.status_changed_at);
+          const previousDurationSeconds = Math.round(
+            (new Date(now) - previousChangeTime) / 1000
+          );
+
+          // Update the previous record with its duration
+          await supabase
+            .from("terminal_status_log")
+            .update({
+              duration_seconds: previousDurationSeconds
+            })
+            .eq("id", currentStatus.id);
+
+          console.log(`✅ Updated previous ${currentStatus.status} record with duration: ${previousDurationSeconds}s`);
+        }
+
+        // Create new record with no duration (it just started)
+        const statusData = {
+          terminal_id: terminalId,
+          status: isOnline ? "online" : "offline",
+          status_changed_at: now,
+          duration_seconds: null, // New status just started, no duration yet
+          power_status: terminalData.power_status,
+          led_activity_at: terminalData.led_latest_time
+            ? new Date(terminalData.led_latest_time * 1000).toISOString()
+            : null,
+          api_response_at: now,
+          reason: reason,
+        };
+
+        const newStatus = await this.logTerminalStatusChange(statusData);
+        return newStatus;
+      }
+
+      // Status hasn't changed, just update API response time
+      if (currentStatus) {
+        await supabase
+          .from("terminal_status_log")
+          .update({ api_response_at: new Date().toISOString() })
+          .eq("id", currentStatus.id);
+      }
+
+      return null; // No status change
+    } catch (error) {
+      console.error(
+        `Error updating terminal status for ${terminalId}:`,
+        error.message
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Get terminal uptime analytics for a specific period
+   * @param {string} terminalId - Terminal ID (optional, null for all terminals)
+   * @param {string} startDate - Start date (YYYY-MM-DD)
+   * @param {string} endDate - End date (YYYY-MM-DD)
+   * @returns {Promise<Object>} - Uptime analytics
+   */
+  async getTerminalUptimeAnalytics(terminalId = null, startDate, endDate) {
+    try {
+      let query = supabase
+        .from("terminal_status_log")
+        .select(
+          "terminal_id, status, status_changed_at, duration_seconds, reason"
+        )
+        .gte("status_changed_at", `${startDate}T00:00:00`)
+        .lt("status_changed_at", `${endDate}T23:59:59`);
+
+      if (terminalId) {
+        query = query.eq("terminal_id", terminalId);
+      }
+
+      const { data, error } = await query;
+
+      if (error)
+        throw new Error(`Failed to fetch uptime analytics: ${error.message}`);
+
+      // Group by terminal and calculate analytics
+      const analytics = {};
+
+      data.forEach((record) => {
+        const tid = record.terminal_id;
+        if (!analytics[tid]) {
+          analytics[tid] = {
+            terminal_id: tid,
+            total_online_seconds: 0,
+            total_offline_seconds: 0,
+            online_sessions: 0,
+            offline_sessions: 0,
+            uptime_percentage: 0,
+            sessions: [],
+          };
+        }
+
+        if (record.status === "online") {
+          analytics[tid].total_online_seconds += record.duration_seconds || 0;
+          analytics[tid].online_sessions++;
+        } else {
+          analytics[tid].total_offline_seconds += record.duration_seconds || 0;
+          analytics[tid].offline_sessions++;
+        }
+
+        analytics[tid].sessions.push({
+          status: record.status,
+          changed_at: record.status_changed_at,
+          duration_seconds: record.duration_seconds,
+          reason: record.reason,
+        });
+      });
+
+      // Calculate uptime percentages
+      Object.values(analytics).forEach((terminal) => {
+        const totalSeconds =
+          terminal.total_online_seconds + terminal.total_offline_seconds;
+        terminal.uptime_percentage =
+          totalSeconds > 0
+            ? Math.round(
+                (terminal.total_online_seconds / totalSeconds) * 100 * 100
+              ) / 100
+            : 0;
+
+        // Convert seconds to hours for readability
+        terminal.total_online_hours =
+          Math.round((terminal.total_online_seconds / 3600) * 100) / 100;
+        terminal.total_offline_hours =
+          Math.round((terminal.total_offline_seconds / 3600) * 100) / 100;
+      });
+
+      return {
+        period: { startDate, endDate },
+        terminals: Object.values(analytics),
+        total_terminals: Object.keys(analytics).length,
+      };
+    } catch (error) {
+      console.error(`Error getting uptime analytics:`, error.message);
+      throw error;
+    }
+  }
+
+  // ========== MEDIA SERVICE ==========
+
+  /**
+   * Fetch media data from ColorLight media endpoint for a specific program
+   * @param {number} programId - The program ID to fetch media for
+   * @returns {Promise<Array>} - Array of media objects with thumbnail URLs
+   */
+  async fetchMediaByProgramId(programId) {
+    try {
+      const { AUTH_HEADER } = require("../utils");
+      const axios = require("axios");
+
+      const mediaUrl = "https://us33.colorlightcloud.com/wp-json/wp/v2/media";
+
+      const response = await axios.get(mediaUrl, {
+        ...AUTH_HEADER,
+        params: {
+          page: 1,
+          per_page: 50, // Get more results to ensure we find the program
+          flag: "filter",
+        },
+      });
+
+      if (!response.data || !Array.isArray(response.data)) {
+        console.warn(`No media data found for program ${programId}`);
+        return [];
+      }
+
+      // Filter media by program_id in attachment_program
+      const programMedia = response.data.filter((media) => {
+        if (
+          !media.attachment_program ||
+          !Array.isArray(media.attachment_program)
+        ) {
+          return false;
+        }
+        return media.attachment_program.some(
+          (program) => program.id === programId
+        );
+      });
+
+      // Map to our program files format
+      const programFiles = programMedia
+        .filter((media) => {
+          // Only include PNG files
+          return (
+            media.mime_type === "image/png" &&
+            media.media_details?.sizes?.thumbnail?.source_url
+          );
+        })
+        .map((media) => ({
+          name: media.name,
+          total: media.attachment_filesize || 0,
+          programId: programId,
+          downloaded: media.attachment_filesize || 0,
+          thumbnail_url: media.media_details.sizes.thumbnail.source_url,
+          full_url: media.source_url,
+          media_id: media.id,
+          title: media.title?.rendered || media.title_raw || media.name,
+        }));
+
+      console.log(
+        `📸 Found ${programFiles.length} media files for program ${programId}`
+      );
+      return programFiles;
+    } catch (error) {
+      console.error(
+        `Error fetching media for program ${programId}:`,
+        error.message
+      );
+      return [];
+    }
+  }
 }
 
 module.exports = new DatabaseService();

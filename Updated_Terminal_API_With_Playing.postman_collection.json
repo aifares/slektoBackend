@@ -571,6 +571,168 @@
             },
             "description": "Get GPS tracking data for a terminal within a time range"
           }
+        },
+        {
+          "name": "Get Live GPS Data (Default Terminal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/live",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "live"]
+            },
+            "description": "Get live GPS data and online status for the default terminal. Uses default 90-second threshold for online detection."
+          }
+        },
+        {
+          "name": "Get Live GPS Data (Specific Terminal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalId\": \"{{default_terminal_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/live",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "live"]
+            },
+            "description": "Get live GPS data and online status for a specific terminal. Includes isOnline status based on last report time."
+          }
+        },
+        {
+          "name": "Get Live GPS Data (Custom Threshold)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalId\": \"{{default_terminal_id}}\",\n  \"threshold\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/live",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "live"]
+            },
+            "description": "Get live GPS data with custom threshold for online detection. This example uses 30 seconds instead of the default 90 seconds."
+          }
+        },
+        {
+          "name": "Get Live GPS Data (All Terminals)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/live",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "live"]
+            },
+            "description": "Get live GPS data for ALL terminals in group 6640. Returns multi-terminal response format with summary statistics."
+          }
+        },
+        {
+          "name": "Get Live GPS Data (Multiple Terminals)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalIds\": [\"{{default_terminal_id}}\", \"1234567\", \"7891011\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/live",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "live"]
+            },
+            "description": "Get live GPS data for multiple specific terminals. Returns array of results with individual online status for each terminal."
+          }
+        },
+        {
+          "name": "Get Live GPS Data (Multiple with Custom Threshold)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalIds\": [\"{{default_terminal_id}}\", \"1234567\"],\n  \"threshold\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gps/live",
+              "host": ["{{base_url}}"],
+              "path": ["gps", "live"]
+            },
+            "description": "Get live GPS data for multiple terminals with custom 60-second threshold for online detection."
+          }
         }
       ]
     }
@@ -635,6 +797,63 @@
           "        const jsonData = pm.response.json();",
           "        pm.expect(jsonData).to.have.property('programs');",
           "        pm.expect(jsonData.programs).to.be.an('array');",
+          "    });",
+          "}",
+          "",
+          "// Test for GPS live responses",
+          "if (pm.request.url.toString().includes('/gps/live')) {",
+          "    pm.test('GPS live response has message', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('message');",
+          "    });",
+          "",
+          "    // Test for single terminal response (backward compatibility)",
+          "    if (jsonData.hasOwnProperty('terminalId') && !jsonData.hasOwnProperty('terminals')) {",
+          "        pm.test('Single terminal response has required fields', function () {",
+          "            pm.expect(jsonData).to.have.property('terminalId');",
+          "            pm.expect(jsonData).to.have.property('isOnline');",
+          "            pm.expect(jsonData).to.have.property('status');",
+          "            pm.expect(jsonData).to.have.property('gpsData');",
+          "        });",
+          "",
+          "        pm.test('Single terminal isOnline is boolean', function () {",
+          "            pm.expect(jsonData.isOnline).to.be.a('boolean');",
+          "        });",
+          "",
+          "        pm.test('Single terminal status is valid', function () {",
+          "            pm.expect(jsonData.status).to.be.oneOf(['online', 'offline', 'unknown']);",
+          "        });",
+          "    }",
+          "",
+          "    // Test for multi-terminal response",
+          "    if (jsonData.hasOwnProperty('terminals')) {",
+          "        pm.test('Multi-terminal response has required fields', function () {",
+          "            pm.expect(jsonData).to.have.property('terminals');",
+          "            pm.expect(jsonData).to.have.property('totalTerminals');",
+          "            pm.expect(jsonData).to.have.property('onlineCount');",
+          "            pm.expect(jsonData).to.have.property('offlineCount');",
+          "            pm.expect(jsonData.terminals).to.be.an('array');",
+          "        });",
+          "",
+          "        pm.test('Each terminal in array has required fields', function () {",
+          "            jsonData.terminals.forEach(function(terminal) {",
+          "                pm.expect(terminal).to.have.property('terminalId');",
+          "                pm.expect(terminal).to.have.property('isOnline');",
+          "                pm.expect(terminal).to.have.property('status');",
+          "                pm.expect(terminal).to.have.property('gpsData');",
+          "                pm.expect(terminal.isOnline).to.be.a('boolean');",
+          "                pm.expect(terminal.status).to.be.oneOf(['online', 'offline', 'unknown']);",
+          "            });",
+          "        });",
+          "    }",
+          "}",
+          "",
+          "// Test for GPS track responses",
+          "if (pm.request.url.toString().includes('/gps/track')) {",
+          "    pm.test('GPS track response has data', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('data');",
+          "        pm.expect(jsonData).to.have.property('terminalId');",
           "    });",
           "}"
         ]

@@ -2,6 +2,8 @@ const COLORLIGHT_TRACK_URL =
   "https://us33.colorlightcloud.com/wp-json/led/v3/monitor/query/track";
 const COLORLIGHT_LATEST_URL =
   "https://us33.colorlightcloud.com/wp-json/led/v3/monitor/query/latest/single";
+const COLORLIGHT_LIVE_URL =
+  "https://us33.colorlightcloud.com/wp-json/led/v3/monitor/query/latest";
 
 const COLORLIGHT_BASE_URL =
   "https://us33.colorlightcloud.com/wp-json/wp/v2/leds";
@@ -39,6 +41,7 @@ const TERMINAL_ID = "2355209";
 module.exports = {
   COLORLIGHT_TRACK_URL,
   COLORLIGHT_LATEST_URL,
+  COLORLIGHT_LIVE_URL,
   COLORLIGHT_BASE_URL,
   AUTH_HEADER,
   TRACK_AUTH_HEADER,

@@ -20,33 +20,17 @@ router.get("/:terminalId/current", async (req, res) => {
       });
     }
 
-    // Get program files if program_id exists
+    // Get program files from media API if program_id exists
     let programFiles = [];
     if (currentlyPlaying.program_id) {
       try {
-        const { data: files, error: filesError } = await supabase
-          .from("files")
-          .select("*")
-          .eq("program_id", currentlyPlaying.program_id);
-
-        if (filesError) {
-          console.warn(`Failed to fetch program files: ${filesError.message}`);
-        } else {
-          // Filter for PNG files and construct thumbnail URLs
-          programFiles = files
-            .filter(
-              (file) => file.name && file.name.toLowerCase().endsWith(".png")
-            )
-            .map((file) => ({
-              name: file.name,
-              total: file.size,
-              programId: file.program_id,
-              downloaded: file.downloaded,
-              thumbnail_url: `https://us33.colorlightcloud.com/wp-content/playList/thumbnails/${file.name}`,
-            }));
-        }
-      } catch (filesErr) {
-        console.warn(`Error fetching program files: ${filesErr.message}`);
+        programFiles = await databaseService.fetchMediaByProgramId(
+          currentlyPlaying.program_id
+        );
+      } catch (mediaErr) {
+        console.warn(
+          `Error fetching media files for program ${currentlyPlaying.program_id}: ${mediaErr.message}`
+        );
       }
     }
 
@@ -75,11 +59,34 @@ router.get("/:terminalId/recent", async (req, res) => {
       parseInt(limit)
     );
 
+    // Add program files for each recently played item
+    const recentlyPlayedWithFiles = await Promise.all(
+      recentlyPlayed.map(async (item) => {
+        let programFiles = [];
+        if (item.program_id) {
+          try {
+            programFiles = await databaseService.fetchMediaByProgramId(
+              item.program_id
+            );
+          } catch (mediaErr) {
+            console.warn(
+              `Error fetching media files for ${item.program_name}: ${mediaErr.message}`
+            );
+          }
+        }
+
+        return {
+          ...item,
+          programFiles,
+        };
+      })
+    );
+
     res.json({
       terminalId,
       limit: parseInt(limit),
-      count: recentlyPlayed.length,
-      recentlyPlayed,
+      count: recentlyPlayedWithFiles.length,
+      recentlyPlayed: recentlyPlayedWithFiles,
     });
   } catch (err) {
     console.error("Error fetching recently played:", err.message);
@@ -101,10 +108,57 @@ router.get("/:terminalId/history", async (req, res) => {
       parseInt(recentLimit)
     );
 
+    // Add program files for current playing if exists
+    let currentWithFiles = null;
+    if (playbackHistory.current) {
+      let programFiles = [];
+      if (playbackHistory.current.program_id) {
+        try {
+          programFiles = await databaseService.fetchMediaByProgramId(
+            playbackHistory.current.program_id
+          );
+        } catch (mediaErr) {
+          console.warn(
+            `Error fetching media files for current: ${mediaErr.message}`
+          );
+        }
+      }
+
+      currentWithFiles = {
+        ...playbackHistory.current,
+        programFiles,
+      };
+    }
+
+    // Add program files for recent items
+    const recentWithFiles = await Promise.all(
+      (playbackHistory.recent || []).map(async (item) => {
+        let programFiles = [];
+        if (item.program_id) {
+          try {
+            programFiles = await databaseService.fetchMediaByProgramId(
+              item.program_id
+            );
+          } catch (mediaErr) {
+            console.warn(
+              `Error fetching media files for ${item.program_name}: ${mediaErr.message}`
+            );
+          }
+        }
+
+        return {
+          ...item,
+          programFiles,
+        };
+      })
+    );
+
     res.json({
       terminalId,
       recentLimit: parseInt(recentLimit),
-      ...playbackHistory,
+      current: currentWithFiles,
+      recent: recentWithFiles,
+      totalRecent: recentWithFiles.length,
     });
   } catch (err) {
     console.error("Error fetching playback history:", err.message);
