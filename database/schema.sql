@@ -124,10 +124,24 @@ CREATE TABLE IF NOT EXISTS terminal_gps_data (
   inserted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Client (single advertiser/customer)
 CREATE TABLE IF NOT EXISTS client (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
+  -- Supabase Auth linkage
+  user_id UUID NOT NULL UNIQUE,               -- maps to auth.users.id
+  email TEXT NOT NULL UNIQUE,                 -- denormalized for quick lookup
+  email_verified BOOLEAN DEFAULT FALSE,
+  last_login_at TIMESTAMPTZ,
+  -- Account and access control
+  account_status TEXT NOT NULL DEFAULT 'active' CHECK (account_status IN ('active','suspended','deleted')),
+  role TEXT NOT NULL DEFAULT 'user',
+  permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+  subscription_tier TEXT NOT NULL DEFAULT 'free',
+  -- Audit fields
+  created_by UUID,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by UUID,
+  deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -184,6 +198,9 @@ CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_date ON terminal_gps_d
 
 -- Indexes for client and campaign
 CREATE INDEX IF NOT EXISTS idx_client_name ON client(name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_client_user_id ON client(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_client_email ON client(email);
+CREATE INDEX IF NOT EXISTS idx_client_account_status ON client(account_status);
 CREATE INDEX IF NOT EXISTS idx_campaign_client_id ON campaign(client_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_program_id ON campaign(program_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_status ON campaign(status);
