@@ -194,7 +194,8 @@ async function markCurrentPlayingAsCompleted(terminalId) {
 }
 
 async function handleTerminalPlayingRecords(terminalData) {
-  const { determineOnlineStatus, parseTerminalData } = require("./parser");
+  const { determineOnlineStatus } = require("./statusTracking");
+  const { parseTerminalData } = require("./parser");
 
   try {
     const { isOnline } = determineOnlineStatus(terminalData);
@@ -242,7 +243,14 @@ async function handleTerminalPlayingRecords(terminalData) {
             );
             // Close old record and create fresh one
             await markCurrentPlayingAsCompleted(terminalData.id);
-            const freshPlaying = await upsertPlaying(parsedData.playing);
+
+            // Create fresh playing data with current timestamp
+            const freshPlayingData = {
+              ...parsedData.playing,
+              started_at: new Date().toISOString(),
+            };
+
+            const freshPlaying = await upsertPlaying(freshPlayingData);
             console.log(
               `🎬 Created fresh playing record for terminal ${terminalData.id}: ${freshPlaying.file_name}`
             );
@@ -257,7 +265,13 @@ async function handleTerminalPlayingRecords(terminalData) {
           // No current record, create one
           const parsedData = parseTerminalData(terminalData);
           if (parsedData.playing) {
-            const freshPlaying = await upsertPlaying(parsedData.playing);
+            // Create fresh playing data with current timestamp
+            const freshPlayingData = {
+              ...parsedData.playing,
+              started_at: new Date().toISOString(),
+            };
+
+            const freshPlaying = await upsertPlaying(freshPlayingData);
             console.log(
               `🎬 Created new playing record for terminal ${terminalData.id}: ${freshPlaying.file_name}`
             );

@@ -47,7 +47,11 @@ async function shouldSkipRegistration(parsedData) {
   }
 }
 
-async function registerTerminalData(terminalApiData, forceUpdate = false) {
+async function registerTerminalData(
+  terminalApiData,
+  forceUpdate = false,
+  skipPlaying = false
+) {
   const parsedData = parseTerminalData(terminalApiData);
   const { isOnline } = determineOnlineStatus(terminalApiData);
   try {
@@ -81,11 +85,15 @@ async function registerTerminalData(terminalApiData, forceUpdate = false) {
 
     console.log("isOnline", isOnline);
     let playing = null;
-    if (isOnline && parsedData.playing) {
-      console.log("isOnline is true - creating playing record");
-      playing = await upsertPlaying(parsedData.playing);
-    } else if (!isOnline) {
-      console.log("isOnline is false - skipping playing record creation");
+    if (!skipPlaying) {
+      if (isOnline && parsedData.playing) {
+        console.log("isOnline is true - creating playing record");
+        playing = await upsertPlaying(parsedData.playing);
+      } else if (!isOnline) {
+        console.log("isOnline is false - skipping playing record creation");
+      }
+    } else {
+      console.log("Skipping playing record creation (handled separately)");
     }
 
     const deviceStatus = await insertDeviceStatus(parsedData.deviceStatus);

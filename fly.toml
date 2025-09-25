@@ -23,6 +23,9 @@ primary_region = "ord"
   app = "node backend/server.js"
   cron = "supercronic /etc/crontab"
 
+[env]
+  AUTO_START_POLLER = "true"
+
 [[statics]]
   guest_path = "/usr/src/app/public"
   url_prefix = "/static/"

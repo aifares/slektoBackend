@@ -10,7 +10,6 @@ const media = require("./media");
 const gps = require("./gps");
 const parser = require("./parser");
 const registration = require("./registration");
-
 module.exports = {
   // drivers
   ...drivers,

@@ -10,6 +10,7 @@ const clientsRoutes = require("./routes/clients");
 const clientDataRoutes = require("./routes/clientData");
 const testRoutes = require("./routes/test");
 const publicRoutes = require("./routes/public");
+const pollerRoutes = require("./routes/poller");
 const { authMiddleware } = require("./middleware/auth");
 
 const app = express();
@@ -30,7 +31,38 @@ app.use("/playing", playingRoutes);
 app.use("/status", statusRoutes);
 app.use("/clients", clientsRoutes);
 app.use("/clientData", clientDataRoutes);
+app.use("/poller", pollerRoutes);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+
+  // Auto-start the adaptive poller if enabled
+  if (process.env.AUTO_START_POLLER !== "false") {
+    const adaptivePoller = require("./services/adaptivePoller");
+    console.log("🚀 Auto-starting adaptive poller...");
+    adaptivePoller.start();
+  } else {
+    console.log("⏸️ Auto-start poller disabled (AUTO_START_POLLER=false)");
+  }
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("🛑 SIGTERM received, shutting down gracefully...");
+  const adaptivePoller = require("./services/adaptivePoller");
+  adaptivePoller.stop();
+  server.close(() => {
+    console.log("✅ Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  console.log("🛑 SIGINT received, shutting down gracefully...");
+  const adaptivePoller = require("./services/adaptivePoller");
+  adaptivePoller.stop();
+  server.close(() => {
+    console.log("✅ Server closed");
+    process.exit(0);
+  });
 });
