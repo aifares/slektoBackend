@@ -87,9 +87,13 @@ router.get("/", async (req, res) => {
             terminalData
           );
 
-          if (statusChange) {
-            console.log(
-              `📊 Terminal ${terminalData.id} status changed to ${statusChange.status}`
+          // Handle playing records based on terminal status
+          try {
+            await databaseService.handleTerminalPlayingRecords(terminalData);
+          } catch (playingError) {
+            console.warn(
+              `⚠️ Failed to handle playing records for terminal ${terminalData.id}:`,
+              playingError.message
             );
           }
         } catch (error) {

@@ -6,6 +6,7 @@ const { insertDeviceStatus } = require("./device");
 const { insertConnectivity } = require("./connectivity");
 const { parseTerminalData } = require("./parser");
 const { supabase } = require("../config/supabase");
+const { determineOnlineStatus } = require("./statusTracking");
 
 async function shouldSkipRegistration(parsedData) {
   console.log(
@@ -48,7 +49,7 @@ async function shouldSkipRegistration(parsedData) {
 
 async function registerTerminalData(terminalApiData, forceUpdate = false) {
   const parsedData = parseTerminalData(terminalApiData);
-
+  const { isOnline } = determineOnlineStatus(terminalApiData);
   try {
     if (!forceUpdate) {
       const skip = await shouldSkipRegistration(parsedData);
@@ -78,9 +79,13 @@ async function registerTerminalData(terminalApiData, forceUpdate = false) {
       filesInserted = parsedData.files.length;
     }
 
+    console.log("isOnline", isOnline);
     let playing = null;
-    if (parsedData.playing) {
+    if (isOnline && parsedData.playing) {
+      console.log("isOnline is true - creating playing record");
       playing = await upsertPlaying(parsedData.playing);
+    } else if (!isOnline) {
+      console.log("isOnline is false - skipping playing record creation");
     }
 
     const deviceStatus = await insertDeviceStatus(parsedData.deviceStatus);

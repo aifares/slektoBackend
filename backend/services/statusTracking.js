@@ -1,4 +1,5 @@
 const { supabase } = require("../config/supabase");
+const { markCurrentPlayingAsCompleted } = require("./playing");
 
 function determineOnlineStatus(terminalData) {
   const currentTime = Math.floor(Date.now() / 1000);
@@ -87,15 +88,31 @@ async function updateTerminalStatus(terminalId, terminalData) {
       terminalData?.post_meta?._led_status?.powerstatus?.powerstatus?.toString?.() ??
       null;
     const ledLatestTime =
-      terminalData?.led_latest_time ??
-      terminalData?.post_meta?._led_latest_report_time ??
-      null;
+      terminalData?.post_meta?._led_latest_report_time ?? null;
 
     if (
       !currentStatus ||
       currentStatus.status !== (isOnline ? "online" : "offline")
     ) {
       const now = new Date().toISOString();
+
+      // If terminal is going offline, clean up current playing records
+      if (currentStatus && currentStatus.status === "online" && !isOnline) {
+        console.log(
+          `🔄 Terminal ${terminalId} going offline - cleaning up current playing records`
+        );
+        try {
+          const cleanupResult = await markCurrentPlayingAsCompleted(terminalId);
+          console.log(
+            `✅ Cleaned up ${cleanupResult.updated} playing records for offline terminal ${terminalId}`
+          );
+        } catch (cleanupError) {
+          console.warn(
+            `⚠️ Failed to cleanup playing records for terminal ${terminalId}:`,
+            cleanupError.message
+          );
+        }
+      }
 
       if (currentStatus) {
         const previousChangeTime = new Date(currentStatus.status_changed_at);
@@ -243,10 +260,127 @@ async function getTerminalUptimeAnalytics(
   }
 }
 
+async function cleanupPlayingRecordsOnOffline(terminalId) {
+  try {
+    console.log(
+      `🧹 Cleaning up playing records for offline terminal: ${terminalId}`
+    );
+
+    // Find all current playing records for this terminal
+    const { data: currentPlaying, error: fetchError } = await supabase
+      .from("playing")
+      .select("*")
+      .eq("terminal_id", terminalId)
+      .eq("status", "current");
+
+    if (fetchError) {
+      throw new Error(
+        `Failed to fetch current playing records: ${fetchError.message}`
+      );
+    }
+
+    if (!currentPlaying || currentPlaying.length === 0) {
+      console.log(
+        `✅ No current playing records found for terminal ${terminalId}`
+      );
+      return { cleaned: 0, records: [] };
+    }
+
+    const now = new Date().toISOString();
+    const cleanedRecords = [];
+
+    // Update each current playing record to completed
+    for (const record of currentPlaying) {
+      const startedAt = new Date(record.started_at);
+      const endedAt = new Date(now);
+      const durationSeconds = Math.round((endedAt - startedAt) / 1000);
+
+      const { data: updatedRecord, error: updateError } = await supabase
+        .from("playing")
+        .update({
+          status: "completed",
+          ended_at: now,
+          duration_seconds: durationSeconds,
+        })
+        .eq("id", record.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error(
+          `❌ Failed to update playing record ${record.id}:`,
+          updateError.message
+        );
+        continue;
+      }
+
+      cleanedRecords.push(updatedRecord);
+      console.log(
+        `✅ Marked playing record ${record.id} as completed (duration: ${durationSeconds}s)`
+      );
+    }
+
+    console.log(
+      `🧹 Cleanup complete: ${cleanedRecords.length} playing records marked as completed`
+    );
+    return { cleaned: cleanedRecords.length, records: cleanedRecords };
+  } catch (error) {
+    console.error(
+      `Error cleaning up playing records for ${terminalId}:`,
+      error.message
+    );
+    throw error;
+  }
+}
+
+async function checkAndCleanupOfflineTerminals(terminals) {
+  try {
+    const cleanupPromises = [];
+
+    for (const terminalData of terminals) {
+      const { isOnline } = determineOnlineStatus(terminalData);
+
+      // Only clean up if terminal is offline
+      if (!isOnline) {
+        console.log(
+          `🧹 Terminal ${terminalData.id} is offline, cleaning up playing records`
+        );
+        cleanupPromises.push(cleanupPlayingRecordsOnOffline(terminalData.id));
+      }
+    }
+
+    // Execute all cleanup operations in parallel
+    const results = await Promise.allSettled(cleanupPromises);
+
+    // Log results
+    let totalCleaned = 0;
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        totalCleaned += result.value.cleaned;
+      } else {
+        console.error(
+          `❌ Cleanup failed for terminal ${index}:`,
+          result.reason
+        );
+      }
+    });
+
+    console.log(
+      `🧹 Batch cleanup complete: ${totalCleaned} total playing records marked as completed`
+    );
+    return { totalCleaned, results };
+  } catch (error) {
+    console.error(`Error in batch cleanup:`, error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   determineOnlineStatus,
   getCurrentTerminalStatus,
   logTerminalStatusChange,
   updateTerminalStatus,
   getTerminalUptimeAnalytics,
+  cleanupPlayingRecordsOnOffline,
+  checkAndCleanupOfflineTerminals,
 };
