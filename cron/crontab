@@ -1,3 +1,3 @@
-# Run daily at 05:00 UTC (midnight Eastern during standard time)
-0 5 * * * node /usr/src/app/backend/jobs/fetch_gps_daily.js
+# Run every minute to poll live GPS data (DISABLED)
+# * * * * * cd /usr/src/app && node backend/jobs/fetch_gps_live.js
 

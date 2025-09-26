@@ -121,7 +121,8 @@ CREATE TABLE IF NOT EXISTS terminal_gps_data (
   data_date DATE NOT NULL,                    -- UTC date representing the data window (e.g., 2025-08-15)
   longitude DOUBLE PRECISION NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,
-  inserted_at TIMESTAMPTZ DEFAULT NOW()
+  recorded_at TIMESTAMPTZ,                    -- Actual GPS recording time from terminal
+  inserted_at TIMESTAMPTZ DEFAULT NOW()       -- When data was imported to database
 );
 
 CREATE TABLE IF NOT EXISTS client (
@@ -195,6 +196,8 @@ CREATE INDEX IF NOT EXISTS idx_terminal_status_log_date_range ON terminal_status
 
 -- Indexes for terminal_gps_data
 CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_date ON terminal_gps_data(terminal_id, data_date);
+CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_recorded_at ON terminal_gps_data(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_recorded ON terminal_gps_data(terminal_id, recorded_at);
 
 -- Indexes for client and campaign
 CREATE INDEX IF NOT EXISTS idx_client_name ON client(name);

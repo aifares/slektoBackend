@@ -11,6 +11,8 @@ const {
   TERMINAL_ID,
 } = require("../utils");
 
+const { storeGpsDataFromTrack } = require("../services/gps");
+
 // Helper function to get power status for a terminal (extracted from terminal.js)
 async function getTerminalPowerStatus(terminalId, threshold = 90) {
   try {
@@ -112,12 +114,38 @@ router.post("/track", async (req, res) => {
       TRACK_AUTH_HEADER
     );
 
+    // Store GPS data immediately in the database
+    let storedGpsPoints = [];
+    let storageError = null;
+
+    try {
+      storedGpsPoints = await storeGpsDataFromTrack(
+        targetTerminalId,
+        response.data
+      );
+      console.log(
+        `✅ Stored ${storedGpsPoints.length} GPS points for terminal ${targetTerminalId}`
+      );
+    } catch (storageErr) {
+      storageError = storageErr.message;
+      console.error(
+        `❌ Failed to store GPS data for terminal ${targetTerminalId}:`,
+        storageErr.message
+      );
+      // Don't fail the entire request if storage fails
+    }
+
     res.json({
       message: "GPS track data retrieved successfully",
       terminalId: targetTerminalId,
       startTime,
       endTime,
       data: response.data,
+      storage: {
+        pointsStored: storedGpsPoints.length,
+        success: !storageError,
+        error: storageError,
+      },
     });
   } catch (err) {
     console.error(
@@ -150,7 +178,6 @@ function parseTerminalIdsForGPS(terminalId, terminalIds, availableTerminals) {
 // --- Get live GPS info for terminal(s) with online status ---
 router.post("/live", async (req, res) => {
   const { terminalId, terminalIds, threshold } = req.body;
-
   try {
     // Get live GPS data from the group endpoint (hardcoded group ID 6640)
     const gpsResponse = await axios.post(
