@@ -4,9 +4,9 @@ const { determineOnlineStatus } = require("./statusTracking");
 
 class AdaptivePoller {
   constructor() {
-    this.pollInterval = 60000; // Start with 60 seconds
-    this.maxInterval = 300000; // Max 5 minutes
-    this.minInterval = 60000; // Min 60 seconds
+    this.pollInterval = 180000; // Start with 3 minutes
+    this.maxInterval = 180000; // Max 3 minutes
+    this.minInterval = 180000; // Min 3 minutes
     this.backoffMultiplier = 1.5; // Increase interval on errors
     this.isPolling = false;
     this.lastTerminalState = null;

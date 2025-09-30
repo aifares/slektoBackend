@@ -21,14 +21,15 @@ async function buildGpsHeatmapData(
     return null;
   }
 
-  // 1) Get all GPS points for client's terminals in date range
+  // 1) Get all GPS points for client's terminals in date range (with higher limit)
   const { data: gpsPoints, error: gpsError } = await supabase
     .from("terminal_gps_data")
     .select("terminal_id, longitude, latitude, inserted_at")
     .in("terminal_id", terminalIds)
     .gte("data_date", startDate)
     .lte("data_date", endDate)
-    .order("inserted_at", { ascending: true });
+    .order("inserted_at", { ascending: true })
+    .limit(5000); // Increase limit to get more comprehensive data
 
   if (gpsError) {
     throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);
@@ -222,6 +223,16 @@ router.get("/", async (req, res) => {
           terminals_playing: 0,
           terminals_offline: 0,
         },
+        heatmap: {
+          summary: {
+            totalGpsPoints: 0,
+            programsCount: 0,
+            terminalsCount: 0,
+            dateRange: `${startDate} to ${endDate}`,
+          },
+          programs: {},
+        },
+        historical_terminals: [],
       });
     }
 
@@ -246,6 +257,93 @@ router.get("/", async (req, res) => {
     );
 
     if (terminalIds.length === 0) {
+      // Even if no terminals are currently playing, we still want to show heatmap data
+      // for all terminals that have historically played these programs
+      let heatmapData = null;
+      let allHistoricalTerminals = [];
+
+      try {
+        const { data: allTerminalsForPrograms, error: allTerminalsError } =
+          await supabase
+            .from("playing")
+            .select("terminal_id")
+            .in("program_id", programIds);
+
+        // Get unique terminal IDs from the results
+        const allTerminalIds = [
+          ...new Set((allTerminalsForPrograms || []).map((t) => t.terminal_id)),
+        ];
+
+        if (allTerminalIds.length > 0) {
+          heatmapData = await buildGpsHeatmapData(
+            client.id,
+            programIds,
+            allTerminalIds,
+            startDate,
+            endDate,
+            gpsProgramId
+          );
+        }
+
+        // Also get historical terminals data for the early return
+        const { data: historicalTerminalsData, error: historicalError } =
+          await supabase
+            .from("playing")
+            .select(
+              "terminal_id, program_id, program_name, started_at, ended_at, status"
+            )
+            .in("program_id", programIds);
+
+        if (!historicalError && historicalTerminalsData) {
+          // Group by terminal_id and get unique terminals with their program info
+          const terminalMap = new Map();
+          historicalTerminalsData.forEach((record) => {
+            if (!terminalMap.has(record.terminal_id)) {
+              terminalMap.set(record.terminal_id, {
+                terminal_id: record.terminal_id,
+                programs_played: [],
+                first_played_at: record.started_at,
+                last_played_at: record.ended_at || record.started_at,
+              });
+            }
+
+            const terminal = terminalMap.get(record.terminal_id);
+
+            // Add program if not already in list
+            if (
+              !terminal.programs_played.find(
+                (p) => p.program_id === record.program_id
+              )
+            ) {
+              terminal.programs_played.push({
+                program_id: record.program_id,
+                program_name: record.program_name,
+              });
+            }
+
+            // Update time ranges
+            if (
+              new Date(record.started_at) < new Date(terminal.first_played_at)
+            ) {
+              terminal.first_played_at = record.started_at;
+            }
+            if (
+              record.ended_at &&
+              new Date(record.ended_at) > new Date(terminal.last_played_at)
+            ) {
+              terminal.last_played_at = record.ended_at;
+            }
+          });
+
+          allHistoricalTerminals = Array.from(terminalMap.values());
+        }
+      } catch (heatmapError) {
+        console.warn(
+          "Failed to build historical heatmap data:",
+          heatmapError.message
+        );
+      }
+
       return res.json({
         client: {
           id: client.id,
@@ -257,7 +355,18 @@ router.get("/", async (req, res) => {
           total_terminals: 0,
           terminals_playing: 0,
           terminals_offline: 0,
+          historical_terminals_count: allHistoricalTerminals.length,
         },
+        heatmap: heatmapData || {
+          summary: {
+            totalGpsPoints: 0,
+            programsCount: 0,
+            terminalsCount: 0,
+            dateRange: `${startDate} to ${endDate}`,
+          },
+          programs: {},
+        },
+        historical_terminals: allHistoricalTerminals,
       });
     }
 
@@ -334,41 +443,116 @@ router.get("/", async (req, res) => {
       (t) => t.power_status === "off"
     ).length;
 
-    // 5) GPS Heat Map Data (if requested)
+    // 5) GPS Heat Map Data (always included)
     let heatmapData = null;
-    if (includeHeatmap === "true") {
-      try {
-        heatmapData = await buildGpsHeatmapData(
-          client.id,
-          programIds,
-          terminalIds,
-          startDate,
-          endDate,
-          gpsProgramId
-        );
-      } catch (heatmapError) {
-        console.warn(
-          "Failed to build GPS heat map data:",
-          heatmapError.message
-        );
-        // Don't fail the entire request if heatmap fails
+    try {
+      // Get all terminals that have ever played these programs (not just currently online)
+      const { data: allTerminalsForPrograms, error: allTerminalsError } =
+        await supabase
+          .from("playing")
+          .select("terminal_id")
+          .in("program_id", programIds);
+
+      // Get unique terminal IDs from the results
+      const allTerminalIds = [
+        ...new Set((allTerminalsForPrograms || []).map((t) => t.terminal_id)),
+      ];
+      console.log(
+        "All terminals that ever played these programs:",
+        allTerminalIds
+      );
+
+      heatmapData = await buildGpsHeatmapData(
+        client.id,
+        programIds,
+        allTerminalIds.length > 0 ? allTerminalIds : terminalIds, // Use all historical terminals if available
+        startDate,
+        endDate,
+        gpsProgramId
+      );
+    } catch (heatmapError) {
+      console.warn("Failed to build GPS heat map data:", heatmapError.message);
+      // Don't fail the entire request if heatmap fails
+    }
+
+    // Get all terminals that have played these programs for the response
+    let allHistoricalTerminals = [];
+    try {
+      const { data: historicalTerminalsData, error: historicalError } =
+        await supabase
+          .from("playing")
+          .select(
+            "terminal_id, program_id, program_name, started_at, ended_at, status"
+          )
+          .in("program_id", programIds);
+
+      if (!historicalError && historicalTerminalsData) {
+        // Group by terminal_id and get unique terminals with their program info
+        const terminalMap = new Map();
+        historicalTerminalsData.forEach((record) => {
+          if (!terminalMap.has(record.terminal_id)) {
+            terminalMap.set(record.terminal_id, {
+              terminal_id: record.terminal_id,
+              programs_played: [],
+              first_played_at: record.started_at,
+              last_played_at: record.ended_at || record.started_at,
+            });
+          }
+
+          const terminal = terminalMap.get(record.terminal_id);
+
+          // Add program if not already in list
+          if (
+            !terminal.programs_played.find(
+              (p) => p.program_id === record.program_id
+            )
+          ) {
+            terminal.programs_played.push({
+              program_id: record.program_id,
+              program_name: record.program_name,
+            });
+          }
+
+          // Update time ranges
+          if (
+            new Date(record.started_at) < new Date(terminal.first_played_at)
+          ) {
+            terminal.first_played_at = record.started_at;
+          }
+          if (
+            record.ended_at &&
+            new Date(record.ended_at) > new Date(terminal.last_played_at)
+          ) {
+            terminal.last_played_at = record.ended_at;
+          }
+        });
+
+        allHistoricalTerminals = Array.from(terminalMap.values());
       }
+    } catch (error) {
+      console.warn("Failed to fetch historical terminals data:", error.message);
     }
 
     const response = {
       client: { id: client.id, name: client.name, activePrograms: programIds },
       terminals: terminalsOut,
+      historical_terminals: allHistoricalTerminals,
       summary: {
         total_terminals: terminalsOut.length,
         terminals_playing: terminalsPlayingCount,
         terminals_offline: offlineCount,
+        historical_terminals_count: allHistoricalTerminals.length,
+      },
+      heatmap: heatmapData || {
+        summary: {
+          totalGpsPoints: 0,
+          programsCount: 0,
+          terminalsCount: 0,
+          dateRange: `${startDate} to ${endDate}`,
+        },
+        programs: {},
       },
     };
-
-    // Add heatmap data if available
-    if (heatmapData) {
-      response.heatmap = heatmapData;
-    }
 
     res.json(response);
   } catch (err) {
