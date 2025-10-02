@@ -2,174 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 const { supabase } = require("../config/supabase");
+const { fetchMediaByProgramId } = require("../services/media");
+const { buildGpsHeatmapData } = require("../services/heatmap");
+const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
+const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 
-// Helper function to build GPS heat map data with program correlation
-async function buildGpsHeatmapData(
-  clientId,
-  programIds,
-  terminalIds,
-  startDate,
-  endDate,
-  filterProgramId
-) {
-  // Filter programs if specific program requested
-  const targetProgramIds = filterProgramId
-    ? [parseInt(filterProgramId)]
-    : programIds;
-
-  if (targetProgramIds.length === 0) {
-    return null;
-  }
-
-  // 1) Get all GPS points for client's terminals in date range (with higher limit)
-  const { data: gpsPoints, error: gpsError } = await supabase
-    .from("terminal_gps_data")
-    .select("terminal_id, longitude, latitude, inserted_at")
-    .in("terminal_id", terminalIds)
-    .gte("data_date", startDate)
-    .lte("data_date", endDate)
-    .order("inserted_at", { ascending: true })
-    .limit(5000); // Increase limit to get more comprehensive data
-
-  if (gpsError) {
-    throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);
-  }
-
-  if (!gpsPoints || gpsPoints.length === 0) {
-    return {
-      summary: { totalGpsPoints: 0, programsCount: 0, terminalsCount: 0 },
-      programs: {},
-    };
-  }
-
-  // 2) Get playing sessions for the same terminals and date range
-  const { data: playingSessions, error: playingError } = await supabase
-    .from("playing")
-    .select(
-      "terminal_id, program_id, program_name, started_at, ended_at, status"
-    )
-    .in("terminal_id", terminalIds)
-    .in("program_id", targetProgramIds)
-    .gte("started_at", `${startDate}T00:00:00`)
-    .lte("started_at", `${endDate}T23:59:59`)
-    .order("started_at", { ascending: true });
-
-  if (playingError) {
-    throw new Error(
-      `Failed to fetch playing sessions: ${playingError.message}`
-    );
-  }
-
-  // 3) Correlate GPS points with playing sessions
-  const programHeatmapData = {};
-  const terminalCount = new Set();
-
-  for (const gpsPoint of gpsPoints) {
-    const gpsTime = new Date(gpsPoint.inserted_at);
-
-    // Find what program was playing at this terminal at this time
-    const activeSession = playingSessions?.find(
-      (session) =>
-        session.terminal_id === gpsPoint.terminal_id &&
-        session.status === "current" &&
-        new Date(session.started_at) <= gpsTime &&
-        (!session.ended_at || new Date(session.ended_at) >= gpsTime)
-    );
-
-    // If no current session, check completed sessions that were active at this time
-    const completedSession = !activeSession
-      ? playingSessions?.find(
-          (session) =>
-            session.terminal_id === gpsPoint.terminal_id &&
-            session.status === "completed" &&
-            new Date(session.started_at) <= gpsTime &&
-            session.ended_at &&
-            new Date(session.ended_at) >= gpsTime
-        )
-      : null;
-
-    const session = activeSession || completedSession;
-
-    if (session) {
-      const programId = session.program_id.toString();
-
-      if (!programHeatmapData[programId]) {
-        programHeatmapData[programId] = {
-          program_id: session.program_id,
-          program_name: session.program_name,
-          points: [],
-          totalPoints: 0,
-          uniqueLocations: new Set(),
-          terminals: new Set(),
-        };
-      }
-
-      programHeatmapData[programId].points.push({
-        latitude: gpsPoint.latitude,
-        longitude: gpsPoint.longitude,
-        timestamp: gpsPoint.inserted_at,
-        terminal_id: gpsPoint.terminal_id,
-        intensity: 1.0,
-      });
-
-      programHeatmapData[programId].totalPoints++;
-      programHeatmapData[programId].uniqueLocations.add(
-        `${gpsPoint.latitude},${gpsPoint.longitude}`
-      );
-      programHeatmapData[programId].terminals.add(gpsPoint.terminal_id);
-      terminalCount.add(gpsPoint.terminal_id);
-    }
-  }
-
-  // 4) Calculate coverage and density for each program
-  const processedPrograms = {};
-  for (const [programId, data] of Object.entries(programHeatmapData)) {
-    if (data.points.length === 0) continue;
-
-    const lats = data.points.map((p) => p.latitude);
-    const lngs = data.points.map((p) => p.longitude);
-
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-
-    processedPrograms[programId] = {
-      ...data,
-      uniqueLocations: data.uniqueLocations.size,
-      terminals: Array.from(data.terminals),
-      coverage: {
-        minLat,
-        maxLat,
-        minLng,
-        maxLng,
-        centerLat: (minLat + maxLat) / 2,
-        centerLng: (minLng + maxLng) / 2,
-      },
-      density:
-        data.points.length > 100
-          ? "high"
-          : data.points.length > 50
-          ? "medium"
-          : "low",
-      avgPointsPerLocation: data.points.length / data.uniqueLocations.size,
-    };
-
-    // Remove the Set objects for JSON serialization
-    delete processedPrograms[programId].uniqueLocations;
-    delete processedPrograms[programId].terminals;
-  }
-
-  return {
-    summary: {
-      totalGpsPoints: gpsPoints.length,
-      programsCount: Object.keys(processedPrograms).length,
-      terminalsCount: terminalCount.size,
-      dateRange: `${startDate} to ${endDate}`,
-    },
-    programs: processedPrograms,
-  };
-}
+// moved to services/heatmap.js
 
 // GET /clientData - Aggregated client data: active programs, terminals playing them, latest GPS per terminal, and GPS heat map data
 router.get("/", async (req, res) => {
@@ -197,7 +35,7 @@ router.get("/", async (req, res) => {
     const nowIso = new Date().toISOString();
     const { data: activeCampaigns, error: campaignsError } = await supabase
       .from("campaign")
-      .select("program_id, status, start_at, end_at")
+      .select("program_id, status, start_at, end_at, hours_bought")
       .eq("client_id", client.id)
       .in("status", ["active", "planned"]) // consider planned in window
       .lte("start_at", nowIso)
@@ -214,9 +52,58 @@ router.get("/", async (req, res) => {
       new Set((activeCampaigns || []).map((c) => c.program_id))
     );
 
+    console.log("Active campaigns found:", activeCampaigns?.length || 0);
+    console.log("Program IDs from campaigns:", programIds);
+
+    // Fetch program details for active programs
+    let programDetails = [];
+    if (programIds.length > 0) {
+      const { data: programsData, error: programsError } = await supabase
+        .from("programs")
+        .select("id, name, download_status_time, files")
+        .in("id", programIds);
+
+      if (programsError) {
+        console.warn("Failed to fetch program details:", programsError.message);
+      } else {
+        console.log("Programs found in database:", programsData?.length || 0);
+        console.log("Program data:", programsData);
+        programDetails = (programsData || []).map((program) => ({
+          id: program.id,
+          name: program.name,
+          download_status_time: program.download_status_time,
+          files: program.files,
+        }));
+      }
+    }
+
+    // Enrich programs with thumbnail image (if available)
+    let programDetailsWithThumb = programDetails;
+    if (programIds.length > 0 && programDetails.length > 0) {
+      try {
+        const thumbnails = await Promise.all(
+          programIds.map(async (pid) => {
+            const mediaFiles = await fetchMediaByProgramId(pid);
+            const thumbUrl =
+              (mediaFiles && mediaFiles[0] && mediaFiles[0].thumbnail_url) ||
+              null;
+            return [pid, thumbUrl];
+          })
+        );
+        const thumbByProgramId = Object.fromEntries(thumbnails);
+        programDetailsWithThumb = programDetails.map((p) => ({
+          ...p,
+          thumbnail_url: thumbByProgramId[p.id] || null,
+        }));
+      } catch (thumbErr) {
+        console.warn("Failed to fetch program thumbnails:", thumbErr.message);
+      }
+    }
+
     if (programIds.length === 0) {
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
+        programs: [], // No active programs
         terminals: [],
         summary: {
           total_terminals: 0,
@@ -236,7 +123,17 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // Compute campaign playback metrics per program via service
+    const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
+      activeCampaigns || [],
+      programIds
+    );
+
     // 2) Fetch currently playing sessions for those programs
+    console.log(
+      "Looking for currently playing sessions with program IDs:",
+      programIds
+    );
     const { data: playingRows, error: playingError } = await supabase
       .from("playing")
       .select(
@@ -244,6 +141,9 @@ router.get("/", async (req, res) => {
       )
       .in("program_id", programIds)
       .eq("status", "current");
+
+    console.log("Currently playing sessions found:", playingRows?.length || 0);
+    console.log("Playing data:", playingRows);
 
     if (playingError) {
       return res.status(500).json({
@@ -350,6 +250,7 @@ router.get("/", async (req, res) => {
           name: client.name,
           activePrograms: programIds,
         },
+        programs: programDetailsWithThumb,
         terminals: [],
         summary: {
           total_terminals: 0,
@@ -478,63 +379,26 @@ router.get("/", async (req, res) => {
     // Get all terminals that have played these programs for the response
     let allHistoricalTerminals = [];
     try {
-      const { data: historicalTerminalsData, error: historicalError } =
-        await supabase
-          .from("playing")
-          .select(
-            "terminal_id, program_id, program_name, started_at, ended_at, status"
-          )
-          .in("program_id", programIds);
-
-      if (!historicalError && historicalTerminalsData) {
-        // Group by terminal_id and get unique terminals with their program info
-        const terminalMap = new Map();
-        historicalTerminalsData.forEach((record) => {
-          if (!terminalMap.has(record.terminal_id)) {
-            terminalMap.set(record.terminal_id, {
-              terminal_id: record.terminal_id,
-              programs_played: [],
-              first_played_at: record.started_at,
-              last_played_at: record.ended_at || record.started_at,
-            });
-          }
-
-          const terminal = terminalMap.get(record.terminal_id);
-
-          // Add program if not already in list
-          if (
-            !terminal.programs_played.find(
-              (p) => p.program_id === record.program_id
-            )
-          ) {
-            terminal.programs_played.push({
-              program_id: record.program_id,
-              program_name: record.program_name,
-            });
-          }
-
-          // Update time ranges
-          if (
-            new Date(record.started_at) < new Date(terminal.first_played_at)
-          ) {
-            terminal.first_played_at = record.started_at;
-          }
-          if (
-            record.ended_at &&
-            new Date(record.ended_at) > new Date(terminal.last_played_at)
-          ) {
-            terminal.last_played_at = record.ended_at;
-          }
-        });
-
-        allHistoricalTerminals = Array.from(terminalMap.values());
-      }
+      allHistoricalTerminals = await fetchHistoricalTerminals(programIds);
     } catch (error) {
       console.warn("Failed to fetch historical terminals data:", error.message);
     }
 
+    // Enrich programs with playback metrics if available
+    const programsOut = (programDetailsWithThumb || []).map((p) => {
+      const metrics = playbackMetricsByProgram[p.id] || {
+        minutes_played_since_campaign_start: 0,
+        campaign_completion_percent: 0,
+        campaign_hours_bought: 0,
+        campaign_minutes_bought: 0,
+        hours_played_since_campaign_start: 0,
+      };
+      return { ...p, ...metrics };
+    });
+
     const response = {
       client: { id: client.id, name: client.name, activePrograms: programIds },
+      programs: programsOut,
       terminals: terminalsOut,
       historical_terminals: allHistoricalTerminals,
       summary: {
