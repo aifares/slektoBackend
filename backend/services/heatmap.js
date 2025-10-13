@@ -61,8 +61,7 @@ async function buildGpsHeatmapData(
         totalGpsPoints: 0,
         programsCount: 0,
         terminalsCount: 0,
-        totalDistanceKm: 0,
-        totalDistanceMiles: 0,
+        total_distance_miles: 0,
         dateRange: `${startDate} to ${endDate}`,
       },
       programs: {},
@@ -148,21 +147,40 @@ async function buildGpsHeatmapData(
       terminalCount.add(gpsPoint.terminal_id);
 
       // Calculate distance from previous point for this terminal
+      // Only if time difference is less than 12 hours and speed is realistic
       const terminalKey = `${programId}_${gpsPoint.terminal_id}`;
       if (lastPointByTerminal[terminalKey]) {
         const lastPoint = lastPointByTerminal[terminalKey];
-        const distance = haversineDistance(
-          lastPoint.latitude,
-          lastPoint.longitude,
-          gpsPoint.latitude,
-          gpsPoint.longitude
-        );
-        programHeatmapData[programId].distanceKm += distance;
+        const timeDiffHours =
+          (gpsTime - lastPoint.timestamp) / (1000 * 60 * 60);
+
+        // Only calculate distance if time difference is less than 12 hours
+        if (timeDiffHours < 12 && timeDiffHours > 0) {
+          const distance = haversineDistance(
+            lastPoint.latitude,
+            lastPoint.longitude,
+            gpsPoint.latitude,
+            gpsPoint.longitude
+          );
+
+          // Calculate speed in mph (distance in km, convert to miles)
+          const distanceMiles = distance * 0.621371;
+          const speedMph = distanceMiles / timeDiffHours;
+
+          // Maximum reasonable speed threshold (80 mph)
+          // Skip this segment if speed exceeds threshold (likely GPS glitch/error)
+          const maxSpeedMph = 80;
+
+          if (speedMph <= maxSpeedMph) {
+            programHeatmapData[programId].distanceKm += distance;
+          }
+        }
       }
 
       lastPointByTerminal[terminalKey] = {
         latitude: gpsPoint.latitude,
         longitude: gpsPoint.longitude,
+        timestamp: gpsTime,
       };
     }
   }
@@ -190,8 +208,7 @@ async function buildGpsHeatmapData(
       program_id: parseInt(programId),
       program_name: data.program_name,
       ...data,
-      distanceKm: Math.round(data.distanceKm * 100) / 100, // Round to 2 decimals
-      distanceMiles: Math.round(distanceMiles * 100) / 100, // Round to 2 decimals
+      distance_miles: Math.round(distanceMiles * 100) / 100, // Round to 2 decimals
       uniqueLocations: data.uniqueLocations.size,
       terminals: Array.from(data.terminals),
       coverage: {
@@ -225,8 +242,7 @@ async function buildGpsHeatmapData(
       totalGpsPoints: totalUsedPoints,
       programsCount: processedPrograms.length,
       terminalsCount: terminalCount.size,
-      totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
-      totalDistanceMiles: Math.round(totalDistanceMiles * 100) / 100,
+      total_distance_miles: Math.round(totalDistanceMiles * 100) / 100,
       dateRange: `${startDate} to ${endDate}`,
     },
     programs: processedPrograms,
