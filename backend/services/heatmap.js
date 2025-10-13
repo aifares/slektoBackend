@@ -61,7 +61,7 @@ async function buildGpsHeatmapData(
         totalGpsPoints: 0,
         programsCount: 0,
         terminalsCount: 0,
-        total_distance_miles: 0,
+        distanceMiles: 0,
         dateRange: `${startDate} to ${endDate}`,
       },
       programs: {},
@@ -131,31 +131,20 @@ async function buildGpsHeatmapData(
         };
       }
 
-      programHeatmapData[programId].points.push({
-        latitude: gpsPoint.latitude,
-        longitude: gpsPoint.longitude,
-        timestamp: gpsPoint.inserted_at,
-        terminal_id: gpsPoint.terminal_id,
-        intensity: 1.0,
-      });
-
-      programHeatmapData[programId].totalPoints++;
-      programHeatmapData[programId].uniqueLocations.add(
-        `${gpsPoint.latitude},${gpsPoint.longitude}`
-      );
-      programHeatmapData[programId].terminals.add(gpsPoint.terminal_id);
-      terminalCount.add(gpsPoint.terminal_id);
-
-      // Calculate distance from previous point for this terminal
-      // Only if time difference is less than 12 hours and speed is realistic
+      // Check if this point should be included based on speed filter
       const terminalKey = `${programId}_${gpsPoint.terminal_id}`;
+      let includePoint = true;
+      let segmentBreak = false;
+
       if (lastPointByTerminal[terminalKey]) {
         const lastPoint = lastPointByTerminal[terminalKey];
         const timeDiffHours =
           (gpsTime - lastPoint.timestamp) / (1000 * 60 * 60);
 
-        // Only calculate distance if time difference is less than 12 hours
-        if (timeDiffHours < 12 && timeDiffHours > 0) {
+        // Check for time jump or speed violation
+        if (timeDiffHours >= 12 || timeDiffHours <= 0) {
+          segmentBreak = true;
+        } else {
           const distance = haversineDistance(
             lastPoint.latitude,
             lastPoint.longitude,
@@ -168,14 +157,33 @@ async function buildGpsHeatmapData(
           const speedMph = distanceMiles / timeDiffHours;
 
           // Maximum reasonable speed threshold (80 mph)
-          // Skip this segment if speed exceeds threshold (likely GPS glitch/error)
           const maxSpeedMph = 80;
 
           if (speedMph <= maxSpeedMph) {
             programHeatmapData[programId].distanceKm += distance;
+          } else {
+            // Speed violation - mark as segment break
+            segmentBreak = true;
           }
         }
       }
+
+      // Add point with segment break flag
+      programHeatmapData[programId].points.push({
+        latitude: gpsPoint.latitude,
+        longitude: gpsPoint.longitude,
+        timestamp: gpsPoint.inserted_at,
+        terminal_id: gpsPoint.terminal_id,
+        intensity: 1.0,
+        segment_break: segmentBreak, // Indicates frontend should not draw line from previous point
+      });
+
+      programHeatmapData[programId].totalPoints++;
+      programHeatmapData[programId].uniqueLocations.add(
+        `${gpsPoint.latitude},${gpsPoint.longitude}`
+      );
+      programHeatmapData[programId].terminals.add(gpsPoint.terminal_id);
+      terminalCount.add(gpsPoint.terminal_id);
 
       lastPointByTerminal[terminalKey] = {
         latitude: gpsPoint.latitude,
@@ -242,7 +250,7 @@ async function buildGpsHeatmapData(
       totalGpsPoints: totalUsedPoints,
       programsCount: processedPrograms.length,
       terminalsCount: terminalCount.size,
-      total_distance_miles: Math.round(totalDistanceMiles * 100) / 100,
+      distanceMiles: Math.round(totalDistanceMiles * 100) / 100,
       dateRange: `${startDate} to ${endDate}`,
     },
     programs: processedPrograms,
