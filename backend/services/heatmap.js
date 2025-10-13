@@ -216,17 +216,9 @@ async function buildGpsHeatmapData(
       program_id: parseInt(programId),
       program_name: data.program_name,
       ...data,
-      distance_miles: Math.round(distanceMiles * 100) / 100, // Round to 2 decimals
+      distanceMiles: Math.round(distanceMiles * 100) / 100, // Round to 2 decimals
       uniqueLocations: data.uniqueLocations.size,
       terminals: Array.from(data.terminals),
-      coverage: {
-        minLat,
-        maxLat,
-        minLng,
-        maxLng,
-        centerLat: (minLat + maxLat) / 2,
-        centerLng: (minLng + maxLng) / 2,
-      },
       density:
         data.points.length > 100
           ? "high"
