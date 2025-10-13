@@ -6,10 +6,10 @@ const { supabase } = require("../config/supabase");
  * @param {number} lon1 - Longitude of first point
  * @param {number} lat2 - Latitude of second point
  * @param {number} lon2 - Longitude of second point
- * @returns {number} Distance in kilometers
+ * @returns {number} Distance in miles
  */
 function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Earth's radius in kilometers
+  const R = 3958.8; // Earth's radius in miles
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
 
@@ -24,6 +24,21 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   const distance = R * c;
 
   return distance;
+}
+
+/**
+ * Get time of day bucket for a given timestamp
+ * @param {Date} timestamp - The timestamp to categorize
+ * @returns {string} Time bucket name
+ */
+function getTimeOfDayBucket(timestamp) {
+  const hour = timestamp.getHours();
+
+  if (hour >= 0 && hour < 7) return "earlyMorning"; // 12am-7am
+  if (hour >= 7 && hour < 9) return "morningRush"; // 7am-9am
+  if (hour >= 9 && hour < 16) return "midday"; // 9am-4pm
+  if (hour >= 16 && hour < 19) return "eveningRush"; // 4pm-7pm
+  return "evening"; // 7pm-12am
 }
 
 async function buildGpsHeatmapData(
@@ -126,8 +141,14 @@ async function buildGpsHeatmapData(
           totalPoints: 0,
           uniqueLocations: new Set(),
           terminals: new Set(),
-          distanceKm: 0,
           distanceMiles: 0,
+          timeDistribution: {
+            earlyMorning: { miles: 0, durationMinutes: 0 }, // 12am-7am
+            morningRush: { miles: 0, durationMinutes: 0 }, // 7am-9am
+            midday: { miles: 0, durationMinutes: 0 }, // 9am-4pm
+            eveningRush: { miles: 0, durationMinutes: 0 }, // 4pm-7pm
+            evening: { miles: 0, durationMinutes: 0 }, // 7pm-12am
+          },
         };
       }
 
@@ -145,22 +166,31 @@ async function buildGpsHeatmapData(
         if (timeDiffHours >= 12 || timeDiffHours <= 0) {
           segmentBreak = true;
         } else {
-          const distance = haversineDistance(
+          const distanceMiles = haversineDistance(
             lastPoint.latitude,
             lastPoint.longitude,
             gpsPoint.latitude,
             gpsPoint.longitude
           );
 
-          // Calculate speed in mph (distance in km, convert to miles)
-          const distanceMiles = distance * 0.621371;
+          // Calculate speed in mph
           const speedMph = distanceMiles / timeDiffHours;
 
           // Maximum reasonable speed threshold (80 mph)
           const maxSpeedMph = 80;
 
           if (speedMph <= maxSpeedMph) {
-            programHeatmapData[programId].distanceKm += distance;
+            programHeatmapData[programId].distanceMiles += distanceMiles;
+
+            // Track time distribution - add distance and duration to appropriate time bucket
+            const timeBucket = getTimeOfDayBucket(gpsTime);
+            const durationMinutes = timeDiffHours * 60;
+
+            programHeatmapData[programId].timeDistribution[timeBucket].miles +=
+              distanceMiles;
+            programHeatmapData[programId].timeDistribution[
+              timeBucket
+            ].durationMinutes += durationMinutes;
           } else {
             // Speed violation - mark as segment break
             segmentBreak = true;
@@ -194,7 +224,7 @@ async function buildGpsHeatmapData(
   }
 
   const processedPrograms = [];
-  let totalDistanceKm = 0;
+  let totalDistanceMiles = 0;
 
   for (const [programId, data] of Object.entries(programHeatmapData)) {
     if (data.points.length === 0) continue;
@@ -207,18 +237,104 @@ async function buildGpsHeatmapData(
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
 
-    // Convert kilometers to miles (1 km = 0.621371 miles)
-    const distanceMiles = data.distanceKm * 0.621371;
+    totalDistanceMiles += data.distanceMiles;
 
-    totalDistanceKm += data.distanceKm;
+    // Format time distribution with percentages
+    const timeDistribution = {
+      earlyMorning: {
+        hours: "12am-7am",
+        miles: Math.round(data.timeDistribution.earlyMorning.miles * 100) / 100,
+        durationMinutes: Math.round(
+          data.timeDistribution.earlyMorning.durationMinutes
+        ),
+        percentage:
+          data.distanceMiles > 0
+            ? Math.round(
+                (data.timeDistribution.earlyMorning.miles /
+                  data.distanceMiles) *
+                  100 *
+                  10
+              ) / 10
+            : 0,
+      },
+      morningRush: {
+        hours: "7am-9am",
+        miles: Math.round(data.timeDistribution.morningRush.miles * 100) / 100,
+        durationMinutes: Math.round(
+          data.timeDistribution.morningRush.durationMinutes
+        ),
+        percentage:
+          data.distanceMiles > 0
+            ? Math.round(
+                (data.timeDistribution.morningRush.miles / data.distanceMiles) *
+                  100 *
+                  10
+              ) / 10
+            : 0,
+      },
+      midday: {
+        hours: "9am-4pm",
+        miles: Math.round(data.timeDistribution.midday.miles * 100) / 100,
+        durationMinutes: Math.round(
+          data.timeDistribution.midday.durationMinutes
+        ),
+        percentage:
+          data.distanceMiles > 0
+            ? Math.round(
+                (data.timeDistribution.midday.miles / data.distanceMiles) *
+                  100 *
+                  10
+              ) / 10
+            : 0,
+      },
+      eveningRush: {
+        hours: "4pm-7pm",
+        miles: Math.round(data.timeDistribution.eveningRush.miles * 100) / 100,
+        durationMinutes: Math.round(
+          data.timeDistribution.eveningRush.durationMinutes
+        ),
+        percentage:
+          data.distanceMiles > 0
+            ? Math.round(
+                (data.timeDistribution.eveningRush.miles / data.distanceMiles) *
+                  100 *
+                  10
+              ) / 10
+            : 0,
+      },
+      evening: {
+        hours: "7pm-12am",
+        miles: Math.round(data.timeDistribution.evening.miles * 100) / 100,
+        durationMinutes: Math.round(
+          data.timeDistribution.evening.durationMinutes
+        ),
+        percentage:
+          data.distanceMiles > 0
+            ? Math.round(
+                (data.timeDistribution.evening.miles / data.distanceMiles) *
+                  100 *
+                  10
+              ) / 10
+            : 0,
+      },
+    };
 
     processedPrograms.push({
       program_id: parseInt(programId),
       program_name: data.program_name,
       ...data,
-      distanceMiles: Math.round(distanceMiles * 100) / 100, // Round to 2 decimals
+      distanceMiles: Math.round(data.distanceMiles * 100) / 100, // Round to 2 decimals
+      timeDistribution,
       uniqueLocations: data.uniqueLocations.size,
       terminals: Array.from(data.terminals),
+      coverage: {
+        minLat,
+        maxLat,
+        minLng,
+        maxLng,
+        centerLat: (minLat + maxLat) / 2,
+        centerLng: (minLng + maxLng) / 2,
+      },
       density:
         data.points.length > 100
           ? "high"
@@ -234,8 +350,6 @@ async function buildGpsHeatmapData(
     (sum, program) => sum + program.totalPoints,
     0
   );
-
-  const totalDistanceMiles = totalDistanceKm * 0.621371;
 
   return {
     summary: {
