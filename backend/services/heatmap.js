@@ -32,13 +32,19 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
  * @returns {string} Time bucket name
  */
 function getTimeOfDayBucket(timestamp) {
-  const hour = timestamp.getHours();
+  // Convert UTC timestamp to Eastern Time (America/New_York)
+  const etString = timestamp.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    hour12: false,
+    hour: "2-digit",
+  });
+  const hour = parseInt(etString);
 
-  if (hour >= 0 && hour < 7) return "earlyMorning"; // 12am-7am
-  if (hour >= 7 && hour < 9) return "morningRush"; // 7am-9am
-  if (hour >= 9 && hour < 16) return "midday"; // 9am-4pm
-  if (hour >= 16 && hour < 19) return "eveningRush"; // 4pm-7pm
-  return "evening"; // 7pm-12am
+  if (hour >= 0 && hour < 7) return "earlyMorning"; // 12am-7am ET
+  if (hour >= 7 && hour < 9) return "morningRush"; // 7am-9am ET
+  if (hour >= 9 && hour < 16) return "midday"; // 9am-4pm ET
+  if (hour >= 16 && hour < 19) return "eveningRush"; // 4pm-7pm ET
+  return "evening"; // 7pm-12am ET
 }
 
 async function buildGpsHeatmapData(
@@ -239,7 +245,15 @@ async function buildGpsHeatmapData(
 
     totalDistanceMiles += data.distanceMiles;
 
-    // Format time distribution with percentages
+    // Calculate total duration for percentage calculation
+    const totalDuration =
+      data.timeDistribution.earlyMorning.durationMinutes +
+      data.timeDistribution.morningRush.durationMinutes +
+      data.timeDistribution.midday.durationMinutes +
+      data.timeDistribution.eveningRush.durationMinutes +
+      data.timeDistribution.evening.durationMinutes;
+
+    // Format time distribution with percentages based on time
     const timeDistribution = {
       earlyMorning: {
         hours: "12am-7am",
@@ -248,10 +262,10 @@ async function buildGpsHeatmapData(
           data.timeDistribution.earlyMorning.durationMinutes
         ),
         percentage:
-          data.distanceMiles > 0
+          totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.earlyMorning.miles /
-                  data.distanceMiles) *
+                (data.timeDistribution.earlyMorning.durationMinutes /
+                  totalDuration) *
                   100 *
                   10
               ) / 10
@@ -264,9 +278,9 @@ async function buildGpsHeatmapData(
           data.timeDistribution.morningRush.durationMinutes
         ),
         percentage:
-          data.distanceMiles > 0
+          totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.morningRush.miles / data.distanceMiles) *
+                (data.timeDistribution.morningRush.durationMinutes / totalDuration) *
                   100 *
                   10
               ) / 10
@@ -279,9 +293,9 @@ async function buildGpsHeatmapData(
           data.timeDistribution.midday.durationMinutes
         ),
         percentage:
-          data.distanceMiles > 0
+          totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.midday.miles / data.distanceMiles) *
+                (data.timeDistribution.midday.durationMinutes / totalDuration) *
                   100 *
                   10
               ) / 10
@@ -294,9 +308,9 @@ async function buildGpsHeatmapData(
           data.timeDistribution.eveningRush.durationMinutes
         ),
         percentage:
-          data.distanceMiles > 0
+          totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.eveningRush.miles / data.distanceMiles) *
+                (data.timeDistribution.eveningRush.durationMinutes / totalDuration) *
                   100 *
                   10
               ) / 10
@@ -309,9 +323,9 @@ async function buildGpsHeatmapData(
           data.timeDistribution.evening.durationMinutes
         ),
         percentage:
-          data.distanceMiles > 0
+          totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.evening.miles / data.distanceMiles) *
+                (data.timeDistribution.evening.durationMinutes / totalDuration) *
                   100 *
                   10
               ) / 10

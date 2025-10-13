@@ -8,6 +8,9 @@ const playingRoutes = require("./routes/playing");
 const statusRoutes = require("./routes/status");
 const clientsRoutes = require("./routes/clients");
 const clientDataRoutes = require("./routes/clientData");
+const programsRoutes = require("./routes/programs");
+const analyticsRoutes = require("./routes/analytics");
+const clientGpsRoutes = require("./routes/clientGps");
 const testRoutes = require("./routes/test");
 const publicRoutes = require("./routes/public");
 const pollerRoutes = require("./routes/poller");
@@ -31,6 +34,9 @@ app.use("/playing", playingRoutes);
 app.use("/status", statusRoutes);
 app.use("/clients", clientsRoutes);
 app.use("/clientData", clientDataRoutes);
+app.use("/programs", programsRoutes);
+app.use("/analytics", analyticsRoutes);
+app.use("/client/gps", clientGpsRoutes);
 app.use("/poller", pollerRoutes);
 
 const server = app.listen(PORT, () => {

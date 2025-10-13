@@ -1,0 +1,305 @@
+{
+  "info": {
+    "name": "Client Data Endpoints",
+    "description": "API endpoints for client programs, analytics, and GPS data",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345"
+  },
+  "item": [
+    {
+      "name": "Programs",
+      "item": [
+        {
+          "name": "Get Client Programs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/programs",
+              "host": ["{{base_url}}"],
+              "path": ["programs"]
+            },
+            "description": "Returns client's active programs with campaign metrics and thumbnails.\n\n**Features:**\n- Active program details\n- Campaign metrics (hours played, completion percentage)\n- Thumbnail URLs\n- File information"
+          },
+          "response": [
+            {
+              "name": "Success - Programs",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/programs",
+                  "host": ["{{base_url}}"],
+                  "path": ["programs"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"client\": {\n    \"id\": 1,\n    \"name\": \"Test Client Corp\",\n    \"activePrograms\": [2389650]\n  },\n  \"programs\": [\n    {\n      \"id\": 2389650,\n      \"name\": \"New fluffies\",\n      \"download_status_time\": \"2025-10-13T17:39:55+00:00\",\n      \"files\": [\n        {\n          \"name\": \"F_477892D6458A5E6BC3646E4871B954EE_38708.png\",\n          \"total\": 38708,\n          \"programId\": 2389650,\n          \"downloaded\": 38708\n        }\n      ],\n      \"thumbnail_url\": \"https://example.com/thumbnail.png\",\n      \"minutes_played_since_campaign_start\": 2171,\n      \"hours_played_since_campaign_start\": 36.18,\n      \"campaign_hours_bought\": 168,\n      \"campaign_minutes_bought\": 10080,\n      \"campaign_completion_percent\": 22,\n      \"campaign_start_at\": \"2025-09-17T19:55:58.223+00:00\",\n      \"campaign_end_at\": \"2025-10-30T19:55:58+00:00\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Client Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics",
+              "host": ["{{base_url}}"],
+              "path": ["analytics"]
+            },
+            "description": "Returns analytics data including terminal statistics, campaign metrics, and historical data.\n\n**Features:**\n- Currently playing terminals\n- Terminal status (online/offline)\n- Summary statistics\n- Historical terminal data\n- Campaign metrics per program"
+          },
+          "response": [
+            {
+              "name": "Success - Analytics",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/analytics",
+                  "host": ["{{base_url}}"],
+                  "path": ["analytics"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"client\": {\n    \"id\": 1,\n    \"name\": \"Test Client Corp\",\n    \"activePrograms\": [2389650]\n  },\n  \"terminals\": [\n    {\n      \"terminalId\": \"2355209\",\n      \"name\": \"Terminal1\",\n      \"group_name\": \"Ali Fares\",\n      \"last_report_time\": \"2025-10-13T17:39:48+00:00\",\n      \"power_status\": \"1\",\n      \"isOnline\": true,\n      \"playing\": {\n        \"program_id\": 2389650,\n        \"program_name\": \"New fluffies\",\n        \"file_name\": \"New fluffies_576f251900651b60396b11eb4780c383_1383.vsn\",\n        \"source\": \"internet\",\n        \"started_at\": \"2025-10-13T17:39:30.045+00:00\"\n      }\n    }\n  ],\n  \"summary\": {\n    \"total_terminals\": 1,\n    \"terminals_playing\": 1,\n    \"terminals_offline\": 0,\n    \"historical_terminals_count\": 1\n  },\n  \"historical_terminals\": [\n    {\n      \"terminal_id\": \"2355209\",\n      \"programs_played\": [\n        {\n          \"program_id\": 2389650,\n          \"program_name\": \"New fluffies\"\n        }\n      ],\n      \"first_played_at\": \"2025-09-20T22:29:30+00:00\",\n      \"last_played_at\": \"2025-10-13T17:39:01.537+00:00\"\n    }\n  ],\n  \"campaign_metrics\": {\n    \"2389650\": {\n      \"minutes_played_since_campaign_start\": 2171,\n      \"hours_played_since_campaign_start\": 36.18,\n      \"campaign_hours_bought\": 168,\n      \"campaign_minutes_bought\": 10080,\n      \"campaign_completion_percent\": 22,\n      \"campaign_start_at\": \"2025-09-17T19:55:58.223+00:00\",\n      \"campaign_end_at\": \"2025-10-30T19:55:58+00:00\"\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GPS Data",
+      "item": [
+        {
+          "name": "Get GPS Data (Default 7 Days)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/client/gps?gpsDays=7",
+              "host": ["{{base_url}}"],
+              "path": ["client", "gps"],
+              "query": [
+                {
+                  "key": "gpsDays",
+                  "value": "7",
+                  "description": "Number of days to look back (default: 7)"
+                }
+              ]
+            },
+            "description": "Returns GPS data for the last 7 days including latest GPS coordinates per terminal and heatmap data.\n\n**Features:**\n- Latest GPS coordinates\n- Heatmap visualization data\n- Time distribution (based on duration)\n- Coverage area\n- Distance traveled"
+          },
+          "response": [
+            {
+              "name": "Success - GPS (7 days)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/client/gps?gpsDays=7",
+                  "host": ["{{base_url}}"],
+                  "path": ["client", "gps"],
+                  "query": [
+                    {
+                      "key": "gpsDays",
+                      "value": "7"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"client\": {\n    \"id\": 1,\n    \"name\": \"Test Client Corp\",\n    \"activePrograms\": [2389650]\n  },\n  \"terminals\": [\n    {\n      \"terminalId\": \"2355209\",\n      \"gps\": {\n        \"longitude\": -74.0250106,\n        \"latitude\": 40.6217639166667,\n        \"last_updated\": \"2025-10-13T17:45:01.192333+00:00\"\n      }\n    }\n  ],\n  \"heatmap\": {\n    \"summary\": {\n      \"totalGpsPoints\": 6,\n      \"programsCount\": 1,\n      \"terminalsCount\": 1,\n      \"distanceMiles\": 0,\n      \"dateRange\": \"2025-10-06 to 2025-10-13\"\n    },\n    \"programs\": [\n      {\n        \"program_id\": 2389650,\n        \"program_name\": \"New fluffies\",\n        \"points\": [\n          {\n            \"latitude\": 40.6217639166667,\n            \"longitude\": -74.0250106,\n            \"timestamp\": \"2025-10-13T17:30:01.218028+00:00\",\n            \"terminal_id\": \"2355209\",\n            \"intensity\": 1,\n            \"segment_break\": false\n          }\n        ],\n        \"totalPoints\": 6,\n        \"uniqueLocations\": 1,\n        \"terminals\": [\"2355209\"],\n        \"distanceMiles\": 0,\n        \"timeDistribution\": {\n          \"earlyMorning\": {\n            \"hours\": \"12am-7am\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          },\n          \"morningRush\": {\n            \"hours\": \"7am-9am\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          },\n          \"midday\": {\n            \"hours\": \"9am-4pm\",\n            \"miles\": 0,\n            \"durationMinutes\": 15,\n            \"percentage\": 100\n          },\n          \"eveningRush\": {\n            \"hours\": \"4pm-7pm\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          },\n          \"evening\": {\n            \"hours\": \"7pm-12am\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          }\n        },\n        \"coverage\": {\n          \"minLat\": 40.6217639166667,\n          \"maxLat\": 40.6217639166667,\n          \"minLng\": -74.0250106,\n          \"maxLng\": -74.0250106,\n          \"centerLat\": 40.6217639166667,\n          \"centerLng\": -74.0250106\n        },\n        \"density\": \"low\",\n        \"avgPointsPerLocation\": 6\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get GPS Data (Custom Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/client/gps?gpsStartDate=2025-09-29&gpsEndDate=2025-10-13",
+              "host": ["{{base_url}}"],
+              "path": ["client", "gps"],
+              "query": [
+                {
+                  "key": "gpsStartDate",
+                  "value": "2025-09-29",
+                  "description": "Start date (YYYY-MM-DD format)"
+                },
+                {
+                  "key": "gpsEndDate",
+                  "value": "2025-10-13",
+                  "description": "End date (YYYY-MM-DD format)"
+                }
+              ]
+            },
+            "description": "Returns GPS data for a custom date range.\n\n**Query Parameters:**\n- `gpsStartDate`: Start date in YYYY-MM-DD format\n- `gpsEndDate`: End date in YYYY-MM-DD format\n- `gpsProgramId` (optional): Filter by specific program ID\n- `gpsDays` (optional): Number of days to look back (alternative to date range)"
+          },
+          "response": [
+            {
+              "name": "Success - GPS (Custom Date Range)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/client/gps?gpsStartDate=2025-09-29&gpsEndDate=2025-10-13",
+                  "host": ["{{base_url}}"],
+                  "path": ["client", "gps"],
+                  "query": [
+                    {
+                      "key": "gpsStartDate",
+                      "value": "2025-09-29"
+                    },
+                    {
+                      "key": "gpsEndDate",
+                      "value": "2025-10-13"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"client\": {\n    \"id\": 1,\n    \"name\": \"Test Client Corp\",\n    \"activePrograms\": [2389650]\n  },\n  \"terminals\": [\n    {\n      \"terminalId\": \"2355209\",\n      \"gps\": {\n        \"longitude\": -74.0250106,\n        \"latitude\": 40.6217639166667,\n        \"last_updated\": \"2025-10-13T17:39:00.983216+00:00\"\n      }\n    }\n  ],\n  \"heatmap\": {\n    \"summary\": {\n      \"totalGpsPoints\": 46,\n      \"programsCount\": 1,\n      \"terminalsCount\": 1,\n      \"distanceMiles\": 10.71,\n      \"dateRange\": \"2025-09-29 to 2025-10-13\"\n    },\n    \"programs\": [\n      {\n        \"program_id\": 2389650,\n        \"program_name\": \"New fluffies\",\n        \"totalPoints\": 46,\n        \"uniqueLocations\": 37,\n        \"terminals\": [\"2355209\"],\n        \"distanceMiles\": 10.71,\n        \"timeDistribution\": {\n          \"earlyMorning\": {\n            \"hours\": \"12am-7am\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          },\n          \"morningRush\": {\n            \"hours\": \"7am-9am\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          },\n          \"midday\": {\n            \"hours\": \"9am-4pm\",\n            \"miles\": 0,\n            \"durationMinutes\": 24,\n            \"percentage\": 17.8\n          },\n          \"eveningRush\": {\n            \"hours\": \"4pm-7pm\",\n            \"miles\": 10.71,\n            \"durationMinutes\": 111,\n            \"percentage\": 82.2\n          },\n          \"evening\": {\n            \"hours\": \"7pm-12am\",\n            \"miles\": 0,\n            \"durationMinutes\": 0,\n            \"percentage\": 0\n          }\n        },\n        \"coverage\": {\n          \"minLat\": 40.6203022833333,\n          \"maxLat\": 40.6828783666667,\n          \"minLng\": -74.0313359166667,\n          \"maxLng\": -73.9831882833333,\n          \"centerLat\": 40.651590325,\n          \"centerLng\": -74.0072621\n        },\n        \"density\": \"low\",\n        \"avgPointsPerLocation\": 1.24\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get GPS Data (Filter by Program)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/client/gps?gpsDays=14&gpsProgramId=2389650",
+              "host": ["{{base_url}}"],
+              "path": ["client", "gps"],
+              "query": [
+                {
+                  "key": "gpsDays",
+                  "value": "14",
+                  "description": "Number of days to look back"
+                },
+                {
+                  "key": "gpsProgramId",
+                  "value": "2389650",
+                  "description": "Filter heatmap data by specific program ID"
+                }
+              ]
+            },
+            "description": "Returns GPS data filtered by a specific program ID.\n\n**Query Parameters:**\n- `gpsDays`: Number of days to look back\n- `gpsProgramId`: Filter by this program ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Legacy",
+      "item": [
+        {
+          "name": "Get Client Data (Legacy - All in One)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/clientData?gpsDays=7",
+              "host": ["{{base_url}}"],
+              "path": ["clientData"],
+              "query": [
+                {
+                  "key": "gpsDays",
+                  "value": "7",
+                  "description": "Number of days for GPS data"
+                },
+                {
+                  "key": "gpsStartDate",
+                  "value": "2025-10-01",
+                  "description": "GPS start date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "gpsEndDate",
+                  "value": "2025-10-13",
+                  "description": "GPS end date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "gpsProgramId",
+                  "value": "2389650",
+                  "description": "Filter GPS by program ID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**LEGACY ENDPOINT** - Returns all client data in one response.\n\n⚠️ **Deprecated**: Use the new separated endpoints instead:\n- `/programs` for program data\n- `/analytics` for terminal analytics\n- `/client/gps` for GPS data\n\nThis endpoint is maintained for backward compatibility but may be removed in future versions."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
