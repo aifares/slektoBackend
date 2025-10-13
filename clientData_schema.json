@@ -135,8 +135,13 @@
             "type": ["string", "null"],
             "description": "Power status of the terminal"
           },
+          "isOnline": {
+            "type": "boolean",
+            "description": "Whether the terminal is currently online based on terminal_status_log"
+          },
           "playing": {
-            "type": "object",
+            "type": ["object", "null"],
+            "description": "Currently playing information, null if terminal is offline or not playing",
             "properties": {
               "program_id": {
                 "type": "integer",

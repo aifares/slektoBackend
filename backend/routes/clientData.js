@@ -100,6 +100,12 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // Compute campaign playback metrics per program via service
+    const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
+      activeCampaigns || [],
+      programIds
+    );
+
     if (programIds.length === 0) {
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
@@ -117,23 +123,13 @@ router.get("/", async (req, res) => {
             terminalsCount: 0,
             dateRange: `${startDate} to ${endDate}`,
           },
-          programs: {},
+          programs: [],
         },
         historical_terminals: [],
       });
     }
 
-    // Compute campaign playback metrics per program via service
-    const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
-      activeCampaigns || [],
-      programIds
-    );
-
     // 2) Fetch currently playing sessions for those programs
-    console.log(
-      "Looking for currently playing sessions with program IDs:",
-      programIds
-    );
     const { data: playingRows, error: playingError } = await supabase
       .from("playing")
       .select(
@@ -142,9 +138,6 @@ router.get("/", async (req, res) => {
       .in("program_id", programIds)
       .eq("status", "current");
 
-    console.log("Currently playing sessions found:", playingRows?.length || 0);
-    console.log("Playing data:", playingRows);
-
     if (playingError) {
       return res.status(500).json({
         error: "Failed to fetch currently playing data",
@@ -152,6 +145,7 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // Get terminal IDs from currently playing terminals only
     const terminalIds = Array.from(
       new Set((playingRows || []).map((p) => p.terminal_id))
     );
@@ -244,14 +238,30 @@ router.get("/", async (req, res) => {
         );
       }
 
+      // No terminals are currently playing, so return empty terminals array
+
+      // Enrich programs with playback metrics if available
+      const programsOut = (programDetailsWithThumb || []).map((p) => {
+        const metrics = playbackMetricsByProgram[p.id] || {
+          minutes_played_since_campaign_start: 0,
+          campaign_completion_percent: 0,
+          campaign_hours_bought: 0,
+          campaign_minutes_bought: 0,
+          hours_played_since_campaign_start: 0,
+          campaign_start_at: null,
+          campaign_end_at: null,
+        };
+        return { ...p, ...metrics };
+      });
+
       return res.json({
         client: {
           id: client.id,
           name: client.name,
           activePrograms: programIds,
         },
-        programs: programDetailsWithThumb,
-        terminals: [],
+        programs: programsOut,
+        terminals: [], // No terminals currently playing
         summary: {
           total_terminals: 0,
           terminals_playing: 0,
@@ -265,7 +275,7 @@ router.get("/", async (req, res) => {
             terminalsCount: 0,
             dateRange: `${startDate} to ${endDate}`,
           },
-          programs: {},
+          programs: [],
         },
         historical_terminals: allHistoricalTerminals,
       });
@@ -276,6 +286,23 @@ router.get("/", async (req, res) => {
       .from("terminals")
       .select("terminalid, name, group_name, last_report_time, power_status")
       .in("terminalid", terminalIds);
+
+    // 3.5) Fetch terminal online status from terminal_status_log
+    const { data: terminalStatusRows, error: statusError } = await supabase
+      .from("terminal_status_log")
+      .select("terminal_id, status, status_changed_at")
+      .in("terminal_id", terminalIds)
+      .order("status_changed_at", { ascending: false });
+
+    // Create a map of latest status for each terminal
+    const latestStatusByTerminal = {};
+    if (!statusError && terminalStatusRows) {
+      for (const statusRow of terminalStatusRows) {
+        if (!latestStatusByTerminal[statusRow.terminal_id]) {
+          latestStatusByTerminal[statusRow.terminal_id] = statusRow.status;
+        }
+      }
+    }
 
     if (terminalsError) {
       return res.status(500).json({
@@ -312,23 +339,32 @@ router.get("/", async (req, res) => {
       (terminalRows || []).map((t) => [t.terminalid, t])
     );
 
-    // Build output terminals list
-    const terminalsOut = (playingRows || []).map((p) => {
-      const meta = terminalMetaById[p.terminal_id] || {};
-      const gps = latestGpsByTerminal[p.terminal_id] || null;
+    // Build output terminals list - include ALL terminals, not just currently playing ones
+    const playingByTerminalId = Object.fromEntries(
+      (playingRows || []).map((p) => [p.terminal_id, p])
+    );
+
+    const terminalsOut = (terminalRows || []).map((terminal) => {
+      const playing = playingByTerminalId[terminal.terminalid] || null;
+      const gps = latestGpsByTerminal[terminal.terminalid] || null;
+      const isOnline = latestStatusByTerminal[terminal.terminalid] === "online";
+
       return {
-        terminalId: p.terminal_id,
-        name: meta.name || null,
-        group_name: meta.group_name || null,
-        last_report_time: meta.last_report_time || null,
-        power_status: meta.power_status || null,
-        playing: {
-          program_id: p.program_id,
-          program_name: p.program_name,
-          file_name: p.file_name,
-          source: p.source,
-          started_at: p.started_at,
-        },
+        terminalId: terminal.terminalid,
+        name: terminal.name || null,
+        group_name: terminal.group_name || null,
+        last_report_time: terminal.last_report_time || null,
+        power_status: terminal.power_status || null,
+        isOnline: isOnline,
+        playing: playing
+          ? {
+              program_id: playing.program_id,
+              program_name: playing.program_name,
+              file_name: playing.file_name,
+              source: playing.source,
+              started_at: playing.started_at,
+            }
+          : null,
         gps: gps
           ? {
               longitude: gps.longitude,
@@ -339,7 +375,7 @@ router.get("/", async (req, res) => {
       };
     });
 
-    const terminalsPlayingCount = terminalsOut.length;
+    const terminalsPlayingCount = (playingRows || []).length;
     const offlineCount = (terminalRows || []).filter(
       (t) => t.power_status === "off"
     ).length;
@@ -392,6 +428,8 @@ router.get("/", async (req, res) => {
         campaign_hours_bought: 0,
         campaign_minutes_bought: 0,
         hours_played_since_campaign_start: 0,
+        campaign_start_at: null,
+        campaign_end_at: null,
       };
       return { ...p, ...metrics };
     });
@@ -414,7 +452,7 @@ router.get("/", async (req, res) => {
           terminalsCount: 0,
           dateRange: `${startDate} to ${endDate}`,
         },
-        programs: {},
+        programs: [],
       },
     };
 

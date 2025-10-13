@@ -1,5 +1,31 @@
 const { supabase } = require("../config/supabase");
 
+/**
+ * Calculate distance between two GPS coordinates using Haversine formula
+ * @param {number} lat1 - Latitude of first point
+ * @param {number} lon1 - Longitude of first point
+ * @param {number} lat2 - Latitude of second point
+ * @param {number} lon2 - Longitude of second point
+ * @returns {number} Distance in kilometers
+ */
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+
+  return distance;
+}
+
 async function buildGpsHeatmapData(
   clientId,
   programIds,
@@ -31,7 +57,14 @@ async function buildGpsHeatmapData(
 
   if (!gpsPoints || gpsPoints.length === 0) {
     return {
-      summary: { totalGpsPoints: 0, programsCount: 0, terminalsCount: 0 },
+      summary: {
+        totalGpsPoints: 0,
+        programsCount: 0,
+        terminalsCount: 0,
+        totalDistanceKm: 0,
+        totalDistanceMiles: 0,
+        dateRange: `${startDate} to ${endDate}`,
+      },
       programs: {},
     };
   }
@@ -55,6 +88,9 @@ async function buildGpsHeatmapData(
 
   const programHeatmapData = {};
   const terminalCount = new Set();
+
+  // Track last point per terminal for distance calculation
+  const lastPointByTerminal = {};
 
   for (const gpsPoint of gpsPoints) {
     const gpsTime = new Date(gpsPoint.inserted_at);
@@ -91,6 +127,8 @@ async function buildGpsHeatmapData(
           totalPoints: 0,
           uniqueLocations: new Set(),
           terminals: new Set(),
+          distanceKm: 0,
+          distanceMiles: 0,
         };
       }
 
@@ -108,10 +146,30 @@ async function buildGpsHeatmapData(
       );
       programHeatmapData[programId].terminals.add(gpsPoint.terminal_id);
       terminalCount.add(gpsPoint.terminal_id);
+
+      // Calculate distance from previous point for this terminal
+      const terminalKey = `${programId}_${gpsPoint.terminal_id}`;
+      if (lastPointByTerminal[terminalKey]) {
+        const lastPoint = lastPointByTerminal[terminalKey];
+        const distance = haversineDistance(
+          lastPoint.latitude,
+          lastPoint.longitude,
+          gpsPoint.latitude,
+          gpsPoint.longitude
+        );
+        programHeatmapData[programId].distanceKm += distance;
+      }
+
+      lastPointByTerminal[terminalKey] = {
+        latitude: gpsPoint.latitude,
+        longitude: gpsPoint.longitude,
+      };
     }
   }
 
-  const processedPrograms = {};
+  const processedPrograms = [];
+  let totalDistanceKm = 0;
+
   for (const [programId, data] of Object.entries(programHeatmapData)) {
     if (data.points.length === 0) continue;
 
@@ -123,8 +181,17 @@ async function buildGpsHeatmapData(
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
 
-    processedPrograms[programId] = {
+    // Convert kilometers to miles (1 km = 0.621371 miles)
+    const distanceMiles = data.distanceKm * 0.621371;
+
+    totalDistanceKm += data.distanceKm;
+
+    processedPrograms.push({
+      program_id: parseInt(programId),
+      program_name: data.program_name,
       ...data,
+      distanceKm: Math.round(data.distanceKm * 100) / 100, // Round to 2 decimals
+      distanceMiles: Math.round(distanceMiles * 100) / 100, // Round to 2 decimals
       uniqueLocations: data.uniqueLocations.size,
       terminals: Array.from(data.terminals),
       coverage: {
@@ -142,17 +209,24 @@ async function buildGpsHeatmapData(
           ? "medium"
           : "low",
       avgPointsPerLocation: data.points.length / data.uniqueLocations.size,
-    };
-
-    delete processedPrograms[programId].uniqueLocations;
-    delete processedPrograms[programId].terminals;
+    });
   }
+
+  // Calculate total points that were actually used (during playing sessions)
+  const totalUsedPoints = processedPrograms.reduce(
+    (sum, program) => sum + program.totalPoints,
+    0
+  );
+
+  const totalDistanceMiles = totalDistanceKm * 0.621371;
 
   return {
     summary: {
-      totalGpsPoints: gpsPoints.length,
-      programsCount: Object.keys(processedPrograms).length,
+      totalGpsPoints: totalUsedPoints,
+      programsCount: processedPrograms.length,
       terminalsCount: terminalCount.size,
+      totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
+      totalDistanceMiles: Math.round(totalDistanceMiles * 100) / 100,
       dateRange: `${startDate} to ${endDate}`,
     },
     programs: processedPrograms,

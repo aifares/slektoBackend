@@ -85,6 +85,11 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
           )
         : 0;
 
+    // Get campaign start and end times for this program
+    const campaignStartTime =
+      campaigns.length > 0 ? campaigns[0].start_at : null;
+    const campaignEndTime = campaigns.length > 0 ? campaigns[0].end_at : null;
+
     playbackMetricsByProgram[programId] = {
       minutes_played_since_campaign_start: totalMinutesPlayed,
       hours_played_since_campaign_start: Number(
@@ -93,6 +98,8 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
       campaign_hours_bought: totalHoursBought,
       campaign_minutes_bought: totalAllowedMinutes,
       campaign_completion_percent: completionPercent,
+      campaign_start_at: campaignStartTime,
+      campaign_end_at: campaignEndTime,
     };
   }
 
