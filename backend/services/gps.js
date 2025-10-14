@@ -86,9 +86,7 @@ function parseGpsDataFromLive(terminalId, liveData) {
   }
 
   // Use serverTime as the recorded timestamp if available, otherwise use current time
-  const recordedAt = liveData.serverTime
-    ? new Date(liveData.serverTime)
-    : new Date();
+  const recordedAt = new Date();
   const dataDate = recordedAt.toISOString().split("T")[0]; // YYYY-MM-DD format
 
   return [
