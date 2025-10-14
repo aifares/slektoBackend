@@ -4,11 +4,19 @@ const router = express.Router();
 const { supabase } = require("../config/supabase");
 const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
+const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
 
 // GET /analytics - Returns client's analytics including summary statistics, terminals, and historical data
 router.get("/", async (req, res) => {
   try {
     const client = req.client; // set by auth middleware
+
+    // Parse query parameters for zone coverage filtering
+    const {
+      zoneDays,
+      zoneStartDate,
+      zoneEndDate,
+    } = req.query;
 
     // 1) Resolve client's active programs (via campaigns in active window)
     const nowIso = new Date().toISOString();
@@ -53,6 +61,26 @@ router.get("/", async (req, res) => {
         },
         historical_terminals: [],
         campaign_metrics: {},
+        zone_coverage: {
+          total_zones_visited: 0,
+          total_zones_available: 0,
+          coverage_percentage: 0,
+          total_minutes_in_zones: 0,
+          high_value_exposure_score: 0,
+          zones: [],
+          zone_type_distribution: {
+            tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+            shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+            residential: {
+              zones_count: 0,
+              minutes: 0,
+              hours: 0,
+              percentage: 0,
+            },
+            mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+          },
+          date_range: { start: null, end: null },
+        },
       });
     }
 
@@ -102,6 +130,26 @@ router.get("/", async (req, res) => {
         },
         historical_terminals: allHistoricalTerminals,
         campaign_metrics: playbackMetricsByProgram,
+        zone_coverage: {
+          total_zones_visited: 0,
+          total_zones_available: 0,
+          coverage_percentage: 0,
+          total_minutes_in_zones: 0,
+          high_value_exposure_score: 0,
+          zones: [],
+          zone_type_distribution: {
+            tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+            shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+            residential: {
+              zones_count: 0,
+              minutes: 0,
+              hours: 0,
+              percentage: 0,
+            },
+            mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+          },
+          date_range: { start: null, end: null },
+        },
       });
     }
 
@@ -168,6 +216,71 @@ router.get("/", async (req, res) => {
       (t) => t.power_status === "off"
     ).length;
 
+    // Calculate zone coverage date range based on query parameters
+    let zoneStartDateFinal = null;
+    let zoneEndDateFinal = nowIso;
+
+    if (zoneEndDate) {
+      // Custom end date provided
+      zoneEndDateFinal = zoneEndDate;
+    }
+
+    if (zoneStartDate) {
+      // Custom start date provided
+      zoneStartDateFinal = zoneStartDate;
+    } else if (zoneDays) {
+      // Calculate start date based on days back from end date
+      const endDate = zoneEndDate ? new Date(zoneEndDate) : new Date();
+      const startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - parseInt(zoneDays));
+      zoneStartDateFinal = startDate.toISOString().split("T")[0];
+    } else {
+      // Default: use campaign start date (full campaign history)
+      if (activeCampaigns && activeCampaigns.length > 0) {
+        const startDates = activeCampaigns.map((c) => new Date(c.start_at));
+        const earliestStart = new Date(Math.min(...startDates));
+        zoneStartDateFinal = earliestStart.toISOString().split("T")[0];
+      }
+    }
+
+    // Build zone coverage metrics
+    let zoneCoverage = {
+      total_zones_visited: 0,
+      total_zones_available: 0,
+      coverage_percentage: 0,
+      total_minutes_in_zones: 0,
+      high_value_exposure_score: 0,
+      zones: [],
+      zone_type_distribution: {
+        tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+        shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+        residential: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+        mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+      },
+      date_range: {
+        start: zoneStartDateFinal,
+        end: zoneEndDateFinal.split("T")[0],
+      },
+    };
+
+    if (zoneStartDateFinal && terminalIds.length > 0) {
+      try {
+        zoneCoverage = await buildZoneCoverageMetrics(
+          programIds,
+          terminalIds,
+          zoneStartDateFinal,
+          zoneEndDateFinal
+        );
+        // Add date range to response
+        zoneCoverage.date_range = {
+          start: zoneStartDateFinal,
+          end: zoneEndDateFinal.split("T")[0],
+        };
+      } catch (error) {
+        console.warn("Failed to build zone coverage metrics:", error.message);
+      }
+    }
+
     const response = {
       client: { id: client.id, name: client.name, activePrograms: programIds },
       terminals: terminalsOut,
@@ -179,6 +292,7 @@ router.get("/", async (req, res) => {
       },
       historical_terminals: allHistoricalTerminals,
       campaign_metrics: playbackMetricsByProgram,
+      zone_coverage: zoneCoverage,
     };
 
     res.json(response);

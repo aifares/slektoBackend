@@ -24,7 +24,7 @@ function parseGpsDataFromTrack(terminalId, trackResponse) {
 
   return trackResponse.data.map((point) => {
     // Use serverTime as the recorded timestamp (UTC)
-    const recordedAt = new Date(point.serverTime);
+    const recordedAt = new Date();
     const dataDate = recordedAt.toISOString().split("T")[0]; // YYYY-MM-DD format
 
     return {
