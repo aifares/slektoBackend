@@ -1,4 +1,5 @@
 const { supabase } = require("../config/supabase");
+const { detectZone } = require("./zoneDetection");
 
 async function insertTerminalGpsPoints(rows) {
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -17,29 +18,40 @@ async function insertTerminalGpsPoints(rows) {
 }
 
 // Helper function to parse GPS data from track API response
-function parseGpsDataFromTrack(terminalId, trackResponse) {
+async function parseGpsDataFromTrack(terminalId, trackResponse) {
   if (!trackResponse?.data || !Array.isArray(trackResponse.data)) {
     return [];
   }
 
-  return trackResponse.data.map((point) => {
+  const parsedPoints = [];
+
+  for (const point of trackResponse.data) {
     // Use serverTime as the recorded timestamp (UTC)
     const recordedAt = new Date();
     const dataDate = recordedAt.toISOString().split("T")[0]; // YYYY-MM-DD format
 
-    return {
+    const latitude = Number(point.latitude);
+    const longitude = Number(point.longitude);
+
+    // Detect zone for this GPS point
+    const zone = await detectZone(latitude, longitude);
+
+    parsedPoints.push({
       terminal_id: terminalId.toString(),
       data_date: dataDate,
-      longitude: Number(point.longitude),
-      latitude: Number(point.latitude),
+      longitude: longitude,
+      latitude: latitude,
       recorded_at: recordedAt.toISOString(),
-    };
-  });
+      zone_id: zone?.id || null,
+    });
+  }
+
+  return parsedPoints;
 }
 
 // Function to store GPS data from track API response
 async function storeGpsDataFromTrack(terminalId, trackResponse) {
-  const gpsPoints = parseGpsDataFromTrack(terminalId, trackResponse);
+  const gpsPoints = await parseGpsDataFromTrack(terminalId, trackResponse);
 
   if (gpsPoints.length === 0) {
     return [];
@@ -80,7 +92,7 @@ async function isTerminalOnline(terminalId, thresholdSeconds = 180) {
 }
 
 // Helper function to parse GPS data from live API response
-function parseGpsDataFromLive(terminalId, liveData) {
+async function parseGpsDataFromLive(terminalId, liveData) {
   if (!liveData?.latitude || !liveData?.longitude) {
     return [];
   }
@@ -89,20 +101,27 @@ function parseGpsDataFromLive(terminalId, liveData) {
   const recordedAt = new Date();
   const dataDate = recordedAt.toISOString().split("T")[0]; // YYYY-MM-DD format
 
+  const latitude = Number(liveData.latitude);
+  const longitude = Number(liveData.longitude);
+
+  // Detect zone for this GPS point
+  const zone = await detectZone(latitude, longitude);
+
   return [
     {
       terminal_id: terminalId.toString(),
       data_date: dataDate,
-      longitude: Number(liveData.longitude),
-      latitude: Number(liveData.latitude),
+      longitude: longitude,
+      latitude: latitude,
       recorded_at: recordedAt.toISOString(),
+      zone_id: zone?.id || null,
     },
   ];
 }
 
 // Function to store GPS data from live API response
 async function storeGpsDataFromLive(terminalId, liveData) {
-  const gpsPoints = parseGpsDataFromLive(terminalId, liveData);
+  const gpsPoints = await parseGpsDataFromLive(terminalId, liveData);
 
   if (gpsPoints.length === 0) {
     return 0;
