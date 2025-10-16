@@ -12,11 +12,7 @@ router.get("/", async (req, res) => {
     const client = req.client; // set by auth middleware
 
     // Parse query parameters for zone coverage filtering
-    const {
-      zoneDays,
-      zoneStartDate,
-      zoneEndDate,
-    } = req.query;
+    const { zoneDays, zoneStartDate, zoneEndDate } = req.query;
 
     // 1) Resolve client's active programs (via campaigns in active window)
     const nowIso = new Date().toISOString();
@@ -61,26 +57,7 @@ router.get("/", async (req, res) => {
         },
         historical_terminals: [],
         campaign_metrics: {},
-        zone_coverage: {
-          total_zones_visited: 0,
-          total_zones_available: 0,
-          coverage_percentage: 0,
-          total_minutes_in_zones: 0,
-          high_value_exposure_score: 0,
-          zones: [],
-          zone_type_distribution: {
-            tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-            shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-            residential: {
-              zones_count: 0,
-              minutes: 0,
-              hours: 0,
-              percentage: 0,
-            },
-            mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-          },
-          date_range: { start: null, end: null },
-        },
+        zone_coverage: {},
       });
     }
 
@@ -244,24 +221,7 @@ router.get("/", async (req, res) => {
     }
 
     // Build zone coverage metrics
-    let zoneCoverage = {
-      total_zones_visited: 0,
-      total_zones_available: 0,
-      coverage_percentage: 0,
-      total_minutes_in_zones: 0,
-      high_value_exposure_score: 0,
-      zones: [],
-      zone_type_distribution: {
-        tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-        shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-        residential: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-        mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-      },
-      date_range: {
-        start: zoneStartDateFinal,
-        end: zoneEndDateFinal.split("T")[0],
-      },
-    };
+    let zoneCoverage = {};
 
     if (zoneStartDateFinal && terminalIds.length > 0) {
       try {
@@ -271,11 +231,6 @@ router.get("/", async (req, res) => {
           zoneStartDateFinal,
           zoneEndDateFinal
         );
-        // Add date range to response
-        zoneCoverage.date_range = {
-          start: zoneStartDateFinal,
-          end: zoneEndDateFinal.split("T")[0],
-        };
       } catch (error) {
         console.warn("Failed to build zone coverage metrics:", error.message);
       }
