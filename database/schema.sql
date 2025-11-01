@@ -122,7 +122,8 @@ CREATE TABLE IF NOT EXISTS terminal_gps_data (
   longitude DOUBLE PRECISION NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,
   recorded_at TIMESTAMPTZ,                    -- Actual GPS recording time from terminal
-  inserted_at TIMESTAMPTZ DEFAULT NOW()       -- When data was imported to database
+  inserted_at TIMESTAMPTZ DEFAULT NOW(),      -- When data was imported to database
+  zone_id BIGINT                              -- References nyc_zones.id, detected during polling
 );
 
 CREATE TABLE IF NOT EXISTS client (

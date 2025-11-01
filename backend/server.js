@@ -11,7 +11,6 @@ const clientDataRoutes = require("./routes/clientData");
 const programsRoutes = require("./routes/programs");
 const analyticsRoutes = require("./routes/analytics");
 const clientGpsRoutes = require("./routes/clientGps");
-const testRoutes = require("./routes/test");
 const publicRoutes = require("./routes/public");
 const pollerRoutes = require("./routes/poller");
 const { authMiddleware } = require("./middleware/auth");
