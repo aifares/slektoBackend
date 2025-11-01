@@ -10,15 +10,13 @@ router.get("/", async (req, res) => {
   try {
     const client = req.client; // set by auth middleware
 
-    // 1) Resolve client's active programs (via campaigns in active window)
+    // 1) Resolve client's campaigns (include ended ones) and compute isActive
     const nowIso = new Date().toISOString();
-    const { data: activeCampaigns, error: campaignsError } = await supabase
+    const { data: allCampaigns, error: campaignsError } = await supabase
       .from("campaign")
       .select("program_id, status, start_at, end_at, hours_bought")
       .eq("client_id", client.id)
-      .in("status", ["active", "planned"]) // consider planned in window
-      .lte("start_at", nowIso)
-      .gte("end_at", nowIso);
+      .in("status", ["active", "planned", "completed", "inactive"]);
 
     if (campaignsError) {
       return res.status(500).json({
@@ -27,14 +25,26 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // Compute isActive per campaign based on date window and status
+    const campaignsWithActiveStatus = (allCampaigns || []).map((c) => {
+      const isActive =
+        c.start_at <= nowIso && c.end_at >= nowIso && c.status === "active";
+      return { ...c, isActive };
+    });
+
     const programIds = Array.from(
-      new Set((activeCampaigns || []).map((c) => c.program_id))
+      new Set(campaignsWithActiveStatus.map((c) => c.program_id))
     );
 
-    console.log("Active campaigns found:", activeCampaigns?.length || 0);
+    console.log(
+      "Total campaigns:",
+      campaignsWithActiveStatus?.length || 0,
+      "Active:",
+      campaignsWithActiveStatus.filter((c) => c.isActive).length
+    );
     console.log("Program IDs from campaigns:", programIds);
 
-    // If no active programs, return early
+    // If no campaigns at all, return early
     if (programIds.length === 0) {
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
@@ -87,9 +97,17 @@ router.get("/", async (req, res) => {
 
     // Compute campaign playback metrics per program via service
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
-      activeCampaigns || [],
+      campaignsWithActiveStatus,
       programIds
     );
+
+    // Attach isActive to metrics for each program
+    for (const [pid, metrics] of Object.entries(playbackMetricsByProgram)) {
+      const campaign = campaignsWithActiveStatus.find(
+        (c) => c.program_id === parseInt(pid)
+      );
+      if (campaign) metrics.isActive = campaign.isActive;
+    }
 
     // Enrich programs with playback metrics if available
     const programsOut = (programDetailsWithThumb || []).map((p) => {
@@ -101,6 +119,7 @@ router.get("/", async (req, res) => {
         hours_played_since_campaign_start: 0,
         campaign_start_at: null,
         campaign_end_at: null,
+        isActive: false,
       };
       return { ...p, ...metrics };
     });

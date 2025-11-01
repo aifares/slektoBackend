@@ -23,7 +23,6 @@ const PORT = 3000;
 
 // Public routes (no auth)
 app.use("/public", publicRoutes);
-app.use("/test", testRoutes);
 
 // Protect all other routes with auth
 app.use(authMiddleware);
