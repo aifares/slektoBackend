@@ -13,6 +13,7 @@ const analyticsRoutes = require("./routes/analytics");
 const clientGpsRoutes = require("./routes/clientGps");
 const publicRoutes = require("./routes/public");
 const pollerRoutes = require("./routes/poller");
+const driversRoutes = require("./routes/drivers");
 const { authMiddleware } = require("./middleware/auth");
 
 const app = express();
@@ -22,6 +23,7 @@ const PORT = 3000;
 
 // Public routes (no auth)
 app.use("/public", publicRoutes);
+app.use("/drivers", driversRoutes);
 
 // Protect all other routes with auth
 app.use(authMiddleware);
