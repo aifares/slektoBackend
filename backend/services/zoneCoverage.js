@@ -1,6 +1,7 @@
 const { supabase } = require("../config/supabase");
 const {
   getTimePeriod,
+  isRushHour,
   splitMinutesAcrossPeriods,
 } = require("../utils/timePeriod");
 
@@ -51,7 +52,7 @@ async function fetchAllGpsPoints(terminalIds, startDate, endDateOnly) {
 
 /**
  * Build time breakdown object from period minutes
- * @param {Object} breakdown - {morning, afternoon, evening, night} minutes
+ * @param {Object} breakdown - {morning, afternoon, evening, night, rush_hour} minutes
  * @returns {Object} Formatted time breakdown with minutes, hours, and percentages
  */
 function buildTimeBreakdown(breakdown) {
@@ -94,6 +95,14 @@ function buildTimeBreakdown(breakdown) {
           ? Math.round((breakdown.night / breakdownTotal) * 1000) / 10
           : 0,
     },
+    rush_hour: {
+      minutes: Math.round((breakdown.rush_hour || 0) * 100) / 100,
+      hours: Math.round(((breakdown.rush_hour || 0) / 60) * 100) / 100,
+      percentage:
+        breakdownTotal > 0
+          ? Math.round(((breakdown.rush_hour || 0) / breakdownTotal) * 1000) / 10
+          : 0,
+    },
   };
 }
 
@@ -117,7 +126,7 @@ function processGpsPointsForProgram(gpsPoints, programSessions) {
     });
   };
 
-  // zone_id -> {total, morning, afternoon, evening, night}
+  // zone_id -> {total, morning, afternoon, evening, night, rush_hour}
   const zoneTimeBreakdown = new Map();
   const lastPointByTerminal = new Map(); // terminal_id -> {zone_id, timestamp}
 
@@ -130,6 +139,7 @@ function processGpsPointsForProgram(gpsPoints, programSessions) {
         afternoon: 0,
         evening: 0,
         night: 0,
+        rush_hour: 0,
       });
     }
     return zoneTimeBreakdown.get(zoneId);
@@ -172,20 +182,34 @@ function processGpsPointsForProgram(gpsPoints, programSessions) {
           addMinutesToPeriod(point.zone_id, "afternoon", periodSplit.afternoon);
           addMinutesToPeriod(point.zone_id, "evening", periodSplit.evening);
           addMinutesToPeriod(point.zone_id, "night", periodSplit.night);
+          // Add rush hour minutes separately
+          addMinutesToPeriod(point.zone_id, "rush_hour", periodSplit.rush_hour || 0);
         } else if (minutesDiff > 30) {
           // Gap > 30 minutes - treat as new entry point in zone
           // Add 1 minute for presence at this point
           const period = getTimePeriod(point.recorded_at);
           addMinutesToPeriod(point.zone_id, period, 1);
+          // Also count towards rush hour if during rush hour
+          if (isRushHour(point.recorded_at)) {
+            addMinutesToPeriod(point.zone_id, "rush_hour", 1);
+          }
         }
       } else if (lastPoint && lastPoint.zone_id !== point.zone_id) {
         // Zone changed - add 1 minute for presence in new zone
         const period = getTimePeriod(point.recorded_at);
         addMinutesToPeriod(point.zone_id, period, 1);
+        // Also count towards rush hour if during rush hour
+        if (isRushHour(point.recorded_at)) {
+          addMinutesToPeriod(point.zone_id, "rush_hour", 1);
+        }
       } else {
         // First point for this terminal - count 1 minute of presence
         const period = getTimePeriod(point.recorded_at);
         addMinutesToPeriod(point.zone_id, period, 1);
+        // Also count towards rush hour if during rush hour
+        if (isRushHour(point.recorded_at)) {
+          addMinutesToPeriod(point.zone_id, "rush_hour", 1);
+        }
       }
 
       // Update last point tracker

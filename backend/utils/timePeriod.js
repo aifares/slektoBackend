@@ -38,6 +38,19 @@ function getTimePeriod(timestamp) {
 }
 
 /**
+ * Check if timestamp falls within rush hour in NYC timezone
+ * Rush hours: 7-9 AM (morning) and 5-7 PM (evening)
+ * @param {string|Date} timestamp - UTC timestamp
+ * @returns {boolean} True if during rush hour
+ */
+function isRushHour(timestamp) {
+  const hour = getNYCHour(timestamp);
+  // Morning rush: 7-9 AM (hours 7-8)
+  // Evening rush: 5-7 PM (hours 17-18)
+  return (hour >= 7 && hour < 9) || (hour >= 17 && hour < 19);
+}
+
+/**
  * Calculate minutes into the day (0-1439) for NYC timezone
  * @param {Date} date - UTC timestamp
  * @returns {number} Minutes from midnight (0-1439)
@@ -65,7 +78,7 @@ function getMinutesIntoDayNYC(date) {
  * @param {string|Date} startTime - Start timestamp (UTC)
  * @param {string|Date} endTime - End timestamp (UTC)
  * @param {number} totalMinutes - Total minutes to split
- * @returns {Object} Object with minutes per period: {morning, afternoon, evening, night}
+ * @returns {Object} Object with minutes per period: {morning, afternoon, evening, night, rush_hour}
  */
 function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
   const start = new Date(startTime);
@@ -74,11 +87,17 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
   // Get periods for start and end using NYC timezone
   const startPeriod = getTimePeriod(start);
   const endPeriod = getTimePeriod(end);
+  const startIsRushHour = isRushHour(start);
+  const endIsRushHour = isRushHour(end);
 
   // If both timestamps are in the same period, attribute all minutes to that period
   if (startPeriod === endPeriod) {
-    const result = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+    const result = { morning: 0, afternoon: 0, evening: 0, night: 0, rush_hour: 0 };
     result[startPeriod] = totalMinutes;
+    // If within rush hour, also count towards rush_hour
+    if (startIsRushHour && endIsRushHour) {
+      result.rush_hour = totalMinutes;
+    }
     return result;
   }
 
@@ -88,9 +107,13 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
     afternoon: 12 * 60, // 12:00 PM = 720 minutes
     evening: 18 * 60, // 6:00 PM = 1080 minutes
     night: 22 * 60, // 10:00 PM = 1320 minutes
+    rushHourMorning: 7 * 60, // 7:00 AM = 420 minutes
+    rushHourMorningEnd: 9 * 60, // 9:00 AM = 540 minutes
+    rushHourEvening: 17 * 60, // 5:00 PM = 1020 minutes
+    rushHourEveningEnd: 19 * 60, // 7:00 PM = 1140 minutes
   };
 
-  const result = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+  const result = { morning: 0, afternoon: 0, evening: 0, night: 0, rush_hour: 0 };
 
   // Helper to determine which period a minute offset falls into
   const getPeriodForMinute = (minutesInDay) => {
@@ -114,6 +137,16 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
     }
   };
 
+  // Helper to check if a minute falls within rush hour
+  const isRushHourMinute = (minutesInDay) => {
+    return (
+      (minutesInDay >= PERIOD_BOUNDARIES.rushHourMorning &&
+        minutesInDay < PERIOD_BOUNDARIES.rushHourMorningEnd) ||
+      (minutesInDay >= PERIOD_BOUNDARIES.rushHourEvening &&
+        minutesInDay < PERIOD_BOUNDARIES.rushHourEveningEnd)
+    );
+  };
+
   // For GPS points that are typically 3 minutes apart, use a proportional split
   // Calculate the midpoint time in NYC timezone
   const actualDiffMs = end - start;
@@ -128,29 +161,49 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
     // For short durations, attribute based on which periods the start and end fall into
     const periodsInvolved = new Set([startPeriod, endPeriod, midpointPeriod]);
 
-    // If duration is very short (<= 3 min), most time is likely in midpoint period
-    if (totalMinutes <= 3) {
-      // 80% to midpoint, 20% split between start/end if different
-      result[midpointPeriod] = totalMinutes * 0.8;
-      const remaining = totalMinutes * 0.2;
+      // If duration is very short (<= 3 min), most time is likely in midpoint period
+      if (totalMinutes <= 3) {
+        // 80% to midpoint, 20% split between start/end if different
+        result[midpointPeriod] = totalMinutes * 0.8;
+        const remaining = totalMinutes * 0.2;
 
-      if (startPeriod !== midpointPeriod) {
-        result[startPeriod] = remaining * 0.5;
+        if (startPeriod !== midpointPeriod) {
+          result[startPeriod] = remaining * 0.5;
+        }
+        if (endPeriod !== midpointPeriod && endPeriod !== startPeriod) {
+          result[endPeriod] = remaining * 0.5;
+        }
+        if (startPeriod === midpointPeriod && endPeriod === midpointPeriod) {
+          result[midpointPeriod] = totalMinutes;
+        }
+        
+        // Check if midpoint falls in rush hour
+        if (isRushHourMinute(midpointMinutesInDay)) {
+          result.rush_hour = totalMinutes * 0.8;
+        } else if (startIsRushHour || endIsRushHour) {
+          result.rush_hour = remaining * 0.5;
+        }
+      } else {
+        // For slightly longer durations (3-10 min), distribute more evenly
+        const numPeriods = periodsInvolved.size;
+        const perPeriod = totalMinutes / numPeriods;
+        periodsInvolved.forEach((period) => {
+          result[period] += perPeriod;
+        });
+        
+        // Add rush hour minutes proportionally
+        let rushHourMinutes = 0;
+        if (isRushHourMinute(midpointMinutesInDay)) {
+          rushHourMinutes += totalMinutes * 0.6;
+        }
+        if (startIsRushHour) {
+          rushHourMinutes += totalMinutes * 0.2;
+        }
+        if (endIsRushHour && !startIsRushHour) {
+          rushHourMinutes += totalMinutes * 0.2;
+        }
+        result.rush_hour = rushHourMinutes;
       }
-      if (endPeriod !== midpointPeriod && endPeriod !== startPeriod) {
-        result[endPeriod] = remaining * 0.5;
-      }
-      if (startPeriod === midpointPeriod && endPeriod === midpointPeriod) {
-        result[midpointPeriod] = totalMinutes;
-      }
-    } else {
-      // For slightly longer durations (3-10 min), distribute more evenly
-      const numPeriods = periodsInvolved.size;
-      const perPeriod = totalMinutes / numPeriods;
-      periodsInvolved.forEach((period) => {
-        result[period] += perPeriod;
-      });
-    }
   } else {
     // For longer durations, calculate exact boundaries
     // Split proportionally: more weight to midpoint period
@@ -167,6 +220,19 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
     } else {
       result[midpointPeriod] = totalMinutes;
     }
+    
+    // Calculate rush hour minutes for longer durations
+    let rushHourMinutes = 0;
+    if (isRushHourMinute(midpointMinutesInDay)) {
+      rushHourMinutes += totalMinutes * 0.6;
+    }
+    if (startIsRushHour) {
+      rushHourMinutes += remaining * 0.5;
+    }
+    if (endIsRushHour && !startIsRushHour) {
+      rushHourMinutes += remaining * 0.5;
+    }
+    result.rush_hour = rushHourMinutes;
   }
 
   // Normalize to ensure total equals totalMinutes exactly
@@ -179,6 +245,9 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
     result.evening = result.evening * ratio;
     result.night = result.night * ratio;
   }
+  
+  // Note: rush_hour is counted separately and can overlap with morning/evening
+  // So rush_hour minutes are NOT subtracted from morning/evening totals
 
   return result;
 }
@@ -186,6 +255,7 @@ function splitMinutesAcrossPeriods(startTime, endTime, totalMinutes) {
 module.exports = {
   getNYCHour,
   getTimePeriod,
+  isRushHour,
   getMinutesIntoDayNYC,
   splitMinutesAcrossPeriods,
 };
