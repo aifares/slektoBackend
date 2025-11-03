@@ -114,7 +114,25 @@ CREATE TABLE IF NOT EXISTS terminal_status_log (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. GPS Points (daily raw locations)
+-- 9. NYC Zones (geographic zones for analytics)
+CREATE TABLE IF NOT EXISTS nyc_zones (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  zone_type TEXT NOT NULL CHECK (zone_type IN ('tourist', 'shopping', 'residential', 'mixed')),
+  min_latitude DOUBLE PRECISION NOT NULL,
+  max_latitude DOUBLE PRECISION NOT NULL,
+  min_longitude DOUBLE PRECISION NOT NULL,
+  max_longitude DOUBLE PRECISION NOT NULL,
+  density_multiplier NUMERIC NOT NULL,
+  borough TEXT,
+  borough_code TEXT,
+  boundary GEOGRAPHY(Polygon,4326),           -- PostGIS geography type for spatial queries
+  geometry JSONB,                             -- JSON representation of zone boundaries
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. GPS Points (daily raw locations)
 CREATE TABLE IF NOT EXISTS terminal_gps_data (
   id BIGSERIAL PRIMARY KEY,
   terminal_id TEXT REFERENCES terminals(terminalId),
@@ -123,7 +141,9 @@ CREATE TABLE IF NOT EXISTS terminal_gps_data (
   latitude DOUBLE PRECISION NOT NULL,
   recorded_at TIMESTAMPTZ,                    -- Actual GPS recording time from terminal
   inserted_at TIMESTAMPTZ DEFAULT NOW(),      -- When data was imported to database
-  zone_id BIGINT                              -- References nyc_zones.id, detected during polling
+  zone_id BIGINT REFERENCES nyc_zones(id),   -- References nyc_zones.id, detected during polling
+  impressions INTEGER,                         -- Number of impressions at this GPS point
+  quality_weighted_impressions DOUBLE PRECISION -- Quality-weighted impression count
 );
 
 CREATE TABLE IF NOT EXISTS client (
@@ -199,6 +219,16 @@ CREATE INDEX IF NOT EXISTS idx_terminal_status_log_date_range ON terminal_status
 CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_date ON terminal_gps_data(terminal_id, data_date);
 CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_recorded_at ON terminal_gps_data(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_recorded ON terminal_gps_data(terminal_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_zone_date ON terminal_gps_data(zone_id, data_date);
+CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_zone_id ON terminal_gps_data(zone_id);
+
+-- Indexes for nyc_zones
+CREATE INDEX IF NOT EXISTS idx_nyc_zones_name ON nyc_zones(name);
+CREATE INDEX IF NOT EXISTS idx_nyc_zones_type ON nyc_zones(zone_type);
+CREATE INDEX IF NOT EXISTS idx_nyc_zones_borough ON nyc_zones(borough);
+CREATE INDEX IF NOT EXISTS idx_nyc_zones_borough_code ON nyc_zones(borough_code);
+-- GIST index for PostGIS geography boundary column
+CREATE INDEX IF NOT EXISTS idx_nyc_zones_boundary ON nyc_zones USING GIST(boundary);
 
 -- Indexes for client and campaign
 CREATE INDEX IF NOT EXISTS idx_client_name ON client(name);

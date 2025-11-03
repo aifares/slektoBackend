@@ -59,21 +59,58 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
 
   for (const [programId, campaigns] of campaignsByProgram.entries()) {
     const sessions = sessionsByProgram.get(programId) || [];
-    let totalMinutesPlayed = 0;
-    let totalHoursBought = 0;
-    for (const c of campaigns) {
-      const windowStart = c.start_at;
-      const windowEnd =
-        new Date() < new Date(c.end_at) ? new Date().toISOString() : c.end_at;
-      totalHoursBought += Number(c.hours_bought || 0);
-      for (const s of sessions) {
-        totalMinutesPlayed += computeOverlapMinutes(
-          s.started_at,
-          s.ended_at,
-          windowStart,
-          windowEnd
-        );
+    
+    // Each campaign is separate - select the campaign associated with the client
+    // Priority: 1) Currently active campaign, 2) Most recent active campaign, 3) Earliest campaign
+    const now = new Date();
+    let selectedCampaign = null;
+    
+    // First, try to find an active campaign (isActive = true)
+    const activeCampaign = campaigns.find((c) => c.isActive);
+    if (activeCampaign) {
+      selectedCampaign = activeCampaign;
+    } else {
+      // No active campaign - find the most recent one that has started (or earliest if none started)
+      const startedCampaigns = campaigns.filter(
+        (c) => new Date(c.start_at) <= now
+      );
+      
+      if (startedCampaigns.length > 0) {
+        // Use the most recent start date among started campaigns
+        selectedCampaign = startedCampaigns.reduce((latest, current) => {
+          return new Date(current.start_at) > new Date(latest.start_at)
+            ? current
+            : latest;
+        });
+      } else {
+        // None have started yet - use earliest start date
+        selectedCampaign = campaigns.reduce((earliest, current) => {
+          return new Date(current.start_at) < new Date(earliest.start_at)
+            ? current
+            : earliest;
+        });
       }
+    }
+    
+    if (!selectedCampaign) continue;
+    
+    const windowStart = selectedCampaign.start_at;
+    const windowEnd =
+      now < new Date(selectedCampaign.end_at)
+        ? now.toISOString()
+        : selectedCampaign.end_at;
+    
+    const totalHoursBought = Number(selectedCampaign.hours_bought || 0);
+    
+    // Calculate total minutes played within this campaign's window
+    let totalMinutesPlayed = 0;
+    for (const s of sessions) {
+      totalMinutesPlayed += computeOverlapMinutes(
+        s.started_at,
+        s.ended_at,
+        windowStart,
+        windowEnd
+      );
     }
 
     const totalAllowedMinutes = Math.max(0, Math.floor(totalHoursBought * 60));
@@ -85,10 +122,9 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
           )
         : 0;
 
-    // Get campaign start and end times for this program
-    const campaignStartTime =
-      campaigns.length > 0 ? campaigns[0].start_at : null;
-    const campaignEndTime = campaigns.length > 0 ? campaigns[0].end_at : null;
+    // Get campaign start and end times for this program (selected campaign)
+    const campaignStartTime = selectedCampaign.start_at;
+    const campaignEndTime = selectedCampaign.end_at;
 
     playbackMetricsByProgram[programId] = {
       minutes_played_since_campaign_start: totalMinutesPlayed,

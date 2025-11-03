@@ -48,6 +48,67 @@ async function testZoneCoverage() {
         `    - total_hours_in_zones: ${programData.total_hours_in_zones}`
       );
       console.log(`    - zones count: ${programData.zones?.length || 0}`);
+
+      // Check time breakdown in zones
+      if (programData.zones && programData.zones.length > 0) {
+        const firstZone = programData.zones[0];
+        console.log(`\n  First Zone (${firstZone.display_name}):`);
+        console.log(`    - minutes_spent: ${firstZone.minutes_spent}`);
+        console.log(`    - Has time_breakdown: ${!!firstZone.time_breakdown}`);
+
+        if (firstZone.time_breakdown) {
+          console.log(`    - Time Breakdown:`);
+          console.log(
+            `      Morning: ${firstZone.time_breakdown.morning.minutes} min (${firstZone.time_breakdown.morning.percentage}%)`
+          );
+          console.log(
+            `      Afternoon: ${firstZone.time_breakdown.afternoon.minutes} min (${firstZone.time_breakdown.afternoon.percentage}%)`
+          );
+          console.log(
+            `      Evening: ${firstZone.time_breakdown.evening.minutes} min (${firstZone.time_breakdown.evening.percentage}%)`
+          );
+          console.log(
+            `      Night: ${firstZone.time_breakdown.night.minutes} min (${firstZone.time_breakdown.night.percentage}%)`
+          );
+
+          // Verify breakdown totals
+          const totalBreakdownMinutes =
+            firstZone.time_breakdown.morning.minutes +
+            firstZone.time_breakdown.afternoon.minutes +
+            firstZone.time_breakdown.evening.minutes +
+            firstZone.time_breakdown.night.minutes;
+          const breakdownMatchesTotal =
+            Math.abs(totalBreakdownMinutes - firstZone.minutes_spent) < 1;
+
+          console.log(
+            `\n    - Verification: Breakdown minutes (${totalBreakdownMinutes.toFixed(
+              2
+            )}) ≈ Total minutes (${firstZone.minutes_spent})`
+          );
+          console.log(
+            `      ✅ Match: ${breakdownMatchesTotal ? "YES" : "NO"}`
+          );
+
+          // Verify percentages sum to ~100%
+          const totalPercentage =
+            firstZone.time_breakdown.morning.percentage +
+            firstZone.time_breakdown.afternoon.percentage +
+            firstZone.time_breakdown.evening.percentage +
+            firstZone.time_breakdown.night.percentage;
+          const percentagesValid = Math.abs(totalPercentage - 100) < 5; // Allow 5% tolerance for rounding
+
+          console.log(
+            `    - Verification: Total percentage = ${totalPercentage.toFixed(
+              1
+            )}%`
+          );
+          console.log(`      ✅ Valid: ${percentagesValid ? "YES" : "NO"}`);
+        } else {
+          console.log(
+            "    ⚠️  WARNING: time_breakdown is missing from zone data"
+          );
+        }
+      }
     }
 
     console.log(

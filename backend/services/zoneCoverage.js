@@ -1,4 +1,203 @@
 const { supabase } = require("../config/supabase");
+const {
+  getTimePeriod,
+  splitMinutesAcrossPeriods,
+} = require("../utils/timePeriod");
+
+/**
+ * Fetch all GPS points with pagination (handles >1000 records)
+ * @param {Array<string>} terminalIds - Terminal IDs to fetch for
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDateOnly - End date (YYYY-MM-DD)
+ * @returns {Promise<Array>} Array of GPS points
+ */
+async function fetchAllGpsPoints(terminalIds, startDate, endDateOnly) {
+  const pageSize = 1000;
+  let gpsPoints = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data: batch, error: gpsError } = await supabase
+      .from("terminal_gps_data")
+      .select("id, terminal_id, zone_id, recorded_at, data_date")
+      .in("terminal_id", terminalIds)
+      .gte("data_date", startDate)
+      .lte("data_date", endDateOnly)
+      .not("zone_id", "is", null)
+      .order("terminal_id", { ascending: true })
+      .order("recorded_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (gpsError) {
+      console.error(
+        "Error fetching GPS points for zone coverage:",
+        gpsError.message
+      );
+      throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);
+    }
+
+    if (batch && batch.length > 0) {
+      gpsPoints = gpsPoints.concat(batch);
+      from += pageSize;
+      hasMore = batch.length === pageSize;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return gpsPoints;
+}
+
+/**
+ * Build time breakdown object from period minutes
+ * @param {Object} breakdown - {morning, afternoon, evening, night} minutes
+ * @returns {Object} Formatted time breakdown with minutes, hours, and percentages
+ */
+function buildTimeBreakdown(breakdown) {
+  const breakdownTotal =
+    breakdown.morning +
+    breakdown.afternoon +
+    breakdown.evening +
+    breakdown.night;
+
+  return {
+    morning: {
+      minutes: Math.round(breakdown.morning * 100) / 100,
+      hours: Math.round((breakdown.morning / 60) * 100) / 100,
+      percentage:
+        breakdownTotal > 0
+          ? Math.round((breakdown.morning / breakdownTotal) * 1000) / 10
+          : 0,
+    },
+    afternoon: {
+      minutes: Math.round(breakdown.afternoon * 100) / 100,
+      hours: Math.round((breakdown.afternoon / 60) * 100) / 100,
+      percentage:
+        breakdownTotal > 0
+          ? Math.round((breakdown.afternoon / breakdownTotal) * 1000) / 10
+          : 0,
+    },
+    evening: {
+      minutes: Math.round(breakdown.evening * 100) / 100,
+      hours: Math.round((breakdown.evening / 60) * 100) / 100,
+      percentage:
+        breakdownTotal > 0
+          ? Math.round((breakdown.evening / breakdownTotal) * 1000) / 10
+          : 0,
+    },
+    night: {
+      minutes: Math.round(breakdown.night * 100) / 100,
+      hours: Math.round((breakdown.night / 60) * 100) / 100,
+      percentage:
+        breakdownTotal > 0
+          ? Math.round((breakdown.night / breakdownTotal) * 1000) / 10
+          : 0,
+    },
+  };
+}
+
+/**
+ * Process GPS points for a program and build zone time breakdown
+ * @param {Array} gpsPoints - All GPS points
+ * @param {Array} programSessions - Playing sessions for this program
+ * @returns {Map} Map of zone_id -> {total, morning, afternoon, evening, night}
+ */
+function processGpsPointsForProgram(gpsPoints, programSessions) {
+  // Helper function to check if a GPS point was during THIS program's playing session
+  const isPointDuringProgramPlaying = (terminalId, timestamp) => {
+    const pointTime = new Date(timestamp);
+    return programSessions.some((session) => {
+      if (session.terminal_id !== terminalId) return false;
+      const startTime = new Date(session.started_at);
+      const endTime = session.ended_at
+        ? new Date(session.ended_at)
+        : new Date();
+      return pointTime >= startTime && pointTime <= endTime;
+    });
+  };
+
+  // zone_id -> {total, morning, afternoon, evening, night}
+  const zoneTimeBreakdown = new Map();
+  const lastPointByTerminal = new Map(); // terminal_id -> {zone_id, timestamp}
+
+  // Initialize zone breakdown helper
+  const getOrInitZoneBreakdown = (zoneId) => {
+    if (!zoneTimeBreakdown.has(zoneId)) {
+      zoneTimeBreakdown.set(zoneId, {
+        total: 0,
+        morning: 0,
+        afternoon: 0,
+        evening: 0,
+        night: 0,
+      });
+    }
+    return zoneTimeBreakdown.get(zoneId);
+  };
+
+  // Helper to add minutes to a period in a zone
+  const addMinutesToPeriod = (zoneId, period, minutes) => {
+    const breakdown = getOrInitZoneBreakdown(zoneId);
+    breakdown.total += minutes;
+    breakdown[period] += minutes;
+  };
+
+  // Process GPS points for this program
+  for (const point of gpsPoints) {
+    const isActive = isPointDuringProgramPlaying(
+      point.terminal_id,
+      point.recorded_at
+    );
+
+    if (isActive) {
+      const lastPoint = lastPointByTerminal.get(point.terminal_id);
+
+      if (lastPoint && lastPoint.zone_id === point.zone_id) {
+        // Same zone - calculate duration since last point
+        const timeDiff =
+          new Date(point.recorded_at) - new Date(lastPoint.timestamp);
+        const minutesDiff = timeDiff / (1000 * 60);
+
+        // Only count if time difference is reasonable (< 30 minutes)
+        if (minutesDiff > 0 && minutesDiff <= 30) {
+          // Split minutes across periods if spanning boundaries
+          const periodSplit = splitMinutesAcrossPeriods(
+            lastPoint.timestamp,
+            point.recorded_at,
+            minutesDiff
+          );
+
+          // Add minutes to each period
+          addMinutesToPeriod(point.zone_id, "morning", periodSplit.morning);
+          addMinutesToPeriod(point.zone_id, "afternoon", periodSplit.afternoon);
+          addMinutesToPeriod(point.zone_id, "evening", periodSplit.evening);
+          addMinutesToPeriod(point.zone_id, "night", periodSplit.night);
+        } else if (minutesDiff > 30) {
+          // Gap > 30 minutes - treat as new entry point in zone
+          // Add 1 minute for presence at this point
+          const period = getTimePeriod(point.recorded_at);
+          addMinutesToPeriod(point.zone_id, period, 1);
+        }
+      } else if (lastPoint && lastPoint.zone_id !== point.zone_id) {
+        // Zone changed - add 1 minute for presence in new zone
+        const period = getTimePeriod(point.recorded_at);
+        addMinutesToPeriod(point.zone_id, period, 1);
+      } else {
+        // First point for this terminal - count 1 minute of presence
+        const period = getTimePeriod(point.recorded_at);
+        addMinutesToPeriod(point.zone_id, period, 1);
+      }
+
+      // Update last point tracker
+      lastPointByTerminal.set(point.terminal_id, {
+        zone_id: point.zone_id,
+        timestamp: point.recorded_at,
+      });
+    }
+  }
+
+  return zoneTimeBreakdown;
+}
 
 /**
  * Build zone coverage metrics for a client's campaign, grouped by program
@@ -32,23 +231,11 @@ async function buildZoneCoverageMetrics(
 
   try {
     // 1. Get all GPS points with zone information for the campaign period
-    const { data: gpsPoints, error: gpsError } = await supabase
-      .from("terminal_gps_data")
-      .select("id, terminal_id, zone_id, recorded_at, data_date")
-      .in("terminal_id", terminalIds)
-      .gte("data_date", startDate)
-      .lte("data_date", endDateOnly)
-      .not("zone_id", "is", null)
-      .order("terminal_id", { ascending: true })
-      .order("recorded_at", { ascending: true });
-
-    if (gpsError) {
-      console.error(
-        "Error fetching GPS points for zone coverage:",
-        gpsError.message
-      );
-      throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);
-    }
+    const gpsPoints = await fetchAllGpsPoints(
+      terminalIds,
+      startDate,
+      endDateOnly
+    );
 
     // If no GPS points with zones, return empty object
     if (!gpsPoints || gpsPoints.length === 0) {
@@ -58,9 +245,7 @@ async function buildZoneCoverageMetrics(
     // 2. Get playing sessions to filter only active ad time
     const { data: playingSessions, error: playingError } = await supabase
       .from("playing")
-      .select(
-        "terminal_id, program_id, program_name, started_at, ended_at, status"
-      )
+      .select("terminal_id, program_id, program_name, started_at, ended_at")
       .in("terminal_id", terminalIds)
       .in("program_id", programIds)
       .gte("started_at", `${startDate}T00:00:00`)
@@ -110,60 +295,11 @@ async function buildZoneCoverageMetrics(
     const zoneCoverageByProgram = {};
 
     for (const [programId, programSessions] of sessionsByProgram.entries()) {
-      // Helper function to check if a GPS point was during THIS program's playing session
-      const isPointDuringProgramPlaying = (terminalId, timestamp) => {
-        const pointTime = new Date(timestamp);
-        return programSessions.some((session) => {
-          if (session.terminal_id !== terminalId) return false;
-          const startTime = new Date(session.started_at);
-          const endTime = session.ended_at
-            ? new Date(session.ended_at)
-            : new Date();
-          return pointTime >= startTime && pointTime <= endTime;
-        });
-      };
-
-      const zoneMinutes = new Map(); // zone_id -> total minutes for this program
-      const lastPointByTerminal = new Map(); // terminal_id -> {zone_id, timestamp}
-
-      // Process GPS points for this program
-      for (const point of gpsPoints) {
-        const isActive = isPointDuringProgramPlaying(
-          point.terminal_id,
-          point.recorded_at
-        );
-
-        if (isActive) {
-          const lastPoint = lastPointByTerminal.get(point.terminal_id);
-
-          if (lastPoint && lastPoint.zone_id === point.zone_id) {
-            // Same zone - calculate duration since last point
-            const timeDiff =
-              new Date(point.recorded_at) - new Date(lastPoint.timestamp);
-            const minutesDiff = timeDiff / (1000 * 60);
-
-            // Only count if time difference is reasonable (< 30 minutes)
-            if (minutesDiff > 0 && minutesDiff <= 30) {
-              const currentMinutes = zoneMinutes.get(point.zone_id) || 0;
-              zoneMinutes.set(point.zone_id, currentMinutes + minutesDiff);
-            }
-          } else if (lastPoint && lastPoint.zone_id !== point.zone_id) {
-            // Zone changed - add a small duration (1 minute) for presence in new zone
-            const currentMinutes = zoneMinutes.get(point.zone_id) || 0;
-            zoneMinutes.set(point.zone_id, currentMinutes + 1);
-          } else {
-            // First point for this terminal - count 1 minute of presence
-            const currentMinutes = zoneMinutes.get(point.zone_id) || 0;
-            zoneMinutes.set(point.zone_id, currentMinutes + 1);
-          }
-
-          // Update last point tracker
-          lastPointByTerminal.set(point.terminal_id, {
-            zone_id: point.zone_id,
-            timestamp: point.recorded_at,
-          });
-        }
-      }
+      // Process GPS points and build zone time breakdown
+      const zoneTimeBreakdown = processGpsPointsForProgram(
+        gpsPoints,
+        programSessions
+      );
 
       // Build zone metrics for this program
       const zones = [];
@@ -177,12 +313,14 @@ async function buildZoneCoverageMetrics(
         mixed: { zones: new Set(), minutes: 0 },
       };
 
-      for (const [zoneId, minutes] of zoneMinutes.entries()) {
+      for (const [zoneId, breakdown] of zoneTimeBreakdown.entries()) {
         const zoneInfo = zoneMap.get(zoneId);
         if (!zoneInfo) continue;
 
+        const minutes = breakdown.total;
         const hours = minutes / 60;
         const weightedExposure = minutes * zoneInfo.density_multiplier;
+        const timeBreakdown = buildTimeBreakdown(breakdown);
 
         zones.push({
           zone_id: zoneId,
@@ -194,6 +332,7 @@ async function buildZoneCoverageMetrics(
           hours_spent: Math.round(hours * 100) / 100,
           weighted_exposure: Math.round(weightedExposure * 100) / 100,
           percentage_of_total_time: 0, // Will calculate after we have total
+          time_breakdown: timeBreakdown,
         });
 
         totalMinutes += minutes;
