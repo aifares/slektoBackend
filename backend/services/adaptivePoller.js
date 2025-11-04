@@ -128,6 +128,17 @@ class AdaptivePoller {
     if (failed > 0) {
       console.warn(`⚠️ Failed to process ${failed} terminals`);
     }
+
+    // Sync programs from API (non-blocking, happens after terminal processing)
+    try {
+      await databaseService.syncProgramsFromAPI();
+    } catch (programError) {
+      console.warn(
+        `⚠️ Failed to sync programs (non-critical):`,
+        programError.message
+      );
+      // Don't fail terminal processing if program sync fails
+    }
   }
 
   serializeTerminals(terminals) {

@@ -69,13 +69,9 @@ async function registerTerminalData(
 
     const terminal = await upsertTerminal(parsedData.terminal);
 
+    // Programs are now synced from the API separately, not from terminal data
+    // Keeping this for backward compatibility but programs won't be processed here
     const programs = [];
-    if (parsedData.programs && parsedData.programs.length > 0) {
-      for (const programData of parsedData.programs) {
-        const program = await upsertProgram(programData);
-        programs.push(program);
-      }
-    }
 
     let filesInserted = 0;
     if (parsedData.files.length > 0) {

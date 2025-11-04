@@ -109,6 +109,16 @@ router.get("/", async (req, res) => {
       Promise.allSettled(updatePromises).catch(() => {
         // Silently handle any remaining errors to not affect the main response
       });
+
+      // Sync programs from API (non-blocking, happens after terminal updates)
+      databaseService
+        .syncProgramsFromAPI()
+        .catch((programError) => {
+          console.warn(
+            `⚠️ Failed to sync programs (non-critical):`,
+            programError.message
+          );
+        });
     }
 
     res.json(terminals);

@@ -56,7 +56,7 @@ router.get("/", async (req, res) => {
     let programDetails = [];
     const { data: programsData, error: programsError } = await supabase
       .from("programs")
-      .select("id, name, download_status_time, files")
+      .select("id, name, thumbnail_url, modified, created, status")
       .in("id", programIds);
 
     if (programsError) {
@@ -67,8 +67,10 @@ router.get("/", async (req, res) => {
       programDetails = (programsData || []).map((program) => ({
         id: program.id,
         name: program.name,
-        download_status_time: program.download_status_time,
-        files: program.files,
+        thumbnail_url: program.thumbnail_url,
+        modified: program.modified,
+        created: program.created,
+        status: program.status,
       }));
     }
 

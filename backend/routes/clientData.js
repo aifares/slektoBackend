@@ -48,19 +48,31 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // Compute isActive per campaign based on date window and status
+    const campaignsWithActiveStatus = (activeCampaigns || []).map((c) => {
+      const isActive =
+        c.start_at <= nowIso && c.end_at >= nowIso && c.status === "active";
+      return { ...c, isActive };
+    });
+
     const programIds = Array.from(
-      new Set((activeCampaigns || []).map((c) => c.program_id))
+      new Set(campaignsWithActiveStatus.map((c) => c.program_id))
     );
 
-    console.log("Active campaigns found:", activeCampaigns?.length || 0);
+    console.log(
+      "Active campaigns found:",
+      campaignsWithActiveStatus?.length || 0
+    );
     console.log("Program IDs from campaigns:", programIds);
 
     // Fetch program details for active programs
     let programDetails = [];
+    const programDetailsById = {}; // Map to track which programs we found
+
     if (programIds.length > 0) {
       const { data: programsData, error: programsError } = await supabase
         .from("programs")
-        .select("id, name, download_status_time, files")
+        .select("id, name, thumbnail_url, modified, created, status")
         .in("id", programIds);
 
       if (programsError) {
@@ -68,12 +80,79 @@ router.get("/", async (req, res) => {
       } else {
         console.log("Programs found in database:", programsData?.length || 0);
         console.log("Program data:", programsData);
-        programDetails = (programsData || []).map((program) => ({
-          id: program.id,
-          name: program.name,
-          download_status_time: program.download_status_time,
-          files: program.files,
-        }));
+        programDetails = (programsData || []).map((program) => {
+          programDetailsById[program.id] = program;
+          return {
+            id: program.id,
+            name: program.name,
+            thumbnail_url: program.thumbnail_url,
+            modified: program.modified,
+            created: program.created,
+            status: program.status,
+          };
+        });
+      }
+    }
+
+    // For any program IDs that don't have details from the programs table,
+    // try to get program name from playing records or create a basic entry
+    const missingProgramIds = programIds.filter(
+      (pid) => !programDetailsById[pid]
+    );
+    if (missingProgramIds.length > 0) {
+      console.log(
+        "Programs not found in programs table, fetching names from playing records:",
+        missingProgramIds
+      );
+
+      // Try to get program names from playing records
+      const { data: playingRecords, error: playingError } = await supabase
+        .from("playing")
+        .select("program_id, program_name")
+        .in("program_id", missingProgramIds)
+        .limit(1000);
+
+      if (!playingError && playingRecords) {
+        // Create a map of program_id -> program_name from playing records
+        const programNameMap = {};
+        playingRecords.forEach((record) => {
+          if (
+            record.program_id &&
+            record.program_name &&
+            !programNameMap[record.program_id]
+          ) {
+            programNameMap[record.program_id] = record.program_name;
+          }
+        });
+
+        // Create program entries for missing programs
+        missingProgramIds.forEach((pid) => {
+          const programName = programNameMap[pid] || `Program ${pid}`;
+          programDetails.push({
+            id: pid,
+            name: programName,
+            thumbnail_url: null,
+            modified: null,
+            created: null,
+            status: null,
+          });
+          console.log(
+            `Created program entry from playing records: ${pid} - ${programName}`
+          );
+        });
+      } else {
+        // If we can't get names from playing records, create basic entries
+        missingProgramIds.forEach((pid) => {
+          programDetails.push({
+            id: pid,
+            name: `Program ${pid}`,
+            thumbnail_url: null,
+            modified: null,
+            created: null,
+            status: null,
+          });
+          console.log(`Created basic program entry: ${pid}`);
+        });
       }
     }
 
@@ -83,17 +162,25 @@ router.get("/", async (req, res) => {
       try {
         const thumbnails = await Promise.all(
           programIds.map(async (pid) => {
-            const mediaFiles = await fetchMediaByProgramId(pid);
-            const thumbUrl =
-              (mediaFiles && mediaFiles[0] && mediaFiles[0].thumbnail_url) ||
-              null;
-            return [pid, thumbUrl];
+            try {
+              const mediaFiles = await fetchMediaByProgramId(pid);
+              const thumbUrl =
+                (mediaFiles && mediaFiles[0] && mediaFiles[0].thumbnail_url) ||
+                null;
+              return [pid, thumbUrl];
+            } catch (err) {
+              console.warn(
+                `Failed to fetch thumbnail for program ${pid}:`,
+                err.message
+              );
+              return [pid, null];
+            }
           })
         );
         const thumbByProgramId = Object.fromEntries(thumbnails);
         programDetailsWithThumb = programDetails.map((p) => ({
           ...p,
-          thumbnail_url: thumbByProgramId[p.id] || null,
+          thumbnail_url: thumbByProgramId[p.id] || p.thumbnail_url || null,
         }));
       } catch (thumbErr) {
         console.warn("Failed to fetch program thumbnails:", thumbErr.message);
@@ -102,9 +189,17 @@ router.get("/", async (req, res) => {
 
     // Compute campaign playback metrics per program via service
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
-      activeCampaigns || [],
+      campaignsWithActiveStatus || [],
       programIds
     );
+
+    // Attach isActive to metrics for each program
+    for (const [pid, metrics] of Object.entries(playbackMetricsByProgram)) {
+      const campaign = campaignsWithActiveStatus.find(
+        (c) => c.program_id === parseInt(pid)
+      );
+      if (campaign) metrics.isActive = campaign.isActive;
+    }
 
     if (programIds.length === 0) {
       return res.json({
@@ -251,6 +346,7 @@ router.get("/", async (req, res) => {
           hours_played_since_campaign_start: 0,
           campaign_start_at: null,
           campaign_end_at: null,
+          isActive: false,
         };
         return { ...p, ...metrics };
       });
@@ -432,6 +528,7 @@ router.get("/", async (req, res) => {
         hours_played_since_campaign_start: 0,
         campaign_start_at: null,
         campaign_end_at: null,
+        isActive: false,
       };
       return { ...p, ...metrics };
     });

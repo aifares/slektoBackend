@@ -107,10 +107,13 @@ function parseTerminalData(terminalApiData) {
       led_latest_time: postMeta._led_latest_report_time || null,
       driver_id: null,
     },
+    // Programs are now synced from API, not from terminal data
+    // Keeping this structure for backward compatibility but terminal_id is deprecated
     programs: programs.map((program) => ({
       id: program.id,
       name: program.name,
-      terminal_id: (terminalApiData.id || terminalApiData.sn || "").toString(),
+      // terminal_id is deprecated - programs are synced from API
+      terminal_id: null,
       download_status_time: postMeta.download_status?.download_status_time
         ? new Date(
             postMeta.download_status.download_status_time * 1000
