@@ -156,6 +156,13 @@ router.get("/", async (req, res) => {
             },
             mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
           },
+          time_zone_distribution: {
+            morning: { minutes: 0, hours: 0, percentage: 0 },
+            afternoon: { minutes: 0, hours: 0, percentage: 0 },
+            evening: { minutes: 0, hours: 0, percentage: 0 },
+            night: { minutes: 0, hours: 0, percentage: 0 },
+            rush_hour: { minutes: 0, hours: 0, percentage: 0 },
+          },
           date_range: { start: null, end: null },
         },
       });

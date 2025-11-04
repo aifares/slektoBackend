@@ -100,7 +100,8 @@ function buildTimeBreakdown(breakdown) {
       hours: Math.round(((breakdown.rush_hour || 0) / 60) * 100) / 100,
       percentage:
         breakdownTotal > 0
-          ? Math.round(((breakdown.rush_hour || 0) / breakdownTotal) * 1000) / 10
+          ? Math.round(((breakdown.rush_hour || 0) / breakdownTotal) * 1000) /
+            10
           : 0,
     },
   };
@@ -146,9 +147,11 @@ function processGpsPointsForProgram(gpsPoints, programSessions) {
   };
 
   // Helper to add minutes to a period in a zone
-  const addMinutesToPeriod = (zoneId, period, minutes) => {
+  const addMinutesToPeriod = (zoneId, period, minutes, addToTotal = true) => {
     const breakdown = getOrInitZoneBreakdown(zoneId);
-    breakdown.total += minutes;
+    if (addToTotal) {
+      breakdown.total += minutes;
+    }
     breakdown[period] += minutes;
   };
 
@@ -182,16 +185,21 @@ function processGpsPointsForProgram(gpsPoints, programSessions) {
           addMinutesToPeriod(point.zone_id, "afternoon", periodSplit.afternoon);
           addMinutesToPeriod(point.zone_id, "evening", periodSplit.evening);
           addMinutesToPeriod(point.zone_id, "night", periodSplit.night);
-          // Add rush hour minutes separately
-          addMinutesToPeriod(point.zone_id, "rush_hour", periodSplit.rush_hour || 0);
+          // Add rush hour minutes separately (don't add to total - already counted in morning/evening)
+          addMinutesToPeriod(
+            point.zone_id,
+            "rush_hour",
+            periodSplit.rush_hour || 0,
+            false
+          );
         } else if (minutesDiff > 30) {
           // Gap > 30 minutes - treat as new entry point in zone
           // Add 1 minute for presence at this point
           const period = getTimePeriod(point.recorded_at);
           addMinutesToPeriod(point.zone_id, period, 1);
-          // Also count towards rush hour if during rush hour
+          // Also count towards rush hour if during rush hour (don't add to total - already counted)
           if (isRushHour(point.recorded_at)) {
-            addMinutesToPeriod(point.zone_id, "rush_hour", 1);
+            addMinutesToPeriod(point.zone_id, "rush_hour", 1, false);
           }
         }
       } else if (lastPoint && lastPoint.zone_id !== point.zone_id) {
@@ -402,6 +410,55 @@ async function buildZoneCoverageMetrics(
         };
       }
 
+      // Build time zone distribution - aggregate time breakdown across all zones
+      const timeZoneDistribution = {
+        morning: { minutes: 0, hours: 0, percentage: 0 },
+        afternoon: { minutes: 0, hours: 0, percentage: 0 },
+        evening: { minutes: 0, hours: 0, percentage: 0 },
+        night: { minutes: 0, hours: 0, percentage: 0 },
+        rush_hour: { minutes: 0, hours: 0, percentage: 0 },
+      };
+
+      // Aggregate time breakdown from all zones
+      for (const zone of zones) {
+        if (zone.time_breakdown) {
+          timeZoneDistribution.morning.minutes +=
+            zone.time_breakdown.morning.minutes;
+          timeZoneDistribution.afternoon.minutes +=
+            zone.time_breakdown.afternoon.minutes;
+          timeZoneDistribution.evening.minutes +=
+            zone.time_breakdown.evening.minutes;
+          timeZoneDistribution.night.minutes +=
+            zone.time_breakdown.night.minutes;
+          timeZoneDistribution.rush_hour.minutes +=
+            zone.time_breakdown.rush_hour.minutes;
+        }
+      }
+
+      // Calculate hours and percentages for time zone distribution
+      const totalTimeMinutes =
+        timeZoneDistribution.morning.minutes +
+        timeZoneDistribution.afternoon.minutes +
+        timeZoneDistribution.evening.minutes +
+        timeZoneDistribution.night.minutes;
+
+      for (const period of [
+        "morning",
+        "afternoon",
+        "evening",
+        "night",
+        "rush_hour",
+      ]) {
+        const minutes = timeZoneDistribution[period].minutes;
+        timeZoneDistribution[period].hours =
+          Math.round((minutes / 60) * 100) / 100;
+        timeZoneDistribution[period].percentage =
+          totalTimeMinutes > 0
+            ? Math.round((minutes / totalTimeMinutes) * 1000) / 10
+            : 0;
+        timeZoneDistribution[period].minutes = Math.round(minutes * 100) / 100;
+      }
+
       // Calculate coverage percentage
       const coveragePercentage =
         allZones.length > 0
@@ -421,6 +478,7 @@ async function buildZoneCoverageMetrics(
           Math.round(totalWeightedExposure * 100) / 100,
         zones: zones,
         zone_type_distribution: zoneTypeDistribution,
+        time_zone_distribution: timeZoneDistribution,
         date_range: {
           start: startDate,
           end: endDateOnly,
