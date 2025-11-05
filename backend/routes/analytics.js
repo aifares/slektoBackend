@@ -8,7 +8,7 @@ const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
 
 // Simple in-memory cache to prevent duplicate expensive queries (disabled via flag)
 // Key format: "clientId:zoneDays:zoneStartDate:zoneEndDate"
-const ENABLE_CACHE = false;
+const ENABLE_CACHE = true;
 const analyticsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 

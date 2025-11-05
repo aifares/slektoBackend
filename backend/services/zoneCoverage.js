@@ -414,6 +414,28 @@ async function buildZoneCoverageMetrics(
           totalTimeMinutes > 0
             ? Math.round((z.minutes_spent / totalTimeMinutes) * 1000) / 10
             : 0;
+
+        // Calculate time_breakdown percentages for this zone
+        const zoneTotalMinutes =
+          z.time_breakdown.morning.minutes +
+          z.time_breakdown.afternoon.minutes +
+          z.time_breakdown.evening.minutes +
+          z.time_breakdown.night.minutes;
+
+        // Calculate percentage for each time period in this zone
+        for (const period of [
+          "morning",
+          "afternoon",
+          "evening",
+          "night",
+          "rush_hour",
+        ]) {
+          const periodMinutes = z.time_breakdown[period].minutes;
+          z.time_breakdown[period].percentage =
+            zoneTotalMinutes > 0
+              ? Math.round((periodMinutes / zoneTotalMinutes) * 1000) / 10
+              : 0;
+        }
       });
 
       for (const period of [
@@ -432,6 +454,21 @@ async function buildZoneCoverageMetrics(
             : 0;
         entry.time_zone_distribution[period].minutes =
           Math.round(minutes * 100) / 100;
+      }
+
+      // Calculate zone type distribution percentages
+      const totalZoneTypeMinutes =
+        entry.zone_type_distribution.tourist.minutes +
+        entry.zone_type_distribution.shopping.minutes +
+        entry.zone_type_distribution.residential.minutes +
+        entry.zone_type_distribution.mixed.minutes;
+
+      for (const zoneType of ["tourist", "shopping", "residential", "mixed"]) {
+        const minutes = entry.zone_type_distribution[zoneType].minutes;
+        entry.zone_type_distribution[zoneType].percentage =
+          totalZoneTypeMinutes > 0
+            ? Math.round((minutes / totalZoneTypeMinutes) * 1000) / 10
+            : 0;
       }
 
       // Round totals
