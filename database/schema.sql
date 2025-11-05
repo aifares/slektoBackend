@@ -3,6 +3,9 @@
 -- with Driver Support
 -- ==========================================================
 
+-- Ensure PostGIS is available for GEOGRAPHY columns
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- 1. Drivers (people assigned to terminals)
 CREATE TABLE IF NOT EXISTS drivers (
   id BIGSERIAL PRIMARY KEY,
@@ -15,7 +18,7 @@ CREATE TABLE IF NOT EXISTS drivers (
 
 -- 2. Terminals (device-level info, linked to driver)
 CREATE TABLE IF NOT EXISTS terminals (
-  terminalId TEXT PRIMARY KEY,                 -- terminal.serialno
+  terminalid TEXT PRIMARY KEY,                 -- terminal.serialno
   name TEXT NOT NULL,                         -- terminal.name
   description TEXT,                           -- terminal.description
   author_id BIGINT,                           -- terminal.authorid
@@ -37,7 +40,7 @@ CREATE TABLE IF NOT EXISTS terminals (
 CREATE TABLE IF NOT EXISTS programs (
   id BIGINT PRIMARY KEY,                      -- program.id
   name TEXT,                                  -- program.name
-  terminal_id TEXT REFERENCES terminals(terminalId),  -- link back to terminal
+  terminal_id TEXT REFERENCES terminals(terminalid),  -- link back to terminal
   download_status_time TIMESTAMPTZ,           -- program.downloadstatustime
   files JSONB                                 -- program.files[] stored as JSON
 );
@@ -56,7 +59,7 @@ CREATE TABLE IF NOT EXISTS files (
 -- 5. Playing & Recently Played
 CREATE TABLE IF NOT EXISTS playing (
   id BIGSERIAL PRIMARY KEY,
-  terminal_id TEXT REFERENCES terminals(terminalId),
+  terminal_id TEXT REFERENCES terminals(terminalid),
   program_id BIGINT,                          -- playing.programid
   program_name TEXT,                          -- extracted program name for easy querying
   file_name TEXT,                             -- playing.filename
@@ -69,7 +72,7 @@ CREATE TABLE IF NOT EXISTS playing (
 
 -- 6. Device Status (hardware/software)
 CREATE TABLE IF NOT EXISTS device_status (
-  terminal_id TEXT PRIMARY KEY REFERENCES terminals(terminalId),
+  terminal_id TEXT PRIMARY KEY REFERENCES terminals(terminalid),
   brightness INT,                             -- status.brightness
   colortemperature INT,                       -- status.colortemperature
   volume INT,                                 -- status.volume
@@ -85,7 +88,7 @@ CREATE TABLE IF NOT EXISTS device_status (
 
 -- 7. Connectivity / SIM Info
 CREATE TABLE IF NOT EXISTS connectivity (
-  terminal_id TEXT PRIMARY KEY REFERENCES terminals(terminalId),
+  terminal_id TEXT PRIMARY KEY REFERENCES terminals(terminalid),
   ip_address TEXT,                            -- status.ip
   mac_address TEXT,                           -- status.mac
   wifi_ssid TEXT,                             -- status.wifiap
@@ -103,7 +106,7 @@ CREATE TABLE IF NOT EXISTS connectivity (
 -- 8. Terminal Status Log (Online/Offline Tracking)
 CREATE TABLE IF NOT EXISTS terminal_status_log (
   id BIGSERIAL PRIMARY KEY,
-  terminal_id TEXT REFERENCES terminals(terminalId),
+  terminal_id TEXT REFERENCES terminals(terminalid),
   status TEXT NOT NULL CHECK (status IN ('online', 'offline')),
   status_changed_at TIMESTAMPTZ NOT NULL,
   duration_seconds INTEGER,                   -- Duration of previous status
@@ -135,7 +138,7 @@ CREATE TABLE IF NOT EXISTS nyc_zones (
 -- 10. GPS Points (daily raw locations)
 CREATE TABLE IF NOT EXISTS terminal_gps_data (
   id BIGSERIAL PRIMARY KEY,
-  terminal_id TEXT REFERENCES terminals(terminalId),
+  terminal_id TEXT REFERENCES terminals(terminalid),
   data_date DATE NOT NULL,                    -- UTC date representing the data window (e.g., 2025-08-15)
   longitude DOUBLE PRECISION NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,
@@ -274,7 +277,7 @@ ON CONFLICT DO NOTHING;
 --   fields: name, phone, email, license_number
 --
 -- terminals:
---   terminal.* (terminalId=serialno, name, description, authorid, authordisplayname,
+--   terminal.* (terminalid=serialno, name, description, authorid, authordisplayname,
 --   createtime, onboardingstatus, localecountry, localelanguage, powerstatus,
 --   powerstatustime, ledlatesttime)
 --   terminalgroup.* (id, name)

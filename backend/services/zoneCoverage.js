@@ -246,9 +246,9 @@ async function buildZoneCoverageMetrics(
   programIds,
   terminalIds,
   startDate,
-  endDate
+  endDate,
+  zoneLimit = 20
 ) {
-  // Return empty object if no programs or terminals
   if (
     !programIds ||
     programIds.length === 0 ||
@@ -258,189 +258,163 @@ async function buildZoneCoverageMetrics(
     return {};
   }
 
-  // Convert endDate to date format if it's a full ISO timestamp
   const endDateOnly = endDate.split("T")[0];
 
   try {
-    // 1. Get all GPS points with zone information for the campaign period
-    const gpsPoints = await fetchAllGpsPoints(
-      terminalIds,
-      startDate,
-      endDateOnly
-    );
-
-    // If no GPS points with zones, return empty object
-    if (!gpsPoints || gpsPoints.length === 0) {
-      return {};
-    }
-
-    // 2. Get playing sessions to filter only active ad time
-    const { data: playingSessions, error: playingError } = await supabase
-      .from("playing")
-      .select("terminal_id, program_id, program_name, started_at, ended_at")
-      .in("terminal_id", terminalIds)
-      .in("program_id", programIds)
-      .gte("started_at", `${startDate}T00:00:00`)
-      .order("terminal_id", { ascending: true })
-      .order("started_at", { ascending: true });
-
-    if (playingError) {
-      console.error("Error fetching playing sessions:", playingError.message);
-      throw new Error(
-        `Failed to fetch playing sessions: ${playingError.message}`
-      );
-    }
-
-    if (!playingSessions || playingSessions.length === 0) {
-      return {};
-    }
-
-    // 3. Get all zone information
-    const { data: allZones, error: zonesError } = await supabase
-      .from("nyc_zones")
-      .select("id, name, display_name, zone_type, density_multiplier");
-
-    if (zonesError) {
-      console.error("Error fetching zones:", zonesError.message);
-      throw new Error(`Failed to fetch zones: ${zonesError.message}`);
-    }
-
-    // Create a map of zone_id to zone info
-    const zoneMap = new Map();
-    allZones.forEach((zone) => {
-      zoneMap.set(zone.id, zone);
+    const { data, error } = await supabase.rpc("get_zone_coverage_topn", {
+      p_program_ids: programIds,
+      p_terminal_ids: terminalIds,
+      p_start_date: startDate,
+      p_end_date: endDateOnly,
+      p_zone_limit: zoneLimit,
     });
 
-    // 4. Group playing sessions by program
-    const sessionsByProgram = new Map();
-    const programNames = new Map();
-
-    for (const session of playingSessions) {
-      if (!sessionsByProgram.has(session.program_id)) {
-        sessionsByProgram.set(session.program_id, []);
-        programNames.set(session.program_id, session.program_name);
-      }
-      sessionsByProgram.get(session.program_id).push(session);
+    if (error) {
+      console.error("Error from get_zone_coverage_topn:", error.message);
+      throw new Error(
+        `Failed to build zone coverage metrics: ${error.message}`
+      );
     }
 
-    // 5. Build zone coverage for each program
+    if (!data || data.length === 0) {
+      return {};
+    }
+
     const zoneCoverageByProgram = {};
 
-    for (const [programId, programSessions] of sessionsByProgram.entries()) {
-      // Process GPS points and build zone time breakdown
-      const zoneTimeBreakdown = processGpsPointsForProgram(
-        gpsPoints,
-        programSessions
-      );
-
-      // Build zone metrics for this program
-      const zones = [];
-      let totalMinutes = 0;
-      let totalWeightedExposure = 0;
-
-      const zoneTypeStats = {
-        tourist: { zones: new Set(), minutes: 0 },
-        shopping: { zones: new Set(), minutes: 0 },
-        residential: { zones: new Set(), minutes: 0 },
-        mixed: { zones: new Set(), minutes: 0 },
-      };
-
-      for (const [zoneId, breakdown] of zoneTimeBreakdown.entries()) {
-        const zoneInfo = zoneMap.get(zoneId);
-        if (!zoneInfo) continue;
-
-        const minutes = breakdown.total;
-        const hours = minutes / 60;
-        const weightedExposure = minutes * zoneInfo.density_multiplier;
-        const timeBreakdown = buildTimeBreakdown(breakdown);
-
-        zones.push({
-          zone_id: zoneId,
-          zone_name: zoneInfo.name,
-          display_name: zoneInfo.display_name,
-          zone_type: zoneInfo.zone_type,
-          density_multiplier: Number(zoneInfo.density_multiplier),
-          minutes_spent: Math.round(minutes * 100) / 100,
-          hours_spent: Math.round(hours * 100) / 100,
-          weighted_exposure: Math.round(weightedExposure * 100) / 100,
-          percentage_of_total_time: 0, // Will calculate after we have total
-          time_breakdown: timeBreakdown,
-        });
-
-        totalMinutes += minutes;
-        totalWeightedExposure += weightedExposure;
-
-        // Track zone type stats
-        if (zoneTypeStats[zoneInfo.zone_type]) {
-          zoneTypeStats[zoneInfo.zone_type].zones.add(zoneId);
-          zoneTypeStats[zoneInfo.zone_type].minutes += minutes;
-        }
-      }
-
-      // Skip this program if no zones were visited
-      if (zones.length === 0) {
-        continue;
-      }
-
-      // Calculate percentages now that we have total
-      zones.forEach((zone) => {
-        zone.percentage_of_total_time =
-          totalMinutes > 0
-            ? Math.round((zone.minutes_spent / totalMinutes) * 1000) / 10
-            : 0;
-      });
-
-      // Sort zones by minutes spent (descending)
-      zones.sort((a, b) => b.minutes_spent - a.minutes_spent);
-
-      // Build zone type distribution
-      const zoneTypeDistribution = {};
-      for (const [type, stats] of Object.entries(zoneTypeStats)) {
-        const hours = stats.minutes / 60;
-        const percentage =
-          totalMinutes > 0
-            ? Math.round((stats.minutes / totalMinutes) * 1000) / 10
-            : 0;
-
-        zoneTypeDistribution[type] = {
-          zones_count: stats.zones.size,
-          minutes: Math.round(stats.minutes * 100) / 100,
-          hours: Math.round(hours * 100) / 100,
-          percentage: percentage,
+    for (const row of data) {
+      const programId = row.program_id;
+      if (!zoneCoverageByProgram[programId]) {
+        zoneCoverageByProgram[programId] = {
+          program_id: programId,
+          program_name: row.program_name || null,
+          total_zones_visited: 0,
+          total_zones_available: row.total_zones_available || 0,
+          coverage_percentage: 0,
+          total_minutes_in_zones: 0,
+          total_hours_in_zones: 0,
+          high_value_exposure_score: 0,
+          zones: [],
+          zone_type_distribution: {
+            tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+            shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+            residential: {
+              zones_count: 0,
+              minutes: 0,
+              hours: 0,
+              percentage: 0,
+            },
+            mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
+          },
+          time_zone_distribution: {
+            morning: { minutes: 0, hours: 0, percentage: 0 },
+            afternoon: { minutes: 0, hours: 0, percentage: 0 },
+            evening: { minutes: 0, hours: 0, percentage: 0 },
+            night: { minutes: 0, hours: 0, percentage: 0 },
+            rush_hour: { minutes: 0, hours: 0, percentage: 0 },
+          },
+          date_range: { start: row.date_start, end: row.date_end },
         };
       }
 
-      // Build time zone distribution - aggregate time breakdown across all zones
-      const timeZoneDistribution = {
-        morning: { minutes: 0, hours: 0, percentage: 0 },
-        afternoon: { minutes: 0, hours: 0, percentage: 0 },
-        evening: { minutes: 0, hours: 0, percentage: 0 },
-        night: { minutes: 0, hours: 0, percentage: 0 },
-        rush_hour: { minutes: 0, hours: 0, percentage: 0 },
-      };
+      // Per-zone entry
+      zoneCoverageByProgram[programId].zones.push({
+        zone_id: row.zone_id,
+        zone_name: row.zone_name,
+        display_name: row.display_name,
+        zone_type: row.zone_type,
+        density_multiplier: Number(row.density_multiplier),
+        minutes_spent: Number(row.total_minutes),
+        hours_spent: Number(row.total_hours),
+        weighted_exposure: Number(row.weighted_exposure),
+        percentage_of_total_time: 0,
+        time_breakdown: {
+          morning: {
+            minutes: Number(row.morning_minutes),
+            hours: Math.round((Number(row.morning_minutes) / 60) * 100) / 100,
+            percentage: 0,
+          },
+          afternoon: {
+            minutes: Number(row.afternoon_minutes),
+            hours: Math.round((Number(row.afternoon_minutes) / 60) * 100) / 100,
+            percentage: 0,
+          },
+          evening: {
+            minutes: Number(row.evening_minutes),
+            hours: Math.round((Number(row.evening_minutes) / 60) * 100) / 100,
+            percentage: 0,
+          },
+          night: {
+            minutes: Number(row.night_minutes),
+            hours: Math.round((Number(row.night_minutes) / 60) * 100) / 100,
+            percentage: 0,
+          },
+          rush_hour: {
+            minutes: Number(row.rush_hour_minutes),
+            hours: Math.round((Number(row.rush_hour_minutes) / 60) * 100) / 100,
+            percentage: 0,
+          },
+        },
+      });
 
-      // Aggregate time breakdown from all zones
-      for (const zone of zones) {
-        if (zone.time_breakdown) {
-          timeZoneDistribution.morning.minutes +=
-            zone.time_breakdown.morning.minutes;
-          timeZoneDistribution.afternoon.minutes +=
-            zone.time_breakdown.afternoon.minutes;
-          timeZoneDistribution.evening.minutes +=
-            zone.time_breakdown.evening.minutes;
-          timeZoneDistribution.night.minutes +=
-            zone.time_breakdown.night.minutes;
-          timeZoneDistribution.rush_hour.minutes +=
-            zone.time_breakdown.rush_hour.minutes;
-        }
+      // Totals
+      zoneCoverageByProgram[programId].total_minutes_in_zones += Number(
+        row.total_minutes
+      );
+      zoneCoverageByProgram[programId].total_hours_in_zones =
+        Math.round(
+          (zoneCoverageByProgram[programId].total_minutes_in_zones / 60) * 100
+        ) / 100;
+      zoneCoverageByProgram[programId].high_value_exposure_score += Number(
+        row.weighted_exposure
+      );
+
+      // Zone type aggregation
+      const typeKey = row.zone_type;
+      if (zoneCoverageByProgram[programId].zone_type_distribution[typeKey]) {
+        const ztd =
+          zoneCoverageByProgram[programId].zone_type_distribution[typeKey];
+        ztd.zones_count += 1;
+        ztd.minutes += Number(row.total_minutes);
+        ztd.hours = Math.round((ztd.minutes / 60) * 100) / 100;
       }
 
-      // Calculate hours and percentages for time zone distribution
+      // Time buckets aggregation
+      const tzd = zoneCoverageByProgram[programId].time_zone_distribution;
+      tzd.morning.minutes += Number(row.morning_minutes);
+      tzd.afternoon.minutes += Number(row.afternoon_minutes);
+      tzd.evening.minutes += Number(row.evening_minutes);
+      tzd.night.minutes += Number(row.night_minutes);
+      tzd.rush_hour.minutes += Number(row.rush_hour_minutes);
+    }
+
+    // Finalize per-program calculations
+    for (const programId of Object.keys(zoneCoverageByProgram)) {
+      const entry = zoneCoverageByProgram[programId];
+      entry.total_zones_visited = entry.zones.length;
+      entry.coverage_percentage =
+        entry.total_zones_available > 0
+          ? Math.round(
+              (entry.total_zones_visited / entry.total_zones_available) * 1000
+            ) / 10
+          : 0;
+
+      // Sort zones by weighted exposure desc
+      entry.zones.sort((a, b) => b.weighted_exposure - a.weighted_exposure);
+
+      // Percentage of total time per zone and time bucket percentages
       const totalTimeMinutes =
-        timeZoneDistribution.morning.minutes +
-        timeZoneDistribution.afternoon.minutes +
-        timeZoneDistribution.evening.minutes +
-        timeZoneDistribution.night.minutes;
+        entry.time_zone_distribution.morning.minutes +
+        entry.time_zone_distribution.afternoon.minutes +
+        entry.time_zone_distribution.evening.minutes +
+        entry.time_zone_distribution.night.minutes;
+
+      entry.zones.forEach((z) => {
+        z.percentage_of_total_time =
+          totalTimeMinutes > 0
+            ? Math.round((z.minutes_spent / totalTimeMinutes) * 1000) / 10
+            : 0;
+      });
 
       for (const period of [
         "morning",
@@ -449,41 +423,22 @@ async function buildZoneCoverageMetrics(
         "night",
         "rush_hour",
       ]) {
-        const minutes = timeZoneDistribution[period].minutes;
-        timeZoneDistribution[period].hours =
+        const minutes = entry.time_zone_distribution[period].minutes;
+        entry.time_zone_distribution[period].hours =
           Math.round((minutes / 60) * 100) / 100;
-        timeZoneDistribution[period].percentage =
+        entry.time_zone_distribution[period].percentage =
           totalTimeMinutes > 0
             ? Math.round((minutes / totalTimeMinutes) * 1000) / 10
             : 0;
-        timeZoneDistribution[period].minutes = Math.round(minutes * 100) / 100;
+        entry.time_zone_distribution[period].minutes =
+          Math.round(minutes * 100) / 100;
       }
 
-      // Calculate coverage percentage
-      const coveragePercentage =
-        allZones.length > 0
-          ? Math.round((zones.length / allZones.length) * 1000) / 10
-          : 0;
-
-      // Store zone coverage for this program
-      zoneCoverageByProgram[programId] = {
-        program_id: programId,
-        program_name: programNames.get(programId),
-        total_zones_visited: zones.length,
-        total_zones_available: allZones.length,
-        coverage_percentage: coveragePercentage,
-        total_minutes_in_zones: Math.round(totalMinutes * 100) / 100,
-        total_hours_in_zones: Math.round((totalMinutes / 60) * 100) / 100,
-        high_value_exposure_score:
-          Math.round(totalWeightedExposure * 100) / 100,
-        zones: zones,
-        zone_type_distribution: zoneTypeDistribution,
-        time_zone_distribution: timeZoneDistribution,
-        date_range: {
-          start: startDate,
-          end: endDateOnly,
-        },
-      };
+      // Round totals
+      entry.total_minutes_in_zones =
+        Math.round(entry.total_minutes_in_zones * 100) / 100;
+      entry.high_value_exposure_score =
+        Math.round(entry.high_value_exposure_score * 100) / 100;
     }
 
     return zoneCoverageByProgram;

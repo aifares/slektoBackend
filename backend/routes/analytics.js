@@ -6,6 +6,29 @@ const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
 
+// Simple in-memory cache to prevent duplicate expensive queries
+// Key format: "clientId:zoneDays:zoneStartDate:zoneEndDate"
+const analyticsCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Helper function to get cache key from request
+function getCacheKey(clientId, query) {
+  const { zoneDays, zoneStartDate, zoneEndDate, zoneLimit } = query;
+  return `${clientId}:${zoneDays || ""}:${zoneStartDate || ""}:${
+    zoneEndDate || ""
+  }:${zoneLimit || ""}`;
+}
+
+// Helper function to clean up expired cache entries
+function cleanExpiredCache() {
+  const now = Date.now();
+  for (const [key, value] of analyticsCache.entries()) {
+    if (now > value.expiresAt) {
+      analyticsCache.delete(key);
+    }
+  }
+}
+
 // GET /analytics - Returns client's analytics including summary statistics, terminals, and historical data
 router.get("/", async (req, res) => {
   try {
@@ -13,6 +36,27 @@ router.get("/", async (req, res) => {
 
     // Parse query parameters for zone coverage filtering
     const { zoneDays, zoneStartDate, zoneEndDate } = req.query;
+    const zoneLimitRaw = req.query.zoneLimit;
+    const zoneLimit = Math.max(
+      1,
+      Math.min(50, parseInt(zoneLimitRaw, 10) || 20)
+    );
+
+    // Check cache first
+    const cacheKey = getCacheKey(client.id, req.query);
+    const cachedResult = analyticsCache.get(cacheKey);
+
+    if (cachedResult && Date.now() < cachedResult.expiresAt) {
+      console.log(
+        `[Analytics Cache] Returning cached result for client ${client.id}`
+      );
+      return res.json(cachedResult.data);
+    }
+
+    // Clean up expired cache entries periodically (10% chance on each request)
+    if (Math.random() < 0.1) {
+      cleanExpiredCache();
+    }
 
     // 1) Resolve client's campaigns (both active and inactive)
     const nowIso = new Date().toISOString();
@@ -52,10 +96,31 @@ router.get("/", async (req, res) => {
     );
     console.log("Program IDs from campaigns:", programIds);
 
+    // Fetch ALL playing sessions once to avoid duplicate queries in services
+    // This query combines data needed by campaignMetrics, zoneCoverage, and historicalTerminals
+    const { data: allPlayingSessions, error: allPlayingError } = await supabase
+      .from("playing")
+      .select(
+        "terminal_id, program_id, program_name, file_name, source, started_at, ended_at, status"
+      )
+      .in("program_id", programIds);
+
+    if (allPlayingError) {
+      console.warn(
+        "Failed to fetch playing sessions:",
+        allPlayingError.message
+      );
+      return res.status(500).json({
+        error: "Failed to fetch playing sessions",
+        details: allPlayingError.message,
+      });
+    }
+
     // Compute campaign playback metrics per program via service
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
       campaignsWithActiveStatus,
-      programIds
+      programIds,
+      allPlayingSessions || []
     );
 
     // Add isActive flag to campaign metrics
@@ -87,86 +152,35 @@ router.get("/", async (req, res) => {
       });
     }
 
-    // 2) Fetch currently playing sessions for those programs
-    const { data: playingRows, error: playingError } = await supabase
-      .from("playing")
-      .select(
-        "terminal_id, program_id, program_name, file_name, source, started_at, status"
-      )
-      .in("program_id", programIds)
-      .in("status", ["current", "completed"]); // Include completed sessions for zone coverage
-
-    if (playingError) {
-      return res.status(500).json({
-        error: "Failed to fetch currently playing data",
-        details: playingError.message,
-      });
-    }
-
+    // 2) Use already-fetched playing sessions (allPlayingSessions from above)
     // Get terminal IDs from all sessions (for zone coverage)
     const terminalIds = Array.from(
-      new Set((playingRows || []).map((p) => p.terminal_id))
+      new Set((allPlayingSessions || []).map((p) => p.terminal_id))
     );
 
     // Filter for currently playing terminals only (for display)
-    const currentlyPlayingRows = (playingRows || []).filter(
+    const currentlyPlayingRows = (allPlayingSessions || []).filter(
       (p) => p.status === "current"
     );
 
     // Get all terminals that have played these programs for historical data
     let allHistoricalTerminals = [];
     try {
-      allHistoricalTerminals = await fetchHistoricalTerminals(programIds);
+      allHistoricalTerminals = await fetchHistoricalTerminals(
+        programIds,
+        allPlayingSessions || []
+      );
     } catch (error) {
       console.warn("Failed to fetch historical terminals data:", error.message);
     }
 
-    // If no terminals have ever played (not even completed sessions), return early
-    if (terminalIds.length === 0) {
-      return res.json({
-        client: {
-          id: client.id,
-          name: client.name,
-          activePrograms: programIds,
-        },
-        terminals: [],
-        summary: {
-          total_terminals: 0,
-          terminals_playing: 0,
-          terminals_offline: 0,
-          historical_terminals_count: allHistoricalTerminals.length,
-        },
-        historical_terminals: allHistoricalTerminals,
-        campaign_metrics: playbackMetricsByProgram,
-        zone_coverage: {
-          total_zones_visited: 0,
-          total_zones_available: 0,
-          coverage_percentage: 0,
-          total_minutes_in_zones: 0,
-          high_value_exposure_score: 0,
-          zones: [],
-          zone_type_distribution: {
-            tourist: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-            shopping: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-            residential: {
-              zones_count: 0,
-              minutes: 0,
-              hours: 0,
-              percentage: 0,
-            },
-            mixed: { zones_count: 0, minutes: 0, hours: 0, percentage: 0 },
-          },
-          time_zone_distribution: {
-            morning: { minutes: 0, hours: 0, percentage: 0 },
-            afternoon: { minutes: 0, hours: 0, percentage: 0 },
-            evening: { minutes: 0, hours: 0, percentage: 0 },
-            night: { minutes: 0, hours: 0, percentage: 0 },
-            rush_hour: { minutes: 0, hours: 0, percentage: 0 },
-          },
-          date_range: { start: null, end: null },
-        },
-      });
-    }
+    // If no terminal IDs from sessions, fall back to historical terminals for coverage
+    const terminalIdsForCoverage =
+      terminalIds.length > 0
+        ? terminalIds
+        : Array.from(
+            new Set((allHistoricalTerminals || []).map((t) => t.terminal_id))
+          );
 
     // 3) Fetch terminal metadata
     const { data: terminalRows, error: terminalsError } = await supabase
@@ -175,19 +189,17 @@ router.get("/", async (req, res) => {
       .in("terminalid", terminalIds);
 
     // 3.5) Fetch terminal online status from terminal_status_log
-    const { data: terminalStatusRows, error: statusError } = await supabase
-      .from("terminal_status_log")
-      .select("terminal_id, status, status_changed_at")
-      .in("terminal_id", terminalIds)
-      .order("status_changed_at", { ascending: false });
+    // Use RPC to get only the latest status per terminal (much more efficient than fetching all rows)
+    const { data: terminalStatusRows, error: statusError } = await supabase.rpc(
+      "get_latest_terminal_status",
+      { p_terminal_ids: terminalIds }
+    );
 
     // Create a map of latest status for each terminal
     const latestStatusByTerminal = {};
     if (!statusError && terminalStatusRows) {
       for (const statusRow of terminalStatusRows) {
-        if (!latestStatusByTerminal[statusRow.terminal_id]) {
-          latestStatusByTerminal[statusRow.terminal_id] = statusRow.status;
-        }
+        latestStatusByTerminal[statusRow.terminal_id] = statusRow.status;
       }
     }
 
@@ -271,13 +283,14 @@ router.get("/", async (req, res) => {
     // Build zone coverage metrics
     let zoneCoverage = {};
 
-    if (zoneStartDateFinal && terminalIds.length > 0) {
+    if (zoneStartDateFinal && terminalIdsForCoverage.length > 0) {
       try {
         zoneCoverage = await buildZoneCoverageMetrics(
           programIds,
-          terminalIds,
+          terminalIdsForCoverage,
           zoneStartDateFinal,
-          zoneEndDateFinal
+          zoneEndDateFinal,
+          zoneLimit
         );
 
         // Add isActive flag to zone coverage for each program
@@ -307,6 +320,17 @@ router.get("/", async (req, res) => {
       campaign_metrics: playbackMetricsByProgram,
       zone_coverage: zoneCoverage,
     };
+
+    // Store in cache before sending response
+    analyticsCache.set(cacheKey, {
+      data: response,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+    console.log(
+      `[Analytics Cache] Cached result for client ${client.id} (TTL: ${
+        CACHE_TTL_MS / 1000
+      }s)`
+    );
 
     res.json(response);
   } catch (err) {
