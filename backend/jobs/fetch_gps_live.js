@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { COLORLIGHT_LIVE_URL, TRACK_AUTH_HEADER } = require("../utils");
 const { storeGpsDataFromLive } = require("../services/gps");
+const { withLock } = require("../utils/distributedLock");
 
 async function fetchLiveGpsData() {
   try {
@@ -99,13 +100,23 @@ async function fetchLiveGpsData() {
 
 // Run if called directly
 if (require.main === module) {
-  fetchLiveGpsData()
+  // Use distributed locking to prevent duplicate execution across multiple machines
+  withLock("fetch_gps_live", async () => {
+    return await fetchLiveGpsData();
+  })
     .then((result) => {
-      if (result.success) {
+      if (result === null) {
+        // Lock was already held, job skipped
+        console.log("⏭️  Job skipped - another instance is already running");
+        process.exit(0);
+      } else if (result && result.success) {
         console.log("✅ Live GPS polling completed successfully");
         process.exit(0);
       } else {
-        console.error("❌ Live GPS polling failed:", result.error);
+        console.error(
+          "❌ Live GPS polling failed:",
+          result?.error || "Unknown error"
+        );
         process.exit(1);
       }
     })

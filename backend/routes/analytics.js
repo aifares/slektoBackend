@@ -6,8 +6,9 @@ const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
 
-// Simple in-memory cache to prevent duplicate expensive queries
+// Simple in-memory cache to prevent duplicate expensive queries (disabled via flag)
 // Key format: "clientId:zoneDays:zoneStartDate:zoneEndDate"
+const ENABLE_CACHE = false;
 const analyticsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -39,22 +40,23 @@ router.get("/", async (req, res) => {
     const zoneLimitRaw = req.query.zoneLimit;
     const zoneLimit = Math.max(
       1,
-      Math.min(50, parseInt(zoneLimitRaw, 10) || 20)
+      Math.min(50, parseInt(zoneLimitRaw, 10) || 50)
     );
 
-    // Check cache first
+    // Check cache first (disabled when ENABLE_CACHE=false)
     const cacheKey = getCacheKey(client.id, req.query);
-    const cachedResult = analyticsCache.get(cacheKey);
-
-    if (cachedResult && Date.now() < cachedResult.expiresAt) {
-      console.log(
-        `[Analytics Cache] Returning cached result for client ${client.id}`
-      );
-      return res.json(cachedResult.data);
+    if (ENABLE_CACHE) {
+      const cachedResult = analyticsCache.get(cacheKey);
+      if (cachedResult && Date.now() < cachedResult.expiresAt) {
+        console.log(
+          `[Analytics Cache] Returning cached result for client ${client.id}`
+        );
+        return res.json(cachedResult.data);
+      }
     }
 
-    // Clean up expired cache entries periodically (10% chance on each request)
-    if (Math.random() < 0.1) {
+    // Clean up expired cache entries periodically (disabled when ENABLE_CACHE=false)
+    if (ENABLE_CACHE && Math.random() < 0.1) {
       cleanExpiredCache();
     }
 
@@ -321,16 +323,18 @@ router.get("/", async (req, res) => {
       zone_coverage: zoneCoverage,
     };
 
-    // Store in cache before sending response
-    analyticsCache.set(cacheKey, {
-      data: response,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
-    console.log(
-      `[Analytics Cache] Cached result for client ${client.id} (TTL: ${
-        CACHE_TTL_MS / 1000
-      }s)`
-    );
+    // Store in cache before sending response (disabled when ENABLE_CACHE=false)
+    if (ENABLE_CACHE) {
+      analyticsCache.set(cacheKey, {
+        data: response,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      });
+      console.log(
+        `[Analytics Cache] Cached result for client ${client.id} (TTL: ${
+          CACHE_TTL_MS / 1000
+        }s)`
+      );
+    }
 
     res.json(response);
   } catch (err) {

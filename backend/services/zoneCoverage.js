@@ -247,7 +247,7 @@ async function buildZoneCoverageMetrics(
   terminalIds,
   startDate,
   endDate,
-  zoneLimit = 20
+  zoneLimit = 50
 ) {
   if (
     !programIds ||

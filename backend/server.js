@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const compression = require("compression");
 
 const terminalRoutes = require("./routes/terminal");
 const contentRoutes = require("./routes/content");
@@ -17,6 +18,7 @@ const driversRoutes = require("./routes/drivers");
 const { authMiddleware } = require("./middleware/auth");
 
 const app = express();
+app.use(compression());
 app.use(bodyParser.json());
 
 const PORT = 3000;
