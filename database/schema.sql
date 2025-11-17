@@ -114,7 +114,27 @@ CREATE TABLE IF NOT EXISTS terminal_status_log (
   led_activity_at TIMESTAMPTZ,               -- Last LED activity timestamp
   api_response_at TIMESTAMPTZ,               -- Last API response timestamp
   reason TEXT,                                -- Why status changed ('power_off', 'timeout', 'api_error', 'manual')
+  zone_id BIGINT REFERENCES nyc_zones(id),   -- Zone where terminal was located during this status
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8a. Terminal Driver Assignments (Historical tracking of driver assignments)
+CREATE TABLE IF NOT EXISTS terminal_driver_assignments (
+  id BIGSERIAL PRIMARY KEY,
+  terminal_id TEXT NOT NULL REFERENCES terminals(terminalid),
+  driver_id BIGINT NOT NULL REFERENCES drivers(id),
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  unassigned_at TIMESTAMPTZ,                 -- NULL if currently assigned
+  assigned_by UUID,                          -- Who made the assignment (from auth.users.id)
+  unassigned_by UUID,                        -- Who unassigned (if applicable)
+  notes TEXT,                                -- Optional: reason for assignment/swap
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Ensure logical time ordering
+  CONSTRAINT check_assignment_times CHECK (
+    assigned_at IS NOT NULL AND 
+    (unassigned_at IS NULL OR unassigned_at > assigned_at)
+  )
 );
 
 -- 9. NYC Zones (geographic zones for analytics)
@@ -217,6 +237,14 @@ CREATE INDEX IF NOT EXISTS idx_terminal_status_log_status ON terminal_status_log
 CREATE INDEX IF NOT EXISTS idx_terminal_status_log_changed_at ON terminal_status_log(status_changed_at);
 CREATE INDEX IF NOT EXISTS idx_terminal_status_log_terminal_status ON terminal_status_log(terminal_id, status);
 CREATE INDEX IF NOT EXISTS idx_terminal_status_log_date_range ON terminal_status_log(status_changed_at, terminal_id);
+CREATE INDEX IF NOT EXISTS idx_terminal_status_log_zone_id ON terminal_status_log(zone_id);
+
+-- Indexes for terminal_driver_assignments
+CREATE INDEX IF NOT EXISTS idx_driver_assignments_terminal ON terminal_driver_assignments(terminal_id);
+CREATE INDEX IF NOT EXISTS idx_driver_assignments_driver ON terminal_driver_assignments(driver_id);
+CREATE INDEX IF NOT EXISTS idx_driver_assignments_date_range ON terminal_driver_assignments(assigned_at, unassigned_at);
+CREATE INDEX IF NOT EXISTS idx_driver_assignments_active ON terminal_driver_assignments(terminal_id, driver_id) WHERE unassigned_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_driver_assignments_driver_dates ON terminal_driver_assignments(driver_id, assigned_at, unassigned_at);
 
 -- Indexes for terminal_gps_data
 CREATE INDEX IF NOT EXISTS idx_terminal_gps_data_terminal_date ON terminal_gps_data(terminal_id, data_date);

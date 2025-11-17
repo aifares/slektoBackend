@@ -4,6 +4,7 @@ const router = express.Router();
 
 const { AUTH_HEADER, TERMINAL_ID, COLORLIGHT_BASE_URL } = require("../utils");
 const databaseService = require("../services/database");
+const driverAssignment = require("../services/driverAssignment");
 
 // Helper function to execute commands on multiple terminals
 async function executeCommandOnTerminals(terminalIds, commandData) {
@@ -59,7 +60,8 @@ function parseTerminalIds(terminalIds) {
 
 // --- Get all terminals ---
 router.get("/", async (req, res) => {
-  const { terminalIds, skipDbUpdate } = req.query;
+  const { terminalIds, skipDbUpdate, includeDrivers, includeStatus } =
+    req.query;
 
   try {
     const targetTerminalIds = parseTerminalIds(terminalIds);
@@ -69,7 +71,7 @@ router.get("/", async (req, res) => {
       params: { terminalIds: targetTerminalIds.join(",") },
     });
 
-    const terminals = response.data;
+    let terminals = response.data;
 
     // Auto-update database with latest terminal data (unless explicitly disabled)
     if (skipDbUpdate !== "true") {
@@ -111,14 +113,71 @@ router.get("/", async (req, res) => {
       });
 
       // Sync programs from API (non-blocking, happens after terminal updates)
-      databaseService
-        .syncProgramsFromAPI()
-        .catch((programError) => {
-          console.warn(
-            `⚠️ Failed to sync programs (non-critical):`,
-            programError.message
-          );
-        });
+      databaseService.syncProgramsFromAPI().catch((programError) => {
+        console.warn(
+          `⚠️ Failed to sync programs (non-critical):`,
+          programError.message
+        );
+      });
+    }
+
+    // Optionally enhance with status and driver info
+    if (includeStatus === "true" || includeDrivers === "true") {
+      terminals = await Promise.all(
+        terminals.map(async (terminal) => {
+          const enhanced = { ...terminal };
+
+          // Add online/offline status
+          if (includeStatus === "true") {
+            const { isOnline, reason, indicators } =
+              databaseService.determineOnlineStatus(terminal);
+            const currentStatus =
+              await databaseService.getCurrentTerminalStatus(terminal.id);
+
+            enhanced.status_info = {
+              is_online: isOnline,
+              status: isOnline ? "online" : "offline",
+              reason,
+              indicators,
+              last_status_change: currentStatus?.status_changed_at || null,
+              duration_seconds: currentStatus?.duration_seconds || null,
+            };
+          }
+
+          // Add driver assignment info
+          if (includeDrivers === "true") {
+            try {
+              const assignment = await driverAssignment.getCurrentAssignment(
+                terminal.id
+              );
+              if (assignment) {
+                const assignedDuration = Math.floor(
+                  (Date.now() - new Date(assignment.assigned_at).getTime()) /
+                    1000
+                );
+                enhanced.driver_assignment = {
+                  driver: assignment.drivers,
+                  assigned_at: assignment.assigned_at,
+                  assigned_duration_seconds: assignedDuration,
+                  assigned_duration_hours:
+                    Math.round((assignedDuration / 3600) * 100) / 100,
+                  notes: assignment.notes,
+                };
+              } else {
+                enhanced.driver_assignment = null;
+              }
+            } catch (driverError) {
+              console.warn(
+                `Failed to fetch driver for terminal ${terminal.id}:`,
+                driverError.message
+              );
+              enhanced.driver_assignment = null;
+            }
+          }
+
+          return enhanced;
+        })
+      );
     }
 
     res.json(terminals);

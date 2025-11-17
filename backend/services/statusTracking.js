@@ -1,6 +1,42 @@
 const { supabase } = require("../config/supabase");
 const { markCurrentPlayingAsCompleted } = require("./playing");
 
+/**
+ * Get the most recent zone_id for a terminal from GPS data
+ * @param {string} terminalId - The terminal ID
+ * @param {number} lookbackMinutes - How many minutes to look back (default: 30)
+ * @returns {Promise<number|null>} - The zone_id or null if not found
+ */
+async function getMostRecentZone(terminalId, lookbackMinutes = 30) {
+  try {
+    const lookbackTime = new Date();
+    lookbackTime.setMinutes(lookbackTime.getMinutes() - lookbackMinutes);
+
+    const { data, error } = await supabase
+      .from("terminal_gps_data")
+      .select("zone_id")
+      .eq("terminal_id", terminalId)
+      .not("zone_id", "is", null)
+      .gte("recorded_at", lookbackTime.toISOString())
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      console.warn(
+        `⚠️ Failed to fetch recent zone for ${terminalId}:`,
+        error.message
+      );
+      return null;
+    }
+
+    return data?.zone_id || null;
+  } catch (error) {
+    console.warn(`⚠️ Error fetching zone for ${terminalId}:`, error.message);
+    return null;
+  }
+}
+
 function determineOnlineStatus(terminalData) {
   const currentTime = Math.floor(Date.now() / 1000);
   const OFFLINE_THRESHOLD = 90;
@@ -139,6 +175,12 @@ async function updateTerminalStatus(terminalId, terminalData) {
         }
       }
 
+      // Fetch the most recent zone for this terminal
+      const zoneId = await getMostRecentZone(terminalId);
+      if (zoneId) {
+        console.log(`📍 Terminal ${terminalId} zone detected: ${zoneId}`);
+      }
+
       const statusData = {
         terminal_id: terminalId,
         status: isOnline ? "online" : "offline",
@@ -150,6 +192,7 @@ async function updateTerminalStatus(terminalId, terminalData) {
           : null,
         api_response_at: now,
         reason: reason,
+        zone_id: zoneId,
       };
 
       console.log(
@@ -383,4 +426,5 @@ module.exports = {
   getTerminalUptimeAnalytics,
   cleanupPlayingRecordsOnOffline,
   checkAndCleanupOfflineTerminals,
+  getMostRecentZone,
 };

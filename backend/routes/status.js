@@ -3,12 +3,14 @@ const router = express.Router();
 
 const databaseService = require("../services/database");
 const { supabase } = require("../config/supabase");
+const driverAssignment = require("../services/driverAssignment");
 
 // --- Get current status of all terminals ---
 router.get("/terminals", async (req, res) => {
   try {
     const axios = require("axios");
     const { COLORLIGHT_BASE_URL, AUTH_HEADER } = require("../utils");
+    const includeDrivers = req.query.includeDrivers === "true";
 
     // Get fresh terminal data from ColorLight API
     const response = await axios.get(`${COLORLIGHT_BASE_URL}`, AUTH_HEADER);
@@ -24,7 +26,7 @@ router.get("/terminals", async (req, res) => {
         const { isOnline, reason, indicators } =
           databaseService.determineOnlineStatus(terminalData);
 
-        return {
+        const terminalInfo = {
           terminalid: terminalId,
           name:
             terminalData.title?.rendered ||
@@ -50,6 +52,38 @@ router.get("/terminals", async (req, res) => {
             duration_seconds: currentStatus?.duration_seconds || null,
           },
         };
+
+        // Optionally include driver assignment info
+        if (includeDrivers) {
+          try {
+            const assignment = await driverAssignment.getCurrentAssignment(
+              terminalId
+            );
+            if (assignment) {
+              const assignedDuration = Math.floor(
+                (Date.now() - new Date(assignment.assigned_at).getTime()) / 1000
+              );
+              terminalInfo.driver_assignment = {
+                driver: assignment.drivers,
+                assigned_at: assignment.assigned_at,
+                assigned_duration_seconds: assignedDuration,
+                assigned_duration_hours:
+                  Math.round((assignedDuration / 3600) * 100) / 100,
+                notes: assignment.notes,
+              };
+            } else {
+              terminalInfo.driver_assignment = null;
+            }
+          } catch (driverError) {
+            console.warn(
+              `Failed to fetch driver for terminal ${terminalId}:`,
+              driverError.message
+            );
+            terminalInfo.driver_assignment = null;
+          }
+        }
+
+        return terminalInfo;
       })
     );
 
@@ -62,6 +96,9 @@ router.get("/terminals", async (req, res) => {
       offline_count: terminalsWithStatus.filter(
         (t) => !t.current_status.is_online
       ).length,
+      terminals_with_drivers: includeDrivers
+        ? terminalsWithStatus.filter((t) => t.driver_assignment !== null).length
+        : undefined,
     });
   } catch (err) {
     console.error("Error fetching terminal status:", err.message);

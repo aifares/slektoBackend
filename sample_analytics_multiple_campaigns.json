@@ -1,0 +1,153 @@
+{
+  "client": {
+    "id": 123,
+    "name": "Example Client",
+    "activePrograms": [1, 2, 3]
+  },
+  "terminals": [
+    {
+      "terminalId": "T001",
+      "name": "Terminal 1",
+      "group_name": "Group A",
+      "last_report_time": "2025-01-15T10:30:00Z",
+      "power_status": "on",
+      "isOnline": true,
+      "playing": {
+        "program_id": 1,
+        "program_name": "Program A",
+        "file_name": "video1.mp4",
+        "source": "local",
+        "started_at": "2025-01-15T10:00:00Z"
+      }
+    },
+    {
+      "terminalId": "T002",
+      "name": "Terminal 2",
+      "group_name": "Group A",
+      "last_report_time": "2025-01-15T10:25:00Z",
+      "power_status": "on",
+      "isOnline": true,
+      "playing": {
+        "program_id": 2,
+        "program_name": "Program B",
+        "file_name": "video2.mp4",
+        "source": "local",
+        "started_at": "2025-01-15T09:45:00Z"
+      }
+    }
+  ],
+  "summary": {
+    "total_terminals": 2,
+    "terminals_playing": 2,
+    "terminals_offline": 0,
+    "historical_terminals_count": 5
+  },
+  "historical_terminals": [
+    {
+      "terminal_id": "T001",
+      "program_id": 1,
+      "program_name": "Program A",
+      "first_played_at": "2025-01-10T08:00:00Z",
+      "last_played_at": "2025-01-15T10:00:00Z"
+    },
+    {
+      "terminal_id": "T002",
+      "program_id": 2,
+      "program_name": "Program B",
+      "first_played_at": "2025-01-12T09:00:00Z",
+      "last_played_at": "2025-01-15T09:45:00Z"
+    }
+  ],
+  "campaign_metrics": {
+    "1": {
+      "minutes_played_since_campaign_start": 450,
+      "hours_played_since_campaign_start": 7.5,
+      "campaign_hours_bought": 10,
+      "campaign_minutes_bought": 600,
+      "campaign_completion_percent": 75,
+      "campaign_start_at": "2025-01-01T00:00:00Z",
+      "campaign_end_at": "2025-01-31T23:59:59Z",
+      "isActive": true
+    },
+    "2": {
+      "minutes_played_since_campaign_start": 320,
+      "hours_played_since_campaign_start": 5.33,
+      "campaign_hours_bought": 8,
+      "campaign_minutes_bought": 480,
+      "campaign_completion_percent": 67,
+      "campaign_start_at": "2025-01-05T00:00:00Z",
+      "campaign_end_at": "2025-01-20T23:59:59Z",
+      "isActive": true
+    },
+    "3": {
+      "minutes_played_since_campaign_start": 180,
+      "hours_played_since_campaign_start": 3.0,
+      "campaign_hours_bought": 5,
+      "campaign_minutes_bought": 300,
+      "campaign_completion_percent": 60,
+      "campaign_start_at": "2025-01-10T00:00:00Z",
+      "campaign_end_at": "2025-01-25T23:59:59Z",
+      "isActive": true
+    }
+  },
+  "zone_coverage": {
+    "1": {
+      "isActive": true,
+      "top_zones": [
+        {
+          "zone_id": "Z001",
+          "zone_name": "Brooklyn Heights",
+          "total_impressions": 1250,
+          "unique_terminals": 3,
+          "coverage_percent": 85.5
+        },
+        {
+          "zone_id": "Z002",
+          "zone_name": "Manhattan",
+          "total_impressions": 980,
+          "unique_terminals": 2,
+          "coverage_percent": 67.2
+        }
+      ],
+      "total_zones_covered": 12,
+      "date_range": {
+        "start": "2025-01-01",
+        "end": "2025-01-15"
+      }
+    },
+    "2": {
+      "isActive": true,
+      "top_zones": [
+        {
+          "zone_id": "Z003",
+          "zone_name": "Queens",
+          "total_impressions": 890,
+          "unique_terminals": 2,
+          "coverage_percent": 72.1
+        }
+      ],
+      "total_zones_covered": 8,
+      "date_range": {
+        "start": "2025-01-05",
+        "end": "2025-01-15"
+      }
+    },
+    "3": {
+      "isActive": true,
+      "top_zones": [
+        {
+          "zone_id": "Z001",
+          "zone_name": "Brooklyn Heights",
+          "total_impressions": 450,
+          "unique_terminals": 1,
+          "coverage_percent": 55.0
+        }
+      ],
+      "total_zones_covered": 5,
+      "date_range": {
+        "start": "2025-01-10",
+        "end": "2025-01-15"
+      }
+    }
+  }
+}
