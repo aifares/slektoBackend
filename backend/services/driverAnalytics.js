@@ -93,8 +93,9 @@ async function getDriverZoneTimeBreakdown(driverId, startDate, endDate) {
     if (error) {
       // If RPC doesn't exist yet, fall back to manual query
       console.warn(
-        `RPC function not found, using fallback query:`,
-        error.message
+        `⚠️ RPC function error, using fallback query:`,
+        error.message,
+        error
       );
       return await getDriverZoneTimeBreakdownFallback(
         driverId,
@@ -102,6 +103,10 @@ async function getDriverZoneTimeBreakdown(driverId, startDate, endDate) {
         endDate
       );
     }
+
+    console.log(
+      `✅ Using database RPC function (returned ${data?.length || 0} zones)`
+    );
 
     return data || [];
   } catch (error) {
@@ -120,7 +125,11 @@ async function getDriverZoneTimeBreakdown(driverId, startDate, endDate) {
  * @param {string} endDate - ISO date string
  * @returns {Promise<Array>} - Array of zone time data
  */
-async function getDriverZoneTimeBreakdownFallback(driverId, startDate, endDate) {
+async function getDriverZoneTimeBreakdownFallback(
+  driverId,
+  startDate,
+  endDate
+) {
   try {
     // Step 1: Get all assignments for this driver in the date range
     const { data: assignments, error: assignmentError } = await supabase
@@ -141,18 +150,17 @@ async function getDriverZoneTimeBreakdownFallback(driverId, startDate, endDate) 
       return [];
     }
 
-    // Step 2: Get all status logs for these terminals during assignment periods
+    // Step 2: Get all online status logs for these terminals during assignment periods
     const terminalIds = [...new Set(assignments.map((a) => a.terminal_id))];
 
     const { data: statusLogs, error: statusError } = await supabase
       .from("terminal_status_log")
-      .select("terminal_id, status, status_changed_at, duration_seconds, zone_id")
+      .select("id, terminal_id, status, status_changed_at, duration_seconds")
       .in("terminal_id", terminalIds)
       .eq("status", "online")
       .gte("status_changed_at", startDate)
-      .lte("status_changed_at", endDate)
-      .not("duration_seconds", "is", null)
-      .not("zone_id", "is", null);
+      .lte("status_changed_at", `${endDate}T23:59:59`)
+      .not("duration_seconds", "is", null);
 
     if (statusError) {
       throw new Error(`Failed to fetch status logs: ${statusError.message}`);
@@ -175,13 +183,57 @@ async function getDriverZoneTimeBreakdownFallback(driverId, startDate, endDate) 
       });
     });
 
-    // Step 4: Get zone info and aggregate
-    const zoneIds = [...new Set(filteredLogs.map((log) => log.zone_id))];
-    
-    if (zoneIds.length === 0) {
+    if (filteredLogs.length === 0) {
       return [];
     }
 
+    // Step 4: For each online session, get GPS data and calculate zone time
+    const zoneMap = new Map();
+
+    for (const log of filteredLogs) {
+      const sessionStart = new Date(log.status_changed_at);
+      const sessionEnd = new Date(
+        sessionStart.getTime() + log.duration_seconds * 1000
+      );
+
+      // Get GPS data during this online session
+      const { data: gpsData, error: gpsError } = await supabase
+        .from("terminal_gps_data")
+        .select("zone_id, recorded_at")
+        .eq("terminal_id", log.terminal_id)
+        .gte("recorded_at", sessionStart.toISOString())
+        .lte("recorded_at", sessionEnd.toISOString())
+        .not("zone_id", "is", null)
+        .order("recorded_at", { ascending: true });
+
+      if (gpsError || !gpsData || gpsData.length === 0) {
+        continue; // Skip this session if no GPS data
+      }
+
+      // Calculate time in each zone based on GPS points
+      // Assume time is evenly distributed between GPS points
+      const avgTimePerPoint = log.duration_seconds / (gpsData.length + 1);
+
+      for (const gpsPoint of gpsData) {
+        if (!zoneMap.has(gpsPoint.zone_id)) {
+          zoneMap.set(gpsPoint.zone_id, {
+            zone_id: gpsPoint.zone_id,
+            online_seconds: 0,
+            gps_points: 0,
+          });
+        }
+        const zoneData = zoneMap.get(gpsPoint.zone_id);
+        zoneData.online_seconds += avgTimePerPoint;
+        zoneData.gps_points += 1;
+      }
+    }
+
+    if (zoneMap.size === 0) {
+      return [];
+    }
+
+    // Step 5: Get zone info
+    const zoneIds = Array.from(zoneMap.keys());
     const { data: zones, error: zoneError } = await supabase
       .from("nyc_zones")
       .select("id, name, display_name, zone_type, borough")
@@ -191,33 +243,20 @@ async function getDriverZoneTimeBreakdownFallback(driverId, startDate, endDate) 
       throw new Error(`Failed to fetch zones: ${zoneError.message}`);
     }
 
-    // Step 5: Aggregate by zone
-    const zoneMap = new Map();
-    
-    filteredLogs.forEach((log) => {
-      if (!zoneMap.has(log.zone_id)) {
-        const zone = zones.find((z) => z.id === log.zone_id);
-        zoneMap.set(log.zone_id, {
-          zone_id: log.zone_id,
-          zone_name: zone?.name || "Unknown",
-          zone_display_name: zone?.display_name || "Unknown",
-          zone_type: zone?.zone_type || null,
-          borough: zone?.borough || null,
-          online_seconds: 0,
-          online_sessions: 0,
-        });
-      }
-      
-      const zoneData = zoneMap.get(log.zone_id);
-      zoneData.online_seconds += log.duration_seconds;
-      zoneData.online_sessions += 1;
+    // Step 6: Build final results
+    const results = Array.from(zoneMap.entries()).map(([zoneId, zoneData]) => {
+      const zone = zones.find((z) => z.id === zoneId);
+      return {
+        zone_id: zoneId,
+        zone_name: zone?.name || "Unknown",
+        zone_display_name: zone?.display_name || "Unknown",
+        zone_type: zone?.zone_type || null,
+        borough: zone?.borough || null,
+        online_seconds: Math.round(zoneData.online_seconds),
+        online_hours: Math.round((zoneData.online_seconds / 3600) * 100) / 100,
+        gps_points: zoneData.gps_points,
+      };
     });
-
-    // Convert to array and add calculated fields
-    const results = Array.from(zoneMap.values()).map((zone) => ({
-      ...zone,
-      online_hours: Math.round((zone.online_seconds / 3600) * 100) / 100,
-    }));
 
     // Sort by online time descending
     results.sort((a, b) => b.online_seconds - a.online_seconds);
@@ -273,7 +312,7 @@ async function getDriverTotalOnlineTime(driverId, startDate, endDate) {
       .select("terminal_id, status, status_changed_at, duration_seconds")
       .in("terminal_id", terminalIds)
       .gte("status_changed_at", startDate)
-      .lte("status_changed_at", endDate)
+      .lte("status_changed_at", `${endDate}T23:59:59`)
       .not("duration_seconds", "is", null);
 
     if (statusError) {
@@ -309,8 +348,7 @@ async function getDriverTotalOnlineTime(driverId, startDate, endDate) {
       total_online_seconds: totalOnlineSeconds,
       total_online_hours: Math.round((totalOnlineSeconds / 3600) * 100) / 100,
       total_offline_seconds: totalOfflineSeconds,
-      total_offline_hours:
-        Math.round((totalOfflineSeconds / 3600) * 100) / 100,
+      total_offline_hours: Math.round((totalOfflineSeconds / 3600) * 100) / 100,
     };
   } catch (error) {
     console.error(
@@ -340,9 +378,7 @@ async function getDriverAssignmentsDuringPeriod(driverId, startDate, endDate) {
       .order("assigned_at", { ascending: false });
 
     if (error) {
-      throw new Error(
-        `Failed to fetch assignments: ${error.message}`
-      );
+      throw new Error(`Failed to fetch assignments: ${error.message}`);
     }
 
     return data || [];
@@ -415,4 +451,3 @@ module.exports = {
   getDriverAssignmentsDuringPeriod,
   getAllDriversAnalytics,
 };
-

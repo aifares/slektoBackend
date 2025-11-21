@@ -1,0 +1,324 @@
+{
+  "success": true,
+  "analytics": {
+    "driver": {
+      "id": 4,
+      "name": "Ali Fares",
+      "phone": "47",
+      "email": "aifares@icloud.com"
+    },
+    "period": { "start_date": "2025-11-01", "end_date": "2025-11-21" },
+    "summary": {
+      "total_online_hours": 4.36,
+      "total_online_seconds": 15690,
+      "total_zones_visited": 27,
+      "terminals_used": 2
+    },
+    "zone_breakdown": [
+      {
+        "zone_id": 358,
+        "zone_name": "lower-east-side-man",
+        "zone_display_name": "Lower East Side",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 2264,
+        "online_hours": 0.63,
+        "gps_points": 23
+      },
+      {
+        "zone_id": 191,
+        "zone_name": "bay-ridge",
+        "zone_display_name": "Bay Ridge",
+        "zone_type": "residential",
+        "borough": null,
+        "online_seconds": 1476,
+        "online_hours": 0.41,
+        "gps_points": 15
+      },
+      {
+        "zone_id": 228,
+        "zone_name": "carroll-gardens",
+        "zone_display_name": "Carroll Gardens",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 787,
+        "online_hours": 0.22,
+        "gps_points": 8
+      },
+      {
+        "zone_id": 308,
+        "zone_name": "greenwich-village",
+        "zone_display_name": "Greenwich Village",
+        "zone_type": "residential",
+        "borough": null,
+        "online_seconds": 689,
+        "online_hours": 0.19,
+        "gps_points": 7
+      },
+      {
+        "zone_id": 2,
+        "zone_name": "midtown",
+        "zone_display_name": "Midtown",
+        "zone_type": "tourist",
+        "borough": null,
+        "online_seconds": 689,
+        "online_hours": 0.19,
+        "gps_points": 7
+      },
+      {
+        "zone_id": 446,
+        "zone_name": "soho-man",
+        "zone_display_name": "SoHo",
+        "zone_type": "shopping",
+        "borough": null,
+        "online_seconds": 591,
+        "online_hours": 0.16,
+        "gps_points": 6
+      },
+      {
+        "zone_id": 17,
+        "zone_name": "downtown-brooklyn",
+        "zone_display_name": "Downtown Brooklyn",
+        "zone_type": "shopping",
+        "borough": null,
+        "online_seconds": 591,
+        "online_hours": 0.16,
+        "gps_points": 6
+      },
+      {
+        "zone_id": 7,
+        "zone_name": "west-village",
+        "zone_display_name": "West Village",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 591,
+        "online_hours": 0.16,
+        "gps_points": 6
+      },
+      {
+        "zone_id": 222,
+        "zone_name": "brooklyn-heights-bro",
+        "zone_display_name": "Brooklyn Heights",
+        "zone_type": "residential",
+        "borough": null,
+        "online_seconds": 591,
+        "online_hours": 0.16,
+        "gps_points": 6
+      },
+      {
+        "zone_id": 300,
+        "zone_name": "gramercy",
+        "zone_display_name": "Gramercy",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 492,
+        "online_hours": 0.14,
+        "gps_points": 5
+      },
+      {
+        "zone_id": 233,
+        "zone_name": "chelsea-man",
+        "zone_display_name": "Chelsea",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 394,
+        "online_hours": 0.11,
+        "gps_points": 4
+      },
+      {
+        "zone_id": 8,
+        "zone_name": "east-village",
+        "zone_display_name": "East Village",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 394,
+        "online_hours": 0.11,
+        "gps_points": 4
+      },
+      {
+        "zone_id": 369,
+        "zone_name": "midtown-man",
+        "zone_display_name": "Midtown",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 394,
+        "online_hours": 0.11,
+        "gps_points": 4
+      },
+      {
+        "zone_id": 1,
+        "zone_name": "times-square",
+        "zone_display_name": "Times Square",
+        "zone_type": "tourist",
+        "borough": null,
+        "online_seconds": 394,
+        "online_hours": 0.11,
+        "gps_points": 4
+      },
+      {
+        "zone_id": 50,
+        "zone_name": "cobble-hill",
+        "zone_display_name": "Cobble Hill",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 295,
+        "online_hours": 0.08,
+        "gps_points": 3
+      },
+      {
+        "zone_id": 14,
+        "zone_name": "sunset-park",
+        "zone_display_name": "Sunset Park",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 295,
+        "online_hours": 0.08,
+        "gps_points": 3
+      },
+      {
+        "zone_id": 457,
+        "zone_name": "stuyvesant-town-man",
+        "zone_display_name": "Stuyvesant Town",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 197,
+        "online_hours": 0.05,
+        "gps_points": 2
+      },
+      {
+        "zone_id": 459,
+        "zone_name": "sunset-park-bro",
+        "zone_display_name": "Sunset Park",
+        "zone_type": "residential",
+        "borough": null,
+        "online_seconds": 197,
+        "online_hours": 0.05,
+        "gps_points": 2
+      },
+      {
+        "zone_id": 281,
+        "zone_name": "flatiron-district-man",
+        "zone_display_name": "Flatiron District",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 197,
+        "online_hours": 0.05,
+        "gps_points": 2
+      },
+      {
+        "zone_id": 479,
+        "zone_name": "west-village-man",
+        "zone_display_name": "West Village",
+        "zone_type": "residential",
+        "borough": null,
+        "online_seconds": 197,
+        "online_hours": 0.05,
+        "gps_points": 2
+      },
+      {
+        "zone_id": 235,
+        "zone_name": "chinatown-man",
+        "zone_display_name": "Chinatown",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 197,
+        "online_hours": 0.05,
+        "gps_points": 2
+      },
+      {
+        "zone_id": 205,
+        "zone_name": "boerum-hill-bro",
+        "zone_display_name": "Boerum Hill",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 98,
+        "online_hours": 0.03,
+        "gps_points": 1
+      },
+      {
+        "zone_id": 299,
+        "zone_name": "gowanus",
+        "zone_display_name": "Gowanus",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 98,
+        "online_hours": 0.03,
+        "gps_points": 1
+      },
+      {
+        "zone_id": 246,
+        "zone_name": "columbia-st-bro",
+        "zone_display_name": "Columbia St",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 98,
+        "online_hours": 0.03,
+        "gps_points": 1
+      },
+      {
+        "zone_id": 268,
+        "zone_name": "east-village-man",
+        "zone_display_name": "East Village",
+        "zone_type": "residential",
+        "borough": null,
+        "online_seconds": 98,
+        "online_hours": 0.03,
+        "gps_points": 1
+      },
+      {
+        "zone_id": 44,
+        "zone_name": "civic-center",
+        "zone_display_name": "Civic Center",
+        "zone_type": "mixed",
+        "borough": null,
+        "online_seconds": 98,
+        "online_hours": 0.03,
+        "gps_points": 1
+      },
+      {
+        "zone_id": 153,
+        "zone_name": "theater-district",
+        "zone_display_name": "Theater District",
+        "zone_type": "tourist",
+        "borough": null,
+        "online_seconds": 98,
+        "online_hours": 0.03,
+        "gps_points": 1
+      }
+    ],
+    "assignments": [
+      {
+        "id": 2,
+        "terminal_id": "2355209",
+        "driver_id": 4,
+        "assigned_at": "2025-11-17T05:59:32.329+00:00",
+        "unassigned_at": null,
+        "assigned_by": "bb2020d1-3e5f-432d-b683-0e94300c9fd7",
+        "unassigned_by": null,
+        "notes": "",
+        "created_at": "2025-11-17T05:59:32.351871+00:00",
+        "terminals": {
+          "name": "Terminal1 ",
+          "group_name": "Ali Fares",
+          "terminalid": "2355209"
+        }
+      },
+      {
+        "id": 1,
+        "terminal_id": "2573828",
+        "driver_id": 4,
+        "assigned_at": "2025-11-17T05:31:14.664+00:00",
+        "unassigned_at": "2025-11-17T05:31:56.688+00:00",
+        "assigned_by": null,
+        "unassigned_by": null,
+        "notes": "",
+        "created_at": "2025-11-17T05:31:14.723244+00:00",
+        "terminals": {
+          "name": "Bag-2",
+          "group_name": "Ali Fares",
+          "terminalid": "2573828"
+        }
+      }
+    ]
+  }
+}
