@@ -81,6 +81,26 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+// Check if authenticated client is an admin
+router.get("/me/is-admin", async (req, res) => {
+  try {
+    // req.client is populated by authMiddleware (applied globally in server.js)
+    const isAdmin = req.client?.role === "admin";
+
+    return res.status(200).json({
+      isAdmin,
+      role: req.client?.role || "user",
+      clientId: req.client?.id,
+      clientName: req.client?.name,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Unexpected error",
+      details: err.message,
+    });
+  }
+});
+
 // Connect a client to a campaign
 router.post("/:clientId/campaigns", async (req, res) => {
   try {

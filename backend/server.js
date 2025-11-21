@@ -25,10 +25,10 @@ const PORT = 3000;
 
 // Public routes (no auth)
 app.use("/public", publicRoutes);
-app.use("/drivers", driversRoutes);
 
 // Protect all other routes with auth
 app.use(authMiddleware);
+app.use("/drivers", driversRoutes);
 app.use("/terminals", terminalRoutes);
 app.use("/content", contentRoutes);
 app.use("/gps", gpsRoutes);
