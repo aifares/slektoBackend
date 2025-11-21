@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "driver-analytics-collection",
+    "name": "Driver Analytics API",
+    "description": "Collection for driver analytics endpoints including zone time breakdown, assignments, and comprehensive analytics.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Get Driver Analytics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers/:driver_id/analytics?startDate=2025-11-01&endDate=2025-11-21",
+          "host": ["{{base_url}}"],
+          "path": ["drivers", ":driver_id", "analytics"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2025-11-01",
+              "description": "Start date (YYYY-MM-DD) - Required"
+            },
+            {
+              "key": "endDate",
+              "value": "2025-11-21",
+              "description": "End date (YYYY-MM-DD) - Required"
+            }
+          ],
+          "variable": [
+            {
+              "key": "driver_id",
+              "value": "4",
+              "description": "Driver ID"
+            }
+          ]
+        },
+        "description": "Get comprehensive analytics for a driver including:\n- Total online hours and seconds\n- Zones visited with time breakdown\n- Terminal assignments\n- GPS points per zone\n\nUses delta calculation between GPS points for accurate time tracking."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Driver Zone Time Breakdown",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers/:driver_id/zone-time?startDate=2025-11-01&endDate=2025-11-21",
+          "host": ["{{base_url}}"],
+          "path": ["drivers", ":driver_id", "zone-time"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2025-11-01",
+              "description": "Start date (YYYY-MM-DD) - Required"
+            },
+            {
+              "key": "endDate",
+              "value": "2025-11-21",
+              "description": "End date (YYYY-MM-DD) - Required"
+            }
+          ],
+          "variable": [
+            {
+              "key": "driver_id",
+              "value": "4",
+              "description": "Driver ID"
+            }
+          ]
+        },
+        "description": "Get detailed zone time breakdown for a driver:\n- Time spent in each zone (seconds, minutes, hours)\n- Zone details (name, type, borough)\n- Number of GPS points per zone\n- Sorted by time spent (descending)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Drivers Analytics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-21",
+          "host": ["{{base_url}}"],
+          "path": ["drivers", "analytics", "all"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2025-11-01",
+              "description": "Start date (YYYY-MM-DD) - Required"
+            },
+            {
+              "key": "endDate",
+              "value": "2025-11-21",
+              "description": "End date (YYYY-MM-DD) - Required"
+            }
+          ]
+        },
+        "description": "Get comparative analytics for all drivers:\n- Summary stats for each driver\n- Total online hours\n- Zones visited\n- Terminals used\n- Sorted by total online time"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Driver Current Assignment",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers/:driver_id/current-assignment",
+          "host": ["{{base_url}}"],
+          "path": ["drivers", ":driver_id", "current-assignment"],
+          "variable": [
+            {
+              "key": "driver_id",
+              "value": "4",
+              "description": "Driver ID"
+            }
+          ]
+        },
+        "description": "Get current terminal assignment(s) for a driver:\n- Active assignments only (unassigned_at is null)\n- Terminal details included\n- Assignment timestamp and metadata"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Driver Assignment History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers/:driver_id/assignments?startDate=2025-11-01&endDate=2025-11-21",
+          "host": ["{{base_url}}"],
+          "path": ["drivers", ":driver_id", "assignments"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2025-11-01",
+              "description": "Start date (YYYY-MM-DD) - Optional"
+            },
+            {
+              "key": "endDate",
+              "value": "2025-11-21",
+              "description": "End date (YYYY-MM-DD) - Optional"
+            }
+          ],
+          "variable": [
+            {
+              "key": "driver_id",
+              "value": "4",
+              "description": "Driver ID"
+            }
+          ]
+        },
+        "description": "Get assignment history for a driver:\n- All assignments within date range\n- Both active and completed assignments\n- Terminal details included\n- Sorted by assigned_at (descending)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Drivers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers?status=approved",
+          "host": ["{{base_url}}"],
+          "path": ["drivers"],
+          "query": [
+            {
+              "key": "status",
+              "value": "approved",
+              "description": "Filter by status: pending, approved, rejected, inactive"
+            }
+          ]
+        },
+        "description": "Get list of all drivers with optional status filter."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Driver by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/drivers/:driver_id",
+          "host": ["{{base_url}}"],
+          "path": ["drivers", ":driver_id"],
+          "variable": [
+            {
+              "key": "driver_id",
+              "value": "4",
+              "description": "Driver ID"
+            }
+          ]
+        },
+        "description": "Get detailed information for a specific driver."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "YOUR_ACCESS_TOKEN_HERE",
+      "type": "string"
+    }
+  ]
+}
