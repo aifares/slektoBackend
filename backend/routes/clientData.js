@@ -187,20 +187,6 @@ router.get("/", async (req, res) => {
       }
     }
 
-    // Compute campaign playback metrics per program via service
-    const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
-      campaignsWithActiveStatus || [],
-      programIds
-    );
-
-    // Attach isActive to metrics for each program
-    for (const [pid, metrics] of Object.entries(playbackMetricsByProgram)) {
-      const campaign = campaignsWithActiveStatus.find(
-        (c) => c.program_id === parseInt(pid)
-      );
-      if (campaign) metrics.isActive = campaign.isActive;
-    }
-
     if (programIds.length === 0) {
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
@@ -245,6 +231,32 @@ router.get("/", async (req, res) => {
     const terminalIds = Array.from(
       new Set((playingRows || []).map((p) => p.terminal_id))
     );
+
+    // Fetch ALL playing sessions for campaign metrics (not just current)
+    const { data: allPlayingSessions } = await supabase
+      .from("playing")
+      .select("terminal_id, program_id, started_at, ended_at, status")
+      .in("program_id", programIds);
+
+    // Get all terminal IDs that have ever played these programs
+    const allTerminalIds = Array.from(
+      new Set((allPlayingSessions || []).map((s) => s.terminal_id))
+    );
+
+    // Compute campaign playback metrics per program via service
+    const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
+      campaignsWithActiveStatus || [],
+      programIds,
+      allTerminalIds.length > 0 ? allTerminalIds : null
+    );
+
+    // Attach isActive to metrics for each program
+    for (const [pid, metrics] of Object.entries(playbackMetricsByProgram)) {
+      const campaign = campaignsWithActiveStatus.find(
+        (c) => c.program_id === parseInt(pid)
+      );
+      if (campaign) metrics.isActive = campaign.isActive;
+    }
 
     if (terminalIds.length === 0) {
       // Even if no terminals are currently playing, we still want to show heatmap data

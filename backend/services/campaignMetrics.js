@@ -16,9 +16,52 @@ function computeOverlapMinutes(
   return ms > 0 ? Math.floor(ms / 60000) : 0;
 }
 
-async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
+async function getCampaignZoneTime(programIds, terminalIds, startTime, endTime) {
+  try {
+    const { data, error } = await supabase.rpc("get_campaign_zone_time", {
+      p_program_ids: programIds,
+      p_terminal_ids: terminalIds,
+      p_start_time: startTime,
+      p_end_time: endTime,
+    });
+
+    if (error) {
+      console.warn(
+        `[Campaign Metrics] RPC function not found or error, using fallback:`,
+        error.message
+      );
+      return null; // Signal fallback needed
+    }
+
+    console.log(
+      `✅ [Campaign Metrics] Using zone-based calculation via RPC (${data?.length || 0} programs)`
+    );
+    
+    // Convert array result to map by program_id
+    const resultMap = {};
+    (data || []).forEach((row) => {
+      resultMap[row.program_id] = {
+        total_minutes_in_zones: parseFloat(row.total_minutes_in_zones) || 0,
+        total_hours_in_zones: parseFloat(row.total_hours_in_zones) || 0,
+        terminal_count: row.terminal_count || 0,
+      };
+    });
+    
+    return resultMap;
+  } catch (error) {
+    console.error(
+      `[Campaign Metrics] Error calling RPC:`,
+      error.message
+    );
+    return null; // Signal fallback needed
+  }
+}
+
+async function buildCampaignPlaybackMetrics(activeCampaigns, programIds, terminalIds = null) {
   const campaignsByProgram = new Map();
   let minCampaignStartIso = null;
+  let maxCampaignEndIso = null;
+  
   for (const c of activeCampaigns || []) {
     const list = campaignsByProgram.get(c.program_id) || [];
     list.push(c);
@@ -29,10 +72,24 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
     ) {
       minCampaignStartIso = c.start_at;
     }
+    if (
+      !maxCampaignEndIso ||
+      new Date(c.end_at) > new Date(maxCampaignEndIso)
+    ) {
+      maxCampaignEndIso = c.end_at;
+    }
   }
 
   const playbackMetricsByProgram = {};
   if (!minCampaignStartIso) return playbackMetricsByProgram;
+  
+  // Try to use zone-based calculation via RPC
+  const zoneTimeData = await getCampaignZoneTime(
+    programIds,
+    terminalIds,
+    minCampaignStartIso,
+    maxCampaignEndIso || new Date().toISOString()
+  );
 
   const nowForQuery = new Date().toISOString();
   const { data: allSessions, error: allSessionsError } = await supabase
@@ -58,8 +115,6 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
   }
 
   for (const [programId, campaigns] of campaignsByProgram.entries()) {
-    const sessions = sessionsByProgram.get(programId) || [];
-    
     // Each campaign is separate - select the campaign associated with the client
     // Priority: 1) Currently active campaign, 2) Most recent active campaign, 3) Earliest campaign
     const now = new Date();
@@ -104,13 +159,27 @@ async function buildCampaignPlaybackMetrics(activeCampaigns, programIds) {
     
     // Calculate total minutes played within this campaign's window
     let totalMinutesPlayed = 0;
-    for (const s of sessions) {
-      totalMinutesPlayed += computeOverlapMinutes(
-        s.started_at,
-        s.ended_at,
-        windowStart,
-        windowEnd
+    
+    // Use zone-based calculation if available (more accurate)
+    if (zoneTimeData && zoneTimeData[programId]) {
+      totalMinutesPlayed = zoneTimeData[programId].total_minutes_in_zones;
+      console.log(
+        `✅ [Campaign ${programId}] Using zone-based time: ${totalMinutesPlayed.toFixed(2)} minutes`
       );
+    } else {
+      // Fallback to playing table calculation (may include non-zone time)
+      console.log(
+        `⚠️  [Campaign ${programId}] Using fallback (playing table) - may include non-zone time`
+      );
+      const sessions = sessionsByProgram.get(programId) || [];
+      for (const s of sessions) {
+        totalMinutesPlayed += computeOverlapMinutes(
+          s.started_at,
+          s.ended_at,
+          windowStart,
+          windowEnd
+        );
+      }
     }
 
     const totalAllowedMinutes = Math.max(0, Math.floor(totalHoursBought * 60));

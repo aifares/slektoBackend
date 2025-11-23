@@ -97,10 +97,22 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // Fetch all playing sessions to get terminal IDs for campaign metrics
+    const { data: allPlayingSessions } = await supabase
+      .from("playing")
+      .select("terminal_id, program_id")
+      .in("program_id", programIds);
+
+    // Extract terminal IDs
+    const terminalIds = Array.from(
+      new Set((allPlayingSessions || []).map((s) => s.terminal_id))
+    );
+
     // Compute campaign playback metrics per program via service
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
       campaignsWithActiveStatus,
-      programIds
+      programIds,
+      terminalIds.length > 0 ? terminalIds : null
     );
 
     // Attach isActive to metrics for each program

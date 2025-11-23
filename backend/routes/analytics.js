@@ -118,11 +118,16 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // Extract terminal IDs from playing sessions
+    const terminalIds = Array.from(
+      new Set((allPlayingSessions || []).map((s) => s.terminal_id))
+    );
+
     // Compute campaign playback metrics per program via service
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
       campaignsWithActiveStatus,
       programIds,
-      allPlayingSessions || []
+      terminalIds.length > 0 ? terminalIds : null
     );
 
     // Add isActive flag to campaign metrics
@@ -155,10 +160,7 @@ router.get("/", async (req, res) => {
     }
 
     // 2) Use already-fetched playing sessions (allPlayingSessions from above)
-    // Get terminal IDs from all sessions (for zone coverage)
-    const terminalIds = Array.from(
-      new Set((allPlayingSessions || []).map((p) => p.terminal_id))
-    );
+    // terminalIds already extracted above for campaign metrics
 
     // Filter for currently playing terminals only (for display)
     const currentlyPlayingRows = (allPlayingSessions || []).filter(
