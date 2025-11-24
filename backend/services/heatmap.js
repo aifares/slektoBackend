@@ -63,12 +63,16 @@ async function buildGpsHeatmapData(
     return null;
   }
 
+  // Extract date-only parts for data_date filtering (which is a DATE column)
+  const startDateOnly = startDate.split("T")[0];
+  const endDateOnly = endDate.split("T")[0];
+
   const { data: gpsPoints, error: gpsError } = await supabase
     .from("terminal_gps_data")
     .select("terminal_id, longitude, latitude, inserted_at")
     .in("terminal_id", terminalIds)
-    .gte("data_date", startDate)
-    .lte("data_date", endDate)
+    .gte("data_date", startDateOnly)
+    .lte("data_date", endDateOnly)
     .order("inserted_at", { ascending: true })
     .limit(5000);
 
@@ -83,7 +87,7 @@ async function buildGpsHeatmapData(
         programsCount: 0,
         terminalsCount: 0,
         distanceMiles: 0,
-        dateRange: `${startDate} to ${endDate}`,
+        dateRange: `${startDateOnly} to ${endDateOnly}`,
       },
       programs: {},
     };
@@ -96,8 +100,8 @@ async function buildGpsHeatmapData(
     )
     .in("terminal_id", terminalIds)
     .in("program_id", targetProgramIds)
-    .gte("started_at", `${startDate}T00:00:00`)
-    .lte("started_at", `${endDate}T23:59:59`)
+    .gte("started_at", startDate) // Use full timestamp
+    .lte("started_at", endDate) // Use full timestamp
     .order("started_at", { ascending: true });
 
   if (playingError) {
@@ -280,7 +284,8 @@ async function buildGpsHeatmapData(
         percentage:
           totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.morningRush.durationMinutes / totalDuration) *
+                (data.timeDistribution.morningRush.durationMinutes /
+                  totalDuration) *
                   100 *
                   10
               ) / 10
@@ -310,7 +315,8 @@ async function buildGpsHeatmapData(
         percentage:
           totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.eveningRush.durationMinutes / totalDuration) *
+                (data.timeDistribution.eveningRush.durationMinutes /
+                  totalDuration) *
                   100 *
                   10
               ) / 10
@@ -325,7 +331,8 @@ async function buildGpsHeatmapData(
         percentage:
           totalDuration > 0
             ? Math.round(
-                (data.timeDistribution.evening.durationMinutes / totalDuration) *
+                (data.timeDistribution.evening.durationMinutes /
+                  totalDuration) *
                   100 *
                   10
               ) / 10
@@ -371,7 +378,7 @@ async function buildGpsHeatmapData(
       programsCount: processedPrograms.length,
       terminalsCount: terminalCount.size,
       distanceMiles: Math.round(totalDistanceMiles * 100) / 100,
-      dateRange: `${startDate} to ${endDate}`,
+      dateRange: `${startDateOnly} to ${endDateOnly}`,
     },
     programs: processedPrograms,
   };

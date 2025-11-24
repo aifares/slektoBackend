@@ -232,14 +232,70 @@ function processGpsPointsForProgram(gpsPoints, programSessions) {
 }
 
 /**
+ * Calculate Share of Voice for zone coverage
+ * Reuses the same logic as campaign metrics but using files table
+ */
+async function getShareOfVoiceForZones(programIds) {
+  try {
+    const { data, error } = await supabase
+      .from("files")
+      .select("program_id, client_id")
+      .in("program_id", programIds);
+
+    if (error) {
+      console.error(
+        "[Zone Coverage] Error querying share of voice:",
+        error.message
+      );
+      return {};
+    }
+
+    const shareByProgram = {};
+    const programGroups = {};
+
+    for (const row of data || []) {
+      const programId = row.program_id;
+      if (!programGroups[programId]) {
+        programGroups[programId] = [];
+      }
+      if (row.client_id) {
+        programGroups[programId].push(row.client_id);
+      }
+    }
+
+    for (const [programId, clientIds] of Object.entries(programGroups)) {
+      const totalCount = clientIds.length;
+      const clientCounts = {};
+
+      for (const clientId of clientIds) {
+        clientCounts[clientId] = (clientCounts[clientId] || 0) + 1;
+      }
+
+      shareByProgram[programId] = {};
+      for (const [clientId, count] of Object.entries(clientCounts)) {
+        shareByProgram[programId][clientId] = count / totalCount;
+      }
+    }
+
+    return shareByProgram;
+  } catch (error) {
+    console.error("[Zone Coverage] Error calculating share:", error.message);
+    return {};
+  }
+}
+
+/**
  * Build zone coverage metrics for a client's campaign, grouped by program
  * Shows which NYC neighborhoods were reached, time spent in each zone,
  * and high-value zone exposure per program
+ * Applies Share of Voice calculation for shared programs
  *
  * @param {Array<number>} programIds - Client's active program IDs
  * @param {Array<string>} terminalIds - Terminal IDs playing these programs
  * @param {string} startDate - Campaign start date (YYYY-MM-DD)
  * @param {string} endDate - Campaign end date (YYYY-MM-DD or ISO timestamp)
+ * @param {number} zoneLimit - Max zones to return per program
+ * @param {string} clientId - Client ID for share of voice calculation (optional)
  * @returns {Object} Zone coverage metrics keyed by program_id
  */
 async function buildZoneCoverageMetrics(
@@ -247,7 +303,8 @@ async function buildZoneCoverageMetrics(
   terminalIds,
   startDate,
   endDate,
-  zoneLimit = 50
+  zoneLimit = 50,
+  clientId = null
 ) {
   if (
     !programIds ||
@@ -258,14 +315,19 @@ async function buildZoneCoverageMetrics(
     return {};
   }
 
-  const endDateOnly = endDate.split("T")[0];
+  // Calculate Share of Voice if client_id provided
+  let shareOfVoice = {};
+  if (clientId) {
+    shareOfVoice = await getShareOfVoiceForZones(programIds);
+  }
 
   try {
+    // Pass full timestamps (not just dates) for precise campaign timing
     const { data, error } = await supabase.rpc("get_zone_coverage_topn", {
       p_program_ids: programIds,
       p_terminal_ids: terminalIds,
-      p_start_date: startDate,
-      p_end_date: endDateOnly,
+      p_start_date: startDate, // Now accepts full ISO timestamp
+      p_end_date: endDate,     // Now accepts full ISO timestamp
       p_zone_limit: zoneLimit,
     });
 
@@ -388,9 +450,58 @@ async function buildZoneCoverageMetrics(
       tzd.rush_hour.minutes += Number(row.rush_hour_minutes);
     }
 
-    // Finalize per-program calculations
+    // Apply Share of Voice before finalizing
     for (const programId of Object.keys(zoneCoverageByProgram)) {
       const entry = zoneCoverageByProgram[programId];
+
+      // Apply share percentage if available
+      let sharePercent = 1.0;
+      if (
+        clientId &&
+        shareOfVoice[programId] &&
+        shareOfVoice[programId][clientId]
+      ) {
+        sharePercent = shareOfVoice[programId][clientId];
+        console.log(
+          `📊 [Zone Coverage] Program ${programId}: Applying ${(
+            sharePercent * 100
+          ).toFixed(1)}% share for client ${clientId}`
+        );
+
+        // Apply share to all time-based metrics
+        entry.total_minutes_in_zones *= sharePercent;
+        entry.total_hours_in_zones *= sharePercent;
+        entry.high_value_exposure_score *= sharePercent;
+
+        // Apply to each zone
+        entry.zones.forEach((zone) => {
+          zone.minutes_spent *= sharePercent;
+          zone.hours_spent *= sharePercent;
+          zone.weighted_exposure *= sharePercent;
+
+          // Apply to time breakdown
+          Object.keys(zone.time_breakdown).forEach((period) => {
+            zone.time_breakdown[period].minutes *= sharePercent;
+            zone.time_breakdown[period].hours *= sharePercent;
+          });
+        });
+
+        // Apply to time zone distribution
+        Object.keys(entry.time_zone_distribution).forEach((period) => {
+          entry.time_zone_distribution[period].minutes *= sharePercent;
+          entry.time_zone_distribution[period].hours *= sharePercent;
+        });
+
+        // Apply to zone type distribution
+        Object.keys(entry.zone_type_distribution).forEach((zoneType) => {
+          entry.zone_type_distribution[zoneType].minutes *= sharePercent;
+          entry.zone_type_distribution[zoneType].hours *= sharePercent;
+        });
+
+        // Add share info to response
+        entry.share_of_voice_percent = Number((sharePercent * 100).toFixed(1));
+      }
+
       entry.total_zones_visited = entry.zones.length;
       entry.coverage_percentage =
         entry.total_zones_available > 0

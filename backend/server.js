@@ -15,6 +15,7 @@ const clientGpsRoutes = require("./routes/clientGps");
 const publicRoutes = require("./routes/public");
 const pollerRoutes = require("./routes/poller");
 const driversRoutes = require("./routes/drivers");
+const adminRoutes = require("./routes/admin");
 const { authMiddleware } = require("./middleware/auth");
 
 const app = express();
@@ -40,6 +41,7 @@ app.use("/programs", programsRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/client/gps", clientGpsRoutes);
 app.use("/poller", pollerRoutes);
+app.use("/admin", adminRoutes);
 
 const server = app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
@@ -52,6 +54,10 @@ const server = app.listen(PORT, () => {
   } else {
     console.log("⏸️ Auto-start poller disabled (AUTO_START_POLLER=false)");
   }
+
+  // Note: Media sync runs via cron (see cron/crontab)
+  // Schedule: Daily at 2:00 AM
+  console.log("ℹ️  Media sync scheduled via cron (daily at 2:00 AM)");
 });
 
 // Graceful shutdown

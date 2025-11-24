@@ -24,12 +24,9 @@ router.get("/", async (req, res) => {
     } = req.query;
 
     // Set default date range for GPS data
-    const endDate = gpsEndDate || new Date().toISOString().split("T")[0];
-    const startDate =
-      gpsStartDate ||
-      new Date(Date.now() - parseInt(gpsDays) * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+    // Use campaign start date if available, otherwise fall back to gpsDays
+    let endDate = gpsEndDate || new Date().toISOString();
+    let startDate = gpsStartDate;
 
     // 1) Resolve client's active programs (via campaigns in active window)
     const nowIso = new Date().toISOString();
@@ -64,6 +61,39 @@ router.get("/", async (req, res) => {
       campaignsWithActiveStatus?.length || 0
     );
     console.log("Program IDs from campaigns:", programIds);
+
+    // Calculate heatmap date range based on ACTIVE campaigns only
+    if (
+      !startDate &&
+      campaignsWithActiveStatus &&
+      campaignsWithActiveStatus.length > 0
+    ) {
+      // Only use campaigns that are currently active (isActive = true)
+      const activeCampaignsOnly = campaignsWithActiveStatus.filter(
+        (c) => c.isActive === true
+      );
+
+      if (activeCampaignsOnly.length > 0) {
+        const startDates = activeCampaignsOnly.map((c) => new Date(c.start_at));
+        const earliestStart = new Date(Math.min(...startDates));
+        startDate = earliestStart.toISOString();
+        console.log(
+          "Using active campaign start date for heatmap:",
+          startDate,
+          "(from",
+          activeCampaignsOnly.length,
+          "active campaigns)"
+        );
+      }
+    }
+
+    if (!startDate) {
+      // Fallback to gpsDays if no campaigns
+      startDate = new Date(
+        Date.now() - parseInt(gpsDays) * 24 * 60 * 60 * 1000
+      ).toISOString();
+      console.log("Using default GPS days for heatmap:", gpsDays, "days");
+    }
 
     // Fetch program details for active programs
     let programDetails = [];
@@ -247,7 +277,8 @@ router.get("/", async (req, res) => {
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
       campaignsWithActiveStatus || [],
       programIds,
-      allTerminalIds.length > 0 ? allTerminalIds : null
+      allTerminalIds.length > 0 ? allTerminalIds : null,
+      client.id // Pass client_id for Share of Voice
     );
 
     // Attach isActive to metrics for each program

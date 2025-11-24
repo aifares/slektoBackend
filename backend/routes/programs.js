@@ -112,7 +112,8 @@ router.get("/", async (req, res) => {
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
       campaignsWithActiveStatus,
       programIds,
-      terminalIds.length > 0 ? terminalIds : null
+      terminalIds.length > 0 ? terminalIds : null,
+      client.id // Pass client_id for Share of Voice
     );
 
     // Attach isActive to metrics for each program

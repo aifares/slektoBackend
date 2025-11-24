@@ -1,3 +1,56 @@
+const { supabase } = require("../config/supabase");
+
+/**
+ * Fetch media URLs from files table for a specific program and client
+ * @param {number} programId - Program ID
+ * @param {number} clientId - Client ID (optional - if provided, only returns client's media)
+ * @returns {Promise<string[]>} Array of source URLs
+ */
+async function fetchMediaUrlsByProgramAndClient(programId, clientId = null) {
+  try {
+    let query = supabase
+      .from("files")
+      .select("source_url, title, name")
+      .eq("program_id", programId)
+      .not("source_url", "is", null);
+
+    // Filter by client_id if provided
+    if (clientId) {
+      query = query.eq("client_id", clientId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(
+        `Error fetching media for program ${programId}:`,
+        error.message
+      );
+      return [];
+    }
+
+    const sourceUrls = (data || []).map((file) => file.source_url);
+
+    console.log(
+      `📸 Found ${sourceUrls.length} media URLs for program ${programId}${
+        clientId ? ` (client ${clientId})` : ""
+      }`
+    );
+
+    return sourceUrls;
+  } catch (error) {
+    console.error(
+      `Error fetching media for program ${programId}:`,
+      error.message
+    );
+    return [];
+  }
+}
+
+/**
+ * Legacy function - fetches from ColorLight API
+ * @deprecated Use fetchMediaUrlsByProgramAndClient instead
+ */
 async function fetchMediaByProgramId(programId) {
   try {
     const { AUTH_HEADER } = require("../utils");
@@ -64,4 +117,5 @@ async function fetchMediaByProgramId(programId) {
 
 module.exports = {
   fetchMediaByProgramId,
+  fetchMediaUrlsByProgramAndClient,
 };

@@ -1,12 +1,97 @@
 const { upsertTerminal } = require("./terminals");
 const { upsertProgram } = require("./programs");
-const { batchInsertFiles } = require("./files");
+// NOTE: No longer importing batchInsertFiles - poller only UPDATES files with program_id
+// Media sync is responsible for INSERTING files
 const { upsertPlaying } = require("./playing");
 const { insertDeviceStatus } = require("./device");
 const { insertConnectivity } = require("./connectivity");
 const { parseTerminalData } = require("./parser");
 const { supabase } = require("../config/supabase");
 const { determineOnlineStatus } = require("./statusTracking");
+
+/**
+ * NEW FLOW: Poller UPDATES files with program_id (doesn't insert)
+ *
+ * 1. Media sync (ColorLight) is the source of truth - INSERTS files with client_id, title, etc.
+ * 2. Poller (terminal data) - UPDATES files with program_id association
+ *
+ * This separation allows:
+ * - ColorLight media endpoint is single source of truth for files
+ * - Poller only associates files with programs (doesn't create files)
+ * - Clean separation: media metadata vs program associations
+ */
+async function updateFilesWithProgramId(files) {
+  if (!files || files.length === 0) {
+    return { updated: 0, notFound: 0 };
+  }
+
+  console.log(`🔄 Updating ${files.length} files with program_id...`);
+
+  let updatedCount = 0;
+  let notFoundCount = 0;
+
+  for (const file of files) {
+    try {
+      const { data: existing, error: fetchError } = await supabase
+        .from("files")
+        .select("id, program_id")
+        .eq("name", file.name)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.warn(
+          `⚠️ Error fetching file ${file.name}:`,
+          fetchError.message
+        );
+        continue;
+      }
+
+      if (!existing) {
+        // File doesn't exist yet - media sync will add it later
+        console.log(
+          `ℹ️ File ${file.name} not in DB yet (will be added by media sync)`
+        );
+        notFoundCount++;
+        continue;
+      }
+
+      // Only update if program_id changed or is null
+      if (existing.program_id !== file.program_id) {
+        const { error: updateError } = await supabase
+          .from("files")
+          .update({
+            program_id: file.program_id,
+            size: file.size,
+            downloaded: file.downloaded,
+            type: file.type,
+          })
+          .eq("id", existing.id);
+
+        if (updateError) {
+          console.warn(
+            `⚠️ Error updating file ${file.name}:`,
+            updateError.message
+          );
+        } else {
+          console.log(
+            `✅ Updated ${file.name} with program_id ${file.program_id}`
+          );
+          updatedCount++;
+        }
+      } else {
+        // Already has correct program_id
+        updatedCount++;
+      }
+    } catch (error) {
+      console.error(`❌ Error processing file ${file.name}:`, error.message);
+    }
+  }
+
+  console.log(
+    `📊 Files: ${updatedCount} updated, ${notFoundCount} not found (waiting for media sync)`
+  );
+  return { updated: updatedCount, notFound: notFoundCount };
+}
 
 async function shouldSkipRegistration(parsedData) {
   console.log(
@@ -73,10 +158,11 @@ async function registerTerminalData(
     // Keeping this for backward compatibility but programs won't be processed here
     const programs = [];
 
-    let filesInserted = 0;
+    let filesUpdated = 0;
     if (parsedData.files.length > 0) {
-      await batchInsertFiles(parsedData.files);
-      filesInserted = parsedData.files.length;
+      // Update files with program_id (files are inserted by media sync)
+      const result = await updateFilesWithProgramId(parsedData.files);
+      filesUpdated = result.updated;
     }
 
     console.log("isOnline", isOnline);
@@ -103,7 +189,7 @@ async function registerTerminalData(
       playing,
       deviceStatus,
       connectivity,
-      filesCount: filesInserted,
+      filesCount: filesUpdated,
     };
   } catch (error) {
     throw new Error(`Failed to register terminal data: ${error.message}`);

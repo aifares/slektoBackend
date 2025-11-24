@@ -8,7 +8,7 @@ const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
 
 // Simple in-memory cache to prevent duplicate expensive queries (disabled via flag)
 // Key format: "clientId:zoneDays:zoneStartDate:zoneEndDate"
-const ENABLE_CACHE = true;
+const ENABLE_CACHE = false; // Disabled for real-time analytics
 const analyticsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -127,7 +127,8 @@ router.get("/", async (req, res) => {
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
       campaignsWithActiveStatus,
       programIds,
-      terminalIds.length > 0 ? terminalIds : null
+      terminalIds.length > 0 ? terminalIds : null,
+      client.id // Pass client_id for Share of Voice
     );
 
     // Add isActive flag to campaign metrics
@@ -274,17 +275,17 @@ router.get("/", async (req, res) => {
       startDate.setDate(startDate.getDate() - parseInt(zoneDays));
       zoneStartDateFinal = startDate.toISOString().split("T")[0];
     } else {
-      // Default: use campaign start date (full campaign history)
+      // Default: use campaign start timestamp (full campaign history from exact start time)
       if (campaignsWithActiveStatus && campaignsWithActiveStatus.length > 0) {
         const startDates = campaignsWithActiveStatus.map(
           (c) => new Date(c.start_at)
         );
         const earliestStart = new Date(Math.min(...startDates));
-        zoneStartDateFinal = earliestStart.toISOString().split("T")[0];
+        zoneStartDateFinal = earliestStart.toISOString(); // Use full timestamp, not just date
       }
     }
 
-    // Build zone coverage metrics
+    // Build zone coverage metrics with Share of Voice
     let zoneCoverage = {};
 
     if (zoneStartDateFinal && terminalIdsForCoverage.length > 0) {
@@ -294,7 +295,8 @@ router.get("/", async (req, res) => {
           terminalIdsForCoverage,
           zoneStartDateFinal,
           zoneEndDateFinal,
-          zoneLimit
+          zoneLimit,
+          client.id // Pass client_id for share of voice calculation
         );
 
         // Add isActive flag to zone coverage for each program

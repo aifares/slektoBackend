@@ -1,2 +1,5 @@
 # Run every minute to poll live GPS data
 * * * * * cd /usr/src/app && node backend/jobs/fetch_gps_live.js
+
+# Run daily at 2:00 AM to sync media metadata from ColorLight
+0 2 * * * cd /usr/src/app && node backend/jobs/sync_media.js
