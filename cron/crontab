@@ -3,3 +3,6 @@
 
 # Run daily at 2:00 AM to sync media metadata from ColorLight
 0 2 * * * cd /usr/src/app && node backend/jobs/sync_media.js
+
+# Run daily at 2:05 AM to create Share of Voice snapshots (after media sync)
+5 2 * * * cd /usr/src/app && node backend/jobs/snapshot_share_of_voice.js

@@ -1,5 +1,9 @@
 const { supabase } = require("../config/supabase");
 const { fetchMediaUrlsByProgramAndClient } = require("./media");
+const {
+  getTimeWeightedShare,
+  getCurrentShare,
+} = require("./shareOfVoiceSnapshots");
 
 function computeOverlapMinutes(
   sessionStartIso,
@@ -26,11 +30,12 @@ function computeOverlapMinutes(
  */
 async function getShareOfVoice(programIds) {
   try {
-    // Query to get file count per client per program
+    // Query to get file count per client per program (only active files)
     const { data, error } = await supabase
       .from("files")
       .select("program_id, client_id")
-      .in("program_id", programIds);
+      .in("program_id", programIds)
+      .is("removed_at", null); // Only count files that haven't been removed
 
     if (error) {
       console.error("[Share of Voice] Error querying files:", error.message);
@@ -75,9 +80,9 @@ async function getShareOfVoice(programIds) {
     }
 
     console.log(
-      `✅ [Share of Voice] Calculated for ${
+      `✅ [Share of Voice] Calculated current share for ${
         Object.keys(shareByProgram).length
-      } programs`
+      } programs (real-time fallback)`
     );
     return shareByProgram;
   } catch (error) {

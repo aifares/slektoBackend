@@ -1,0 +1,296 @@
+{
+  "info": {
+    "name": "Slekto Admin API",
+    "description": "Admin endpoints for campaign management, media sync, and status monitoring",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Campaign Management",
+      "item": [
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": 5,\n  \"program_id\": 2620340,\n  \"hours_bought\": 0.0833,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/campaigns/create",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "campaigns", "create"]
+            },
+            "description": "Create a new campaign. hours_bought is in hours (0.0833 = 5 minutes).\nstart_at and end_at are optional (defaults to NOW and NOW+7days)"
+          }
+        },
+        {
+          "name": "Get Campaign Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/campaigns/status/:campaignId",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "campaigns", "status", ":campaignId"],
+              "variable": [
+                {
+                  "key": "campaignId",
+                  "value": "6"
+                }
+              ]
+            },
+            "description": "Get detailed campaign status including completion %, share of voice, and file counts"
+          }
+        },
+        {
+          "name": "List All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/campaigns/list?status=active&limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "campaigns", "list"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, completed, paused, cancelled, planned)"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "List campaigns with pagination. Remove status param to see all campaigns."
+          }
+        },
+        {
+          "name": "Update Campaign Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/campaigns/:campaignId/status",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "campaigns", ":campaignId", "status"],
+              "variable": [
+                {
+                  "key": "campaignId",
+                  "value": "6"
+                }
+              ]
+            },
+            "description": "Update campaign status. Valid: active, completed, paused, cancelled, planned"
+          }
+        },
+        {
+          "name": "Assign Client to Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/campaigns/:campaignId/assign-client",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "campaigns", ":campaignId", "assign-client"],
+              "variable": [
+                {
+                  "key": "campaignId",
+                  "value": "6"
+                }
+              ]
+            },
+            "description": "Reassign a campaign to a different client"
+          }
+        },
+        {
+          "name": "Check Campaign Completions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/campaigns/check-completions",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "campaigns", "check-completions"]
+            },
+            "description": "Manually trigger completion check for all campaigns. Auto-completes any at 100%+"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Media & Snapshots",
+      "item": [
+        {
+          "name": "Sync Media",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/media/sync",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "media", "sync"]
+            },
+            "description": "Manually trigger media sync from ColorLight (fetches media metadata, client IDs, titles)"
+          }
+        },
+        {
+          "name": "Create Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2025-11-25\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/snapshots/create",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "snapshots", "create"]
+            },
+            "description": "Manually create Share of Voice snapshot. Date is optional (defaults to yesterday)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reference Data",
+      "item": [
+        {
+          "name": "List Programs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/programs/list",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "programs", "list"]
+            },
+            "description": "List all programs with file counts and client distribution. Use to find program_id for campaign creation."
+          }
+        },
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/clients/list",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "clients", "list"]
+            },
+            "description": "List all clients. Use to get client_id for campaign creation."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your_token_here",
+      "type": "string"
+    }
+  ]
+}
+

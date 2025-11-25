@@ -14,6 +14,10 @@ async function fetchMediaUrlsByProgramAndClient(programId, clientId = null) {
       .eq("program_id", programId)
       .not("source_url", "is", null);
 
+    // Note: We DON'T filter by removed_at here
+    // This allows clients to see their historical media even after campaign completes
+    // For active share calculation, the share services filter by removed_at
+
     // Filter by client_id if provided
     if (clientId) {
       query = query.eq("client_id", clientId);

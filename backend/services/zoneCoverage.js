@@ -4,6 +4,7 @@ const {
   isRushHour,
   splitMinutesAcrossPeriods,
 } = require("../utils/timePeriod");
+const { getTimeWeightedShare, getCurrentShare } = require("./shareOfVoiceSnapshots");
 
 /**
  * Fetch all GPS points with pagination (handles >1000 records)
@@ -240,7 +241,8 @@ async function getShareOfVoiceForZones(programIds) {
     const { data, error } = await supabase
       .from("files")
       .select("program_id, client_id")
-      .in("program_id", programIds);
+      .in("program_id", programIds)
+      .is("removed_at", null); // Only count files that haven't been removed
 
     if (error) {
       console.error(

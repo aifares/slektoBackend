@@ -81,6 +81,26 @@ async function fetchLiveGpsData() {
       `🏁 Live GPS polling completed. Terminals: ${terminalsProcessed}, Points: ${totalPointsStored}, Errors: ${errors}`
     );
 
+    // Check for completed campaigns (runs every minute with GPS polling)
+    try {
+      const {
+        monitorAndAutoComplete,
+      } = require("../services/campaignCompletion");
+      const completionResult = await monitorAndAutoComplete();
+
+      if (completionResult.campaigns_completed > 0) {
+        console.log(
+          `🎉 Auto-completed ${completionResult.campaigns_completed} campaign(s)`
+        );
+      }
+    } catch (completionError) {
+      console.warn(
+        "⚠️  Campaign completion check failed:",
+        completionError.message
+      );
+      // Don't fail the entire job if completion check fails
+    }
+
     return {
       success: errors === 0,
       terminalsProcessed,

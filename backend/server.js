@@ -16,6 +16,7 @@ const publicRoutes = require("./routes/public");
 const pollerRoutes = require("./routes/poller");
 const driversRoutes = require("./routes/drivers");
 const adminRoutes = require("./routes/admin");
+const adminCampaignsRoutes = require("./routes/adminCampaigns");
 const { authMiddleware } = require("./middleware/auth");
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/analytics", analyticsRoutes);
 app.use("/client/gps", clientGpsRoutes);
 app.use("/poller", pollerRoutes);
 app.use("/admin", adminRoutes);
+app.use("/admin", adminCampaignsRoutes); // Campaign management endpoints
 
 const server = app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
