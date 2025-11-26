@@ -22,9 +22,12 @@ const {
  *   "program_id": 2620340,
  *   "hours_bought": 0.0833,  // 5 minutes
  *   "start_at": "2025-11-25T20:00:00Z",  // Optional, defaults to NOW
- *   "end_at": "2025-12-02T20:00:00Z",    // Optional, defaults to 1 week from start
+ *   "end_at": "2025-12-02T20:00:00Z",    // Optional, calculated from start_at + hours_bought if not provided
  *   "status": "active"  // Optional, defaults to "active"
  * }
+ * 
+ * Note: If end_at is not provided, it will be calculated as start_at + hours_bought hours.
+ *       If neither end_at nor hours_bought is provided, defaults to 1 week from start.
  */
 router.post("/campaigns/create", async (req, res) => {
   try {
@@ -41,8 +44,22 @@ router.post("/campaigns/create", async (req, res) => {
 
     // Set defaults
     const startTime = start_at || new Date().toISOString();
-    const endTime =
-      end_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    
+    // Calculate end_at based on start_at and hours_bought if end_at is not provided
+    let endTime;
+    if (end_at) {
+      // Use explicitly provided end_at
+      endTime = end_at;
+    } else if (hours_bought) {
+      // Calculate end_at by adding hours_bought to start_at
+      const startDate = new Date(startTime);
+      const endDate = new Date(startDate.getTime() + hours_bought * 60 * 60 * 1000);
+      endTime = endDate.toISOString();
+    } else {
+      // Default to 7 days from start if neither end_at nor hours_bought provided
+      endTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+    
     const campaignStatus = status || "active";
 
     // Verify client exists

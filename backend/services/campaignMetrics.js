@@ -325,4 +325,9 @@ async function buildCampaignPlaybackMetrics(
   return playbackMetricsByProgram;
 }
 
-module.exports = { buildCampaignPlaybackMetrics };
+module.exports = {
+  buildCampaignPlaybackMetrics,
+  getShareOfVoice,
+  getCampaignZoneTime,
+  computeOverlapMinutes,
+};

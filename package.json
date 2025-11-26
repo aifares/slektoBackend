@@ -17,6 +17,7 @@
     "body-parser": "^2.2.0",
     "compression": "^1.7.4",
     "express": "^5.1.0",
+    "fly": "^4.6.16",
     "nodemon": "^3.1.10"
   }
 }
