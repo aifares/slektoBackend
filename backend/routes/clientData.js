@@ -24,7 +24,7 @@ router.get("/", async (req, res) => {
     } = req.query;
 
     // Set default date range for GPS data
-    // Use campaign start date if available, otherwise fall back to gpsDays
+    // Default to past 7 days including today when no startDate is provided
     let endDate = gpsEndDate || new Date().toISOString();
     let startDate = gpsStartDate;
 
@@ -62,37 +62,48 @@ router.get("/", async (req, res) => {
     );
     console.log("Program IDs from campaigns:", programIds);
 
-    // Calculate heatmap date range based on ACTIVE campaigns only
-    if (
-      !startDate &&
-      campaignsWithActiveStatus &&
-      campaignsWithActiveStatus.length > 0
-    ) {
-      // Only use campaigns that are currently active (isActive = true)
-      const activeCampaignsOnly = campaignsWithActiveStatus.filter(
-        (c) => c.isActive === true
-      );
-
-      if (activeCampaignsOnly.length > 0) {
-        const startDates = activeCampaignsOnly.map((c) => new Date(c.start_at));
-        const earliestStart = new Date(Math.min(...startDates));
-        startDate = earliestStart.toISOString();
-        console.log(
-          "Using active campaign start date for heatmap:",
-          startDate,
-          "(from",
-          activeCampaignsOnly.length,
-          "active campaigns)"
-        );
-      }
-    }
-
+    // Calculate default start date: past 7 days including today
     if (!startDate) {
-      // Fallback to gpsDays if no campaigns
-      startDate = new Date(
-        Date.now() - parseInt(gpsDays) * 24 * 60 * 60 * 1000
-      ).toISOString();
-      console.log("Using default GPS days for heatmap:", gpsDays, "days");
+      // Default to gpsDays (7 days) ago, including today
+      const defaultStartDate = new Date(
+        Date.now() - (parseInt(gpsDays) - 1) * 24 * 60 * 60 * 1000
+      );
+      // Set to start of day to include full day
+      defaultStartDate.setUTCHours(0, 0, 0, 0);
+      startDate = defaultStartDate.toISOString();
+      console.log("Using default GPS days for heatmap:", gpsDays, "days (including today)");
+      
+      // If there are active campaigns, use the earlier of: campaign start date or default 7 days
+      if (
+        campaignsWithActiveStatus &&
+        campaignsWithActiveStatus.length > 0
+      ) {
+        // Only use campaigns that are currently active (isActive = true)
+        const activeCampaignsOnly = campaignsWithActiveStatus.filter(
+          (c) => c.isActive === true
+        );
+
+        if (activeCampaignsOnly.length > 0) {
+          const startDates = activeCampaignsOnly.map((c) => new Date(c.start_at));
+          const earliestStart = new Date(Math.min(...startDates));
+          // Use the earlier of: campaign start or default 7 days ago
+          if (earliestStart < defaultStartDate) {
+            startDate = earliestStart.toISOString();
+            console.log(
+              "Using campaign start date (earlier than default):",
+              startDate,
+              "(from",
+              activeCampaignsOnly.length,
+              "active campaigns)"
+            );
+          } else {
+            console.log(
+              "Campaign start date is within default range, using default:",
+              startDate
+            );
+          }
+        }
+      }
     }
 
     // Fetch program details for active programs
