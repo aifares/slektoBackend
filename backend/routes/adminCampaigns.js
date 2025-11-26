@@ -182,6 +182,13 @@ router.get("/campaigns/status/:campaignId", async (req, res) => {
       .eq("id", campaign.client_id)
       .single();
 
+    // Get program name
+    const { data: program } = await supabase
+      .from("programs")
+      .select("name")
+      .eq("id", campaign.program_id)
+      .single();
+
     // Calculate current completion percentage
     const {
       buildCampaignPlaybackMetrics,
@@ -234,6 +241,7 @@ router.get("/campaigns/status/:campaignId", async (req, res) => {
         client_id: campaign.client_id,
         client_name: client?.name || "Unknown",
         program_id: campaign.program_id,
+        program_name: program?.name || null,
         status: campaign.status,
         start_at: campaign.start_at,
         end_at: campaign.end_at,
@@ -274,7 +282,7 @@ router.get("/campaigns/list", async (req, res) => {
 
     let query = supabase
       .from("campaign")
-      .select("*, client(name)", { count: "exact" })
+      .select("*, client(name), programs!program_id(name)", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
@@ -611,8 +619,30 @@ router.get("/programs/list", async (req, res) => {
       }
     });
 
+    // Extract unique program IDs
+    const programIds = Object.keys(programsMap).map((id) => parseInt(id));
+
+    // Fetch program names from programs table
+    const { data: programsData, error: programsError } = await supabase
+      .from("programs")
+      .select("id, name")
+      .in("id", programIds);
+
+    if (programsError) {
+      console.warn("Failed to fetch program names:", programsError.message);
+    }
+
+    // Create a map of program_id -> program_name
+    const programNamesMap = {};
+    if (programsData) {
+      programsData.forEach((p) => {
+        programNamesMap[p.id] = p.name;
+      });
+    }
+
     const programs = Object.values(programsMap).map((p) => ({
       program_id: p.program_id,
+      program_name: programNamesMap[p.program_id] || null,
       total_files: p.total_files,
       active_files: p.active_files,
       removed_files: p.total_files - p.active_files,
