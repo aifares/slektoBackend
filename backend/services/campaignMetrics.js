@@ -142,87 +142,42 @@ async function buildCampaignPlaybackMetrics(
   terminalIds = null,
   clientId = null
 ) {
-  const campaignsByProgram = new Map();
-  const campaignsByClient = new Map(); // Track which client owns each campaign
+  const playbackMetricsByCampaign = {};
+  const playbackMetricsByProgram = {}; // Keep for backward compatibility with other callers
 
-  for (const c of activeCampaigns || []) {
-    const list = campaignsByProgram.get(c.program_id) || [];
-    list.push(c);
-    campaignsByProgram.set(c.program_id, list);
-
-    // Track campaign by client_id for share of voice lookup
-    if (c.client_id) {
-      campaignsByClient.set(c.program_id + "_" + c.client_id, c);
-    }
+  if (!activeCampaigns || activeCampaigns.length === 0) {
+    return playbackMetricsByProgram;
   }
-
-  const playbackMetricsByProgram = {};
-  if (campaignsByProgram.size === 0) return playbackMetricsByProgram;
 
   // Calculate Share of Voice for all programs (single batch query)
   const shareOfVoice = await getShareOfVoice(programIds);
+  const now = new Date();
 
-  for (const [programId, campaigns] of campaignsByProgram.entries()) {
-    // Each campaign is separate - select the campaign associated with the client
-    // Priority: 1) Currently active campaign, 2) Most recent active campaign, 3) Earliest campaign
-    const now = new Date();
-    let selectedCampaign = null;
-
-    // First, try to find an active campaign (isActive = true)
-    const activeCampaign = campaigns.find((c) => c.isActive);
-    if (activeCampaign) {
-      selectedCampaign = activeCampaign;
-    } else {
-      // No active campaign - find the most recent one that has started (or earliest if none started)
-      const startedCampaigns = campaigns.filter(
-        (c) => new Date(c.start_at) <= now
-      );
-
-      if (startedCampaigns.length > 0) {
-        // Use the most recent start date among started campaigns
-        selectedCampaign = startedCampaigns.reduce((latest, current) => {
-          return new Date(current.start_at) > new Date(latest.start_at)
-            ? current
-            : latest;
-        });
-      } else {
-        // None have started yet - use earliest start date
-        selectedCampaign = campaigns.reduce((earliest, current) => {
-          return new Date(current.start_at) < new Date(earliest.start_at)
-            ? current
-            : earliest;
-        });
-      }
-    }
-
-    // Always create metrics for campaigns, even if no playback data exists
-    if (!selectedCampaign) {
-      // If no campaign selected, use the first one to ensure we return campaign info
-      selectedCampaign = campaigns[0];
-      if (!selectedCampaign) continue;
-    }
-
-    const windowStart = selectedCampaign.start_at;
+  // Process each campaign individually to calculate metrics per campaign
+  for (const campaign of activeCampaigns) {
+    const campaignId = campaign.id;
+    const programId = campaign.program_id;
+    const windowStart = campaign.start_at;
 
     // Calculate effective end date:
     // - If campaign is completed: use completed_at
     // - If campaign is active (completed_at is null): use now
     let windowEnd;
-    if (selectedCampaign.completed_at) {
+    if (campaign.completed_at) {
       // Campaign is completed - only count time up to completion
-      windowEnd = selectedCampaign.completed_at;
+      windowEnd = campaign.completed_at;
       console.log(
-        `📅 [Campaign ${programId}] Using completed_at as end date: ${windowEnd}`
+        `📅 [Campaign ${campaignId}] Using completed_at as end date: ${windowEnd}`
       );
     } else {
       // Campaign is active (completed_at is null) - use now
       windowEnd = now.toISOString();
       console.log(
-        `📅 [Campaign ${programId}] Campaign is active, using now as end date: ${windowEnd}`
+        `📅 [Campaign ${campaignId}] Campaign is active, using now as end date: ${windowEnd}`
       );
     }
 
-    const totalHoursBought = Number(selectedCampaign.hours_bought || 0);
+    const totalHoursBought = Number(campaign.hours_bought || 0);
 
     // Calculate total minutes played within this campaign's window
     let totalMinutesPlayed = 0;
@@ -242,14 +197,14 @@ async function buildCampaignPlaybackMetrics(
       if (zoneTimeData && zoneTimeData[programId]) {
         totalMinutesPlayed = zoneTimeData[programId].total_minutes_in_zones;
         console.log(
-          `✅ [Campaign ${programId}] Using zone-based time: ${totalMinutesPlayed.toFixed(
+          `✅ [Campaign ${campaignId}] Using zone-based time: ${totalMinutesPlayed.toFixed(
             2
           )} minutes (from ${windowStart} to ${windowEnd})`
         );
       } else {
         // Fallback to playing table calculation (may include non-zone time)
         console.log(
-          `⚠️  [Campaign ${programId}] Using fallback (playing table) - may include non-zone time`
+          `⚠️  [Campaign ${campaignId}] Using fallback (playing table) - may include non-zone time`
         );
 
         // Fetch sessions for this specific campaign window
@@ -263,7 +218,7 @@ async function buildCampaignPlaybackMetrics(
 
         if (sessionsError) {
           console.warn(
-            `Failed to fetch sessions for campaign ${programId}:`,
+            `Failed to fetch sessions for campaign ${campaignId}:`,
             sessionsError.message
           );
         } else {
@@ -280,13 +235,13 @@ async function buildCampaignPlaybackMetrics(
     } else {
       // No terminals have played yet - this is fine, we'll return campaign info with zero playback
       console.log(
-        `ℹ️  [Campaign ${programId}] No terminals have played yet - returning campaign info with zero playback`
+        `ℹ️  [Campaign ${campaignId}] No terminals have played yet - returning campaign info with zero playback`
       );
     }
 
     // Apply Share of Voice if available
-    // Use the clientId parameter (from auth) or fall back to selectedCampaign.client_id
-    const effectiveClientId = clientId || selectedCampaign.client_id;
+    // Use the clientId parameter (from auth) or fall back to campaign.client_id
+    const effectiveClientId = clientId || campaign.client_id;
 
     if (shareOfVoice[programId] && effectiveClientId) {
       const clientShare = shareOfVoice[programId][effectiveClientId];
@@ -294,7 +249,7 @@ async function buildCampaignPlaybackMetrics(
         sharePercent = clientShare.share_percent;
         totalMinutesPlayed = totalMinutesPlayed * sharePercent;
         console.log(
-          `📊 [Campaign ${programId}] Share of Voice: ${(
+          `📊 [Campaign ${campaignId}] Share of Voice: ${(
             sharePercent * 100
           ).toFixed(1)}% ` +
             `(${clientShare.file_count}/${clientShare.total_files} files)`
@@ -304,13 +259,13 @@ async function buildCampaignPlaybackMetrics(
         );
       } else {
         console.warn(
-          `⚠️  [Campaign ${programId}] No share data found for client ${effectiveClientId}. ` +
+          `⚠️  [Campaign ${campaignId}] No share data found for client ${effectiveClientId}. ` +
             `Using 100% (may be incorrect if program is shared)`
         );
       }
     } else {
       console.log(
-        `ℹ️  [Campaign ${programId}] No share of voice calculation (single client or no client_id)`
+        `ℹ️  [Campaign ${campaignId}] No share of voice calculation (single client or no client_id)`
       );
     }
 
@@ -323,10 +278,10 @@ async function buildCampaignPlaybackMetrics(
           )
         : 0;
 
-    // Get campaign start and end times for this program (selected campaign)
-    const campaignStartTime = selectedCampaign.start_at;
-    const campaignEndTime = selectedCampaign.end_at;
-    const campaignCompletedAt = selectedCampaign.completed_at || null;
+    // Get campaign start and end times
+    const campaignStartTime = campaign.start_at;
+    const campaignEndTime = campaign.end_at;
+    const campaignCompletedAt = campaign.completed_at || null;
 
     // Fetch media URLs for this program and client
     const mediaUrls = await fetchMediaUrlsByProgramAndClient(
@@ -334,7 +289,7 @@ async function buildCampaignPlaybackMetrics(
       effectiveClientId
     );
 
-    playbackMetricsByProgram[programId] = {
+    const campaignMetrics = {
       minutes_played_since_campaign_start: totalMinutesPlayed,
       hours_played_since_campaign_start: Number(
         (totalMinutesPlayed / 60).toFixed(2)
@@ -349,7 +304,17 @@ async function buildCampaignPlaybackMetrics(
         sharePercent > 0 ? Number((sharePercent * 100).toFixed(1)) : null,
       media_urls: mediaUrls, // Array of image URLs for this client's campaign
     };
+
+    // Store by campaign_id for accurate per-campaign lookups
+    playbackMetricsByCampaign[campaignId] = campaignMetrics;
+
+    // Also store by program_id for backward compatibility (use the last campaign for that program)
+    // This maintains compatibility with other code that looks up by program_id
+    playbackMetricsByProgram[programId] = campaignMetrics;
   }
+
+  // Attach campaign-level metrics to the return object for new callers
+  playbackMetricsByProgram._byCampaign = playbackMetricsByCampaign;
 
   return playbackMetricsByProgram;
 }

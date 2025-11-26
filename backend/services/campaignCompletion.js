@@ -58,18 +58,30 @@ async function checkForCompletedCampaigns() {
     // Find campaigns at 100%+
     const completedCampaigns = [];
 
-    for (const campaign of campaigns) {
-      const programMetrics = metrics[campaign.program_id];
+    // Use campaign-level metrics if available (for accurate per-campaign calculations)
+    const campaignMetrics = metrics._byCampaign || {};
 
-      if (programMetrics && programMetrics.campaign_completion_percent >= 100) {
+    for (const campaign of campaigns) {
+      // Try campaign-level metrics first (more accurate for multiple campaigns per program)
+      let campaignMetricsData = campaignMetrics[campaign.id];
+
+      // Fallback to program-level metrics for backward compatibility
+      if (!campaignMetricsData) {
+        campaignMetricsData = metrics[campaign.program_id];
+      }
+
+      if (
+        campaignMetricsData &&
+        campaignMetricsData.campaign_completion_percent >= 100
+      ) {
         completedCampaigns.push({
           ...campaign,
-          completion_percent: programMetrics.campaign_completion_percent,
-          hours_played: programMetrics.hours_played_since_campaign_start,
+          completion_percent: campaignMetricsData.campaign_completion_percent,
+          hours_played: campaignMetricsData.hours_played_since_campaign_start,
         });
 
         console.log(
-          `🎯 Campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}) is complete: ${programMetrics.campaign_completion_percent}%`
+          `🎯 Campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}) is complete: ${campaignMetricsData.campaign_completion_percent}% (hours_bought: ${campaign.hours_bought}, hours_played: ${campaignMetricsData.hours_played_since_campaign_start})`
         );
       }
     }

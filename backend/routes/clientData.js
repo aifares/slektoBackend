@@ -111,22 +111,16 @@ router.get("/", async (req, res) => {
             (c) => new Date(c.start_at)
           );
           const earliestStart = new Date(Math.min(...startDates));
-          // Use the earlier of: campaign start or default 7 days ago
-          if (earliestStart < defaultStartDate) {
-            startDate = earliestStart.toISOString();
-            console.log(
-              "Using campaign start date (earlier than default):",
-              startDate,
-              "(from",
-              activeCampaignsOnly.length,
-              "active campaigns)"
-            );
-          } else {
-            console.log(
-              "Campaign start date is within default range, using default:",
-              startDate
-            );
-          }
+          // Always use campaign start date if it exists (even if it's today or recent)
+          // This ensures we only show GPS points from campaign start onwards
+          startDate = earliestStart.toISOString();
+          console.log(
+            "Using campaign start date:",
+            startDate,
+            "(from",
+            activeCampaignsOnly.length,
+            "active campaigns)"
+          );
         }
       }
     }
@@ -344,13 +338,22 @@ router.get("/", async (req, res) => {
         ];
 
         if (allTerminalIds.length > 0) {
+          // Build campaign programs array with campaign start dates
+          const campaignPrograms = campaignsWithActiveStatus
+            .filter((c) => c.isActive) // Only active campaigns
+            .map((c) => ({
+              program_id: c.program_id,
+              campaign_start_at: c.start_at,
+            }));
+
           heatmapData = await buildGpsHeatmapData(
             client.id,
             programIds,
             allTerminalIds,
             startDate,
             endDate,
-            gpsProgramId
+            gpsProgramId,
+            campaignPrograms.length > 0 ? campaignPrograms : null
           );
         }
 
@@ -617,13 +620,22 @@ router.get("/", async (req, res) => {
         allTerminalIds
       );
 
+      // Build campaign programs array with campaign start dates
+      const campaignPrograms = campaignsWithActiveStatus
+        .filter((c) => c.isActive) // Only active campaigns
+        .map((c) => ({
+          program_id: c.program_id,
+          campaign_start_at: c.start_at,
+        }));
+
       heatmapData = await buildGpsHeatmapData(
         client.id,
         programIds,
         allTerminalIds.length > 0 ? allTerminalIds : terminalIds, // Use all historical terminals if available
         startDate,
         endDate,
-        gpsProgramId
+        gpsProgramId,
+        campaignPrograms.length > 0 ? campaignPrograms : null
       );
     } catch (heatmapError) {
       console.warn("Failed to build GPS heat map data:", heatmapError.message);

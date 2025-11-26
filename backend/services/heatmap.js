@@ -53,7 +53,8 @@ async function buildGpsHeatmapData(
   terminalIds,
   startDate,
   endDate,
-  filterProgramId
+  filterProgramId,
+  campaignPrograms = null // Array of {program_id, campaign_start_at} objects
 ) {
   const targetProgramIds = filterProgramId
     ? [parseInt(filterProgramId)]
@@ -67,47 +68,129 @@ async function buildGpsHeatmapData(
   const startDateOnly = startDate.split("T")[0];
   const endDateOnly = endDate.split("T")[0];
 
-  const { data: gpsPoints, error: gpsError } = await supabase
-    .from("terminal_gps_data")
-    .select("terminal_id, longitude, latitude, inserted_at")
-    .in("terminal_id", terminalIds)
-    .gte("data_date", startDateOnly)
-    .lte("data_date", endDateOnly)
-    .order("inserted_at", { ascending: true })
-    .limit(5000);
+  let gpsPoints = [];
+  let playingSessions = [];
 
-  if (gpsError) {
-    throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);
+  // Try to use RPC for efficient campaign-filtered GPS data
+  if (campaignPrograms && campaignPrograms.length > 0 && clientId) {
+    try {
+      // Build JSONB array for RPC
+      const campaignProgramsJsonb = campaignPrograms.map((cp) => ({
+        program_id: cp.program_id,
+        campaign_start_at: cp.campaign_start_at,
+      }));
+
+      const { data: rpcGpsData, error: rpcError } = await supabase.rpc(
+        "get_campaign_heatmap_gps",
+        {
+          p_client_id: clientId,
+          p_campaign_programs: campaignProgramsJsonb,
+          p_end_date: endDate,
+          p_terminal_ids:
+            terminalIds && terminalIds.length > 0 ? terminalIds : null,
+        }
+      );
+
+      if (!rpcError && rpcGpsData !== null) {
+        // RPC succeeded (even if empty - that's valid, means no matching GPS points)
+        console.log(
+          `✅ [Heatmap] Using RPC: ${rpcGpsData.length} GPS points filtered by campaign start dates`
+        );
+
+        if (rpcGpsData.length > 0) {
+          // Transform RPC data to match expected format
+          gpsPoints = rpcGpsData.map((point) => ({
+            terminal_id: point.terminal_id,
+            longitude: point.longitude,
+            latitude: point.latitude,
+            inserted_at: point.inserted_at || point.recorded_at,
+            program_id: point.program_id,
+            program_name: point.program_name,
+          }));
+
+          // Group by program_id to create playing sessions lookup
+          const sessionsByProgram = {};
+          rpcGpsData.forEach((point) => {
+            if (!sessionsByProgram[point.program_id]) {
+              sessionsByProgram[point.program_id] = {
+                program_id: point.program_id,
+                program_name: point.program_name,
+              };
+            }
+          });
+
+          // Create minimal playing sessions structure for compatibility
+          // The RPC already filtered and matched, so we just need program info
+          playingSessions = Object.values(sessionsByProgram);
+        } else {
+          // Empty result is valid - no GPS points match the campaign criteria
+          // Set empty arrays to skip fallback
+          gpsPoints = [];
+          playingSessions = [];
+        }
+      } else {
+        console.warn(
+          `⚠️  [Heatmap] RPC error, using fallback:`,
+          rpcError?.message
+        );
+        throw new Error("RPC fallback"); // Trigger fallback
+      }
+    } catch (rpcErr) {
+      // Fall through to fallback method
+      console.log(
+        `ℹ️  [Heatmap] Using fallback method (RPC unavailable or failed)`
+      );
+    }
   }
 
-  if (!gpsPoints || gpsPoints.length === 0) {
-    return {
-      summary: {
-        totalGpsPoints: 0,
-        programsCount: 0,
-        terminalsCount: 0,
-        distanceMiles: 0,
-        dateRange: `${startDateOnly} to ${endDateOnly}`,
-      },
-      programs: {},
-    };
-  }
+  // Fallback to original method if RPC not used or failed
+  if (gpsPoints.length === 0) {
+    const { data: gpsData, error: gpsError } = await supabase
+      .from("terminal_gps_data")
+      .select("terminal_id, longitude, latitude, inserted_at")
+      .in("terminal_id", terminalIds)
+      .gte("data_date", startDateOnly)
+      .lte("data_date", endDateOnly)
+      .order("inserted_at", { ascending: true })
+      .limit(5000);
 
-  const { data: playingSessions, error: playingError } = await supabase
-    .from("playing")
-    .select(
-      "terminal_id, program_id, program_name, started_at, ended_at, status"
-    )
-    .in("terminal_id", terminalIds)
-    .in("program_id", targetProgramIds)
-    .gte("started_at", startDate) // Use full timestamp
-    .lte("started_at", endDate) // Use full timestamp
-    .order("started_at", { ascending: true });
+    if (gpsError) {
+      throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);
+    }
 
-  if (playingError) {
-    throw new Error(
-      `Failed to fetch playing sessions: ${playingError.message}`
-    );
+    gpsPoints = gpsData || [];
+
+    if (gpsPoints.length === 0) {
+      return {
+        summary: {
+          totalGpsPoints: 0,
+          programsCount: 0,
+          terminalsCount: 0,
+          distanceMiles: 0,
+          dateRange: `${startDateOnly} to ${endDateOnly}`,
+        },
+        programs: {},
+      };
+    }
+
+    const { data: playingData, error: playingError } = await supabase
+      .from("playing")
+      .select(
+        "terminal_id, program_id, program_name, started_at, ended_at, status"
+      )
+      .in("terminal_id", terminalIds)
+      .in("program_id", targetProgramIds)
+      .gte("started_at", startDate) // Use full timestamp
+      .lte("started_at", endDate) // Use full timestamp
+      .order("started_at", { ascending: true });
+
+    if (playingError) {
+      throw new Error(
+        `Failed to fetch playing sessions: ${playingError.message}`
+      );
+    }
+
+    playingSessions = playingData || [];
   }
 
   const programHeatmapData = {};
@@ -116,37 +199,58 @@ async function buildGpsHeatmapData(
   // Track last point per terminal for distance calculation
   const lastPointByTerminal = {};
 
+  // Check if we're using RPC data (points already have program_id)
+  const usingRpcData =
+    gpsPoints.length > 0 && gpsPoints[0].program_id !== undefined;
+
   for (const gpsPoint of gpsPoints) {
     const gpsTime = new Date(gpsPoint.inserted_at);
 
-    const activeSession = playingSessions?.find(
-      (session) =>
-        session.terminal_id === gpsPoint.terminal_id &&
-        session.status === "current" &&
-        new Date(session.started_at) <= gpsTime &&
-        (!session.ended_at || new Date(session.ended_at) >= gpsTime)
-    );
+    let session = null;
+    let programId = null;
+    let programName = null;
 
-    const completedSession = !activeSession
-      ? playingSessions?.find(
-          (session) =>
-            session.terminal_id === gpsPoint.terminal_id &&
-            session.status === "completed" &&
-            new Date(session.started_at) <= gpsTime &&
-            session.ended_at &&
-            new Date(session.ended_at) >= gpsTime
-        )
-      : null;
+    if (usingRpcData) {
+      // RPC already matched GPS to sessions - use program_id from GPS point
+      programId = gpsPoint.program_id?.toString();
+      programName = gpsPoint.program_name;
+      session = {
+        program_id: gpsPoint.program_id,
+        program_name: gpsPoint.program_name,
+      }; // Dummy session for compatibility
+    } else {
+      // Fallback: Match GPS points to playing sessions manually
+      const activeSession = playingSessions?.find(
+        (session) =>
+          session.terminal_id === gpsPoint.terminal_id &&
+          session.status === "current" &&
+          new Date(session.started_at) <= gpsTime &&
+          (!session.ended_at || new Date(session.ended_at) >= gpsTime)
+      );
 
-    const session = activeSession || completedSession;
+      const completedSession = !activeSession
+        ? playingSessions?.find(
+            (session) =>
+              session.terminal_id === gpsPoint.terminal_id &&
+              session.status === "completed" &&
+              new Date(session.started_at) <= gpsTime &&
+              session.ended_at &&
+              new Date(session.ended_at) >= gpsTime
+          )
+        : null;
 
-    if (session) {
-      const programId = session.program_id.toString();
+      session = activeSession || completedSession;
+      if (session) {
+        programId = session.program_id.toString();
+        programName = session.program_name;
+      }
+    }
 
+    if (session && programId) {
       if (!programHeatmapData[programId]) {
         programHeatmapData[programId] = {
-          program_id: session.program_id,
-          program_name: session.program_name,
+          program_id: parseInt(programId),
+          program_name: programName,
           points: [],
           totalPoints: 0,
           uniqueLocations: new Set(),
