@@ -64,7 +64,9 @@ router.get("/", async (req, res) => {
     const nowIso = new Date().toISOString();
     const { data: allCampaigns, error: campaignsError } = await supabase
       .from("campaign")
-      .select("program_id, status, start_at, end_at, hours_bought")
+      .select(
+        "program_id, status, start_at, end_at, hours_bought, completed_at"
+      )
       .eq("client_id", client.id)
       .in("status", ["active", "planned", "completed", "inactive"]);
 
@@ -263,6 +265,25 @@ router.get("/", async (req, res) => {
     if (zoneEndDate) {
       // Custom end date provided
       zoneEndDateFinal = zoneEndDate;
+    } else {
+      // Calculate effective end date from campaigns
+      // For completed campaigns: use completed_at
+      // For active campaigns: use now or end_at (whichever is earlier)
+      if (campaignsWithActiveStatus && campaignsWithActiveStatus.length > 0) {
+        const effectiveEndDates = campaignsWithActiveStatus.map((c) => {
+          if (c.completed_at) {
+            // Campaign is completed - use completed_at
+            return new Date(c.completed_at);
+          } else {
+            // Campaign is active - use now or end_at (whichever is earlier)
+            const endAt = new Date(c.end_at);
+            const now = new Date(nowIso);
+            return endAt < now ? endAt : now;
+          }
+        });
+        const latestEnd = new Date(Math.max(...effectiveEndDates));
+        zoneEndDateFinal = latestEnd.toISOString();
+      }
     }
 
     if (zoneStartDate) {
@@ -270,7 +291,9 @@ router.get("/", async (req, res) => {
       zoneStartDateFinal = zoneStartDate;
     } else if (zoneDays) {
       // Calculate start date based on days back from end date
-      const endDate = zoneEndDate ? new Date(zoneEndDate) : new Date();
+      const endDate = zoneEndDate
+        ? new Date(zoneEndDate)
+        : new Date(zoneEndDateFinal);
       const startDate = new Date(endDate);
       startDate.setDate(startDate.getDate() - parseInt(zoneDays));
       zoneStartDateFinal = startDate.toISOString().split("T")[0];

@@ -24,9 +24,11 @@ Authorization: Bearer <YOUR_TOKEN>
 ```
 
 **Query Parameters:**
+
 - `includeDrivers` (optional): `true` | `false` - Include driver assignment info
 
 **Response:**
+
 ```json
 {
   "terminals": [
@@ -71,6 +73,7 @@ Authorization: Bearer <YOUR_TOKEN>
 ```
 
 **Fields Explained:**
+
 - `current_status.is_online`: Boolean - Is the terminal currently online
 - `current_status.duration_seconds`: How long the terminal has been in current status
 - `driver_assignment`: null if no driver assigned
@@ -86,11 +89,13 @@ Authorization: Bearer <YOUR_TOKEN>
 ```
 
 **Query Parameters:**
+
 - `includeDrivers` (optional): `true` | `false` - Include driver assignment info
 - `includeStatus` (optional): `true` | `false` - Include online/offline status
 - `skipDbUpdate` (optional): `true` | `false` - Skip database updates
 
 **Response:**
+
 ```json
 [
   {
@@ -100,7 +105,9 @@ Authorization: Bearer <YOUR_TOKEN>
     },
     "post_meta": {
       "_led_latest_report_time": 1763356924,
-      "_led_status": { /* ... full status data ... */ }
+      "_led_status": {
+        /* ... full status data ... */
+      }
     },
     "status_info": {
       "is_online": true,
@@ -126,6 +133,7 @@ Authorization: Bearer <YOUR_TOKEN>
 ```
 
 **Difference:**
+
 - `/status/terminals`: Simplified view, always includes status
 - `/terminals`: Full raw API data, opt-in for status and drivers
 
@@ -142,6 +150,7 @@ GET /drivers
 **No authentication required**
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -175,11 +184,13 @@ GET /drivers/:id
 ```
 
 **Example:**
+
 ```bash
 GET /drivers/7
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -213,6 +224,7 @@ Content-Type: application/json
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/drivers/7/assign \
   -H "Content-Type: application/json" \
@@ -223,6 +235,7 @@ curl -X POST http://localhost:3000/drivers/7/assign \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -240,6 +253,7 @@ curl -X POST http://localhost:3000/drivers/7/assign \
 ```
 
 **Notes:**
+
 - If terminal already has a driver, it will be automatically unassigned first
 - If the same driver is already assigned, returns existing assignment
 
@@ -257,6 +271,7 @@ Content-Type: application/json
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/drivers/7/unassign \
   -H "Content-Type: application/json" \
@@ -264,6 +279,7 @@ curl -X POST http://localhost:3000/drivers/7/unassign \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -288,11 +304,13 @@ GET /drivers/:driverId/current-assignment
 ```
 
 **Example:**
+
 ```bash
 GET /drivers/7/current-assignment
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -324,15 +342,18 @@ GET /drivers/:driverId/assignments?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 ```
 
 **Query Parameters:**
+
 - `startDate` (optional): Filter from this date
 - `endDate` (optional): Filter to this date
 
 **Example:**
+
 ```bash
 GET /drivers/7/assignments?startDate=2025-11-01&endDate=2025-11-17
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -375,6 +396,7 @@ GET /drivers/assignments/active
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -413,15 +435,18 @@ GET /drivers/:driverId/analytics?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 **This is the key endpoint for zone time tracking!**
 
 **Query Parameters:**
+
 - `startDate` (required): Start date in format YYYY-MM-DD
 - `endDate` (required): End date in format YYYY-MM-DD
 
 **Example:**
+
 ```bash
 GET /drivers/7/analytics?startDate=2025-11-01&endDate=2025-11-17
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -501,6 +526,7 @@ GET /drivers/7/analytics?startDate=2025-11-01&endDate=2025-11-17
 ```
 
 **Key Fields:**
+
 - `summary.total_online_hours`: Total time driver was online across all zones
 - `zone_breakdown`: Array of zones visited with time spent in each
 - `online_hours`: Time spent online in that specific zone
@@ -517,11 +543,13 @@ GET /drivers/:driverId/zone-time?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 Same as analytics but returns only the zone breakdown.
 
 **Example:**
+
 ```bash
 GET /drivers/7/zone-time?startDate=2025-11-01&endDate=2025-11-17
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -551,11 +579,13 @@ GET /drivers/analytics/all?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 ```
 
 **Example:**
+
 ```bash
 GET /drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-17
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -574,7 +604,9 @@ GET /drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-17
         "total_online_hours": 45.5,
         "total_zones_visited": 8
       },
-      "zone_breakdown": [ /* zones */ ]
+      "zone_breakdown": [
+        /* zones */
+      ]
     },
     {
       "driver": {
@@ -585,7 +617,9 @@ GET /drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-17
         "total_online_hours": 38.2,
         "total_zones_visited": 6
       },
-      "zone_breakdown": [ /* zones */ ]
+      "zone_breakdown": [
+        /* zones */
+      ]
     }
   ]
 }
@@ -603,13 +637,12 @@ GET /drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-17
 
 ```javascript
 // Call 1: Get all terminals with status and driver assignments
-const terminals = await fetch('/status/terminals?includeDrivers=true', {
-  headers: { 'Authorization': `Bearer ${token}` }
-}).then(r => r.json());
+const terminals = await fetch("/status/terminals?includeDrivers=true", {
+  headers: { Authorization: `Bearer ${token}` },
+}).then((r) => r.json());
 
 // Call 2: Get all drivers
-const drivers = await fetch('/drivers')
-  .then(r => r.json());
+const drivers = await fetch("/drivers").then((r) => r.json());
 
 // Now you have:
 // - All terminals with online/offline status
@@ -624,18 +657,18 @@ const drivers = await fetch('/drivers')
 
 ```javascript
 // Step 1: User selects terminal and driver
-const terminalId = '2355209';
+const terminalId = "2355209";
 const driverId = 7;
 
 // Step 2: Assign driver to terminal
 const assignment = await fetch(`/drivers/${driverId}/assign`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     terminalId: terminalId,
-    notes: 'Morning shift - Times Square route'
-  })
-}).then(r => r.json());
+    notes: "Morning shift - Times Square route",
+  }),
+}).then((r) => r.json());
 
 console.log(assignment);
 // { success: true, message: "Driver 7 assigned to terminal 2355209", ... }
@@ -649,18 +682,20 @@ console.log(assignment);
 
 ```javascript
 // Get driver analytics for the past week
-const startDate = '2025-11-10';
-const endDate = '2025-11-17';
+const startDate = "2025-11-10";
+const endDate = "2025-11-17";
 const driverId = 7;
 
 const analytics = await fetch(
   `/drivers/${driverId}/analytics?startDate=${startDate}&endDate=${endDate}`
-).then(r => r.json());
+).then((r) => r.json());
 
 // Display results
-console.log(`Total Online: ${analytics.analytics.summary.total_online_hours} hours`);
-console.log('Zone Breakdown:');
-analytics.analytics.zone_breakdown.forEach(zone => {
+console.log(
+  `Total Online: ${analytics.analytics.summary.total_online_hours} hours`
+);
+console.log("Zone Breakdown:");
+analytics.analytics.zone_breakdown.forEach((zone) => {
   console.log(`  ${zone.zone_display_name}: ${zone.online_hours} hours`);
 });
 
@@ -678,25 +713,25 @@ analytics.analytics.zone_breakdown.forEach(zone => {
 
 ```javascript
 // Scenario: Change driver on a terminal
-const terminalId = '2355209';
+const terminalId = "2355209";
 const oldDriverId = 7;
 const newDriverId = 6;
 
 // Step 1: Unassign current driver
 await fetch(`/drivers/${oldDriverId}/unassign`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ terminalId })
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ terminalId }),
 });
 
 // Step 2: Assign new driver
 await fetch(`/drivers/${newDriverId}/assign`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     terminalId,
-    notes: 'Afternoon shift'
-  })
+    notes: "Afternoon shift",
+  }),
 });
 ```
 
@@ -707,8 +742,8 @@ await fetch(`/drivers/${newDriverId}/assign`, {
 ```javascript
 // Get analytics for all drivers to see who performed best
 const analytics = await fetch(
-  '/drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-17'
-).then(r => r.json());
+  "/drivers/analytics/all?startDate=2025-11-01&endDate=2025-11-17"
+).then((r) => r.json());
 
 // Sort by total online hours (already sorted by API)
 const topDrivers = analytics.drivers.slice(0, 3);
@@ -739,6 +774,7 @@ topDrivers.forEach((driver, index) => {
 3. **Duration is pre-calculated** (not estimated) ✅
 
 **The system:**
+
 - Tracks when terminal goes online/offline
 - Calculates exact `duration_seconds` for each status period
 - Stores zone_id with each status change
@@ -772,15 +808,15 @@ topDrivers.forEach((driver, index) => {
 
 ## 🚀 Quick Reference
 
-| Want to... | Endpoint | Method |
-|------------|----------|--------|
-| See all terminals with drivers | `/status/terminals?includeDrivers=true` | GET |
-| See all drivers | `/drivers` | GET |
-| Assign driver to terminal | `/drivers/:id/assign` | POST |
-| Unassign driver | `/drivers/:id/unassign` | POST |
-| Get driver's current terminal | `/drivers/:id/current-assignment` | GET |
-| **Get driver zone time** ⭐ | `/drivers/:id/analytics?startDate=X&endDate=Y` | GET |
-| Compare all drivers | `/drivers/analytics/all?startDate=X&endDate=Y` | GET |
+| Want to...                     | Endpoint                                       | Method |
+| ------------------------------ | ---------------------------------------------- | ------ |
+| See all terminals with drivers | `/status/terminals?includeDrivers=true`        | GET    |
+| See all drivers                | `/drivers`                                     | GET    |
+| Assign driver to terminal      | `/drivers/:id/assign`                          | POST   |
+| Unassign driver                | `/drivers/:id/unassign`                        | POST   |
+| Get driver's current terminal  | `/drivers/:id/current-assignment`              | GET    |
+| **Get driver zone time** ⭐    | `/drivers/:id/analytics?startDate=X&endDate=Y` | GET    |
+| Compare all drivers            | `/drivers/analytics/all?startDate=X&endDate=Y` | GET    |
 
 ---
 
@@ -824,6 +860,7 @@ A: Every 30-60 seconds is good. Status and assignment duration update in real-ti
 ## 🎉 That's It!
 
 You now have everything needed to:
+
 - ✅ Display terminals with status
 - ✅ Show drivers and availability
 - ✅ Assign/unassign drivers
@@ -832,5 +869,3 @@ You now have everything needed to:
 - ✅ Compare driver performance
 
 Happy coding! 🚀
-
-

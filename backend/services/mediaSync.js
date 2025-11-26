@@ -4,15 +4,16 @@ const { PROGRAMS_AUTH_HEADER } = require("../utils");
 
 /**
  * Media Sync Service
- * 
+ *
  * Syncs media metadata from ColorLight's /wp-json/wp/v2/media endpoint
  * to enrich files table with client_id, source_url, title, and other metadata.
- * 
+ *
  * Correlation: Matches files by filename (name field)
  * Client ID Extraction: Parses from customTags (format: CompanyName_ClientID)
  */
 
-const COLORLIGHT_MEDIA_URL = "https://us33.colorlightcloud.com/wp-json/wp/v2/media";
+const COLORLIGHT_MEDIA_URL =
+  "https://us33.colorlightcloud.com/wp-json/wp/v2/media";
 const PER_PAGE = 100; // Fetch 100 items per page
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
@@ -21,7 +22,7 @@ const RETRY_DELAY_MS = 2000;
  * Parse client_id from custom tags array
  * Expected format: ["Lava_1", "Featured"] -> client_id = 1
  * Supports: "CompanyName_123", "CLIENT_5", "Acme_42", etc.
- * 
+ *
  * @param {Array<string>} customTags - Array of tags from ColorLight
  * @returns {number|null} - Extracted client_id or null
  */
@@ -48,7 +49,7 @@ function parseClientIdFromTags(customTags) {
 
 /**
  * Fetch a single page of media from ColorLight
- * 
+ *
  * @param {number} page - Page number (1-indexed)
  * @param {number} retryCount - Current retry attempt
  * @returns {Promise<Array>} - Array of media items
@@ -56,7 +57,7 @@ function parseClientIdFromTags(customTags) {
 async function fetchMediaPage(page, retryCount = 0) {
   try {
     console.log(`📡 Fetching media page ${page}...`);
-    
+
     const response = await axios.get(COLORLIGHT_MEDIA_URL, {
       ...PROGRAMS_AUTH_HEADER,
       params: {
@@ -72,11 +73,13 @@ async function fetchMediaPage(page, retryCount = 0) {
   } catch (error) {
     if (retryCount < MAX_RETRIES) {
       console.warn(
-        `⚠️ Failed to fetch page ${page} (attempt ${retryCount + 1}/${MAX_RETRIES}):`,
+        `⚠️ Failed to fetch page ${page} (attempt ${
+          retryCount + 1
+        }/${MAX_RETRIES}):`,
         error.message
       );
       console.log(`⏳ Retrying in ${RETRY_DELAY_MS}ms...`);
-      
+
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
       return fetchMediaPage(page, retryCount + 1);
     }
@@ -92,7 +95,7 @@ async function fetchMediaPage(page, retryCount = 0) {
 /**
  * Fetch all media from ColorLight with pagination
  * Continues until a page returns less than PER_PAGE items
- * 
+ *
  * @returns {Promise<Array>} - Array of all media items
  */
 async function fetchAllMedia() {
@@ -124,13 +127,18 @@ async function fetchAllMedia() {
         page++;
       }
     } catch (error) {
-      console.error(`❌ Error during pagination at page ${page}:`, error.message);
+      console.error(
+        `❌ Error during pagination at page ${page}:`,
+        error.message
+      );
       // Stop pagination on error
       hasMore = false;
     }
   }
 
-  console.log(`✅ Fetched ${allMedia.length} total media items from ${page} pages`);
+  console.log(
+    `✅ Fetched ${allMedia.length} total media items from ${page} pages`
+  );
   return allMedia;
 }
 
@@ -138,7 +146,7 @@ async function fetchAllMedia() {
  * Extract title from custom tags (everything before _clientID)
  * Format: Title_ClientID → returns "Title"
  * This is the ONLY source of title - ColorLight's title field is ignored
- * 
+ *
  * @param {Array<string>} customTags - Array of tags from ColorLight
  * @returns {string|null} - Extracted title or null
  */
@@ -158,16 +166,20 @@ function extractTitleFromTags(customTags) {
     }
   }
 
-  console.warn(`⚠️ No valid title_clientID format found in tags: ${JSON.stringify(customTags)}`);
+  console.warn(
+    `⚠️ No valid title_clientID format found in tags: ${JSON.stringify(
+      customTags
+    )}`
+  );
   return null;
 }
 
 /**
  * Transform ColorLight media item to files table format
- * 
+ *
  * IMPORTANT: Title comes ONLY from custom tags (format: Title_ClientID)
  * ColorLight's title field is ignored completely
- * 
+ *
  * @param {Object} mediaItem - Media item from ColorLight API
  * @returns {Object} - Transformed file record
  */
@@ -177,7 +189,8 @@ function transformMediaToFile(mediaItem) {
   const title = extractTitleFromTags(mediaItem.customTags);
 
   // Build full filename with extension
-  const fileName = mediaItem.name + (mediaItem.file_type ? `.${mediaItem.file_type}` : '');
+  const fileName =
+    mediaItem.name + (mediaItem.file_type ? `.${mediaItem.file_type}` : "");
 
   // Title comes ONLY from tags - no fallback to ColorLight's title field
   return {
@@ -189,8 +202,10 @@ function transformMediaToFile(mediaItem) {
     custom_tags: mediaItem.customTags || [],
     mime_type: mediaItem.mime_type || null,
     file_size_bytes: mediaItem.attachment_filesize || null,
-    media_width: mediaItem.fullSize?.width || mediaItem.media_details?.width || null,
-    media_height: mediaItem.fullSize?.height || mediaItem.media_details?.height || null,
+    media_width:
+      mediaItem.fullSize?.width || mediaItem.media_details?.width || null,
+    media_height:
+      mediaItem.fullSize?.height || mediaItem.media_details?.height || null,
     last_synced_at: new Date().toISOString(),
   };
 }
@@ -198,7 +213,7 @@ function transformMediaToFile(mediaItem) {
 /**
  * Upsert a batch of files into the database
  * Uses filename (name) as the correlation key
- * 
+ *
  * @param {Array<Object>} files - Array of file records
  * @returns {Promise<Object>} - Result with counts
  */
@@ -219,7 +234,12 @@ async function upsertFilesMetadata(files) {
 
     if (fetchError) {
       console.error(`❌ Error fetching existing files:`, fetchError.message);
-      return { inserted: 0, updated: 0, failed: files.length, error: fetchError.message };
+      return {
+        inserted: 0,
+        updated: 0,
+        failed: files.length,
+        error: fetchError.message,
+      };
     }
 
     const existingFileMap = {};
@@ -228,17 +248,21 @@ async function upsertFilesMetadata(files) {
     });
 
     // Validate client_ids - get existing clients
-    const uniqueClientIds = [...new Set(files.map((f) => f.client_id).filter((id) => id !== null))];
+    const uniqueClientIds = [
+      ...new Set(files.map((f) => f.client_id).filter((id) => id !== null)),
+    ];
     let validClientIds = new Set();
-    
+
     if (uniqueClientIds.length > 0) {
       const { data: existingClients } = await supabase
         .from("client")
         .select("id")
         .in("id", uniqueClientIds);
-      
+
       validClientIds = new Set((existingClients || []).map((c) => c.id));
-      console.log(`✅ Valid client_ids: ${Array.from(validClientIds).join(", ")}`);
+      console.log(
+        `✅ Valid client_ids: ${Array.from(validClientIds).join(", ")}`
+      );
     }
 
     // NEW FLOW: Media sync INSERTS files, poller UPDATES with program_id
@@ -247,12 +271,15 @@ async function upsertFilesMetadata(files) {
 
     files.forEach((file) => {
       // Validate client_id - set to null if invalid
-      const clientId = file.client_id && validClientIds.has(file.client_id) 
-        ? file.client_id 
-        : null;
-      
+      const clientId =
+        file.client_id && validClientIds.has(file.client_id)
+          ? file.client_id
+          : null;
+
       if (file.client_id && !clientId) {
-        console.warn(`⚠️ Invalid client_id ${file.client_id} for file ${file.name}, setting to null`);
+        console.warn(
+          `⚠️ Invalid client_id ${file.client_id} for file ${file.name}, setting to null`
+        );
       }
 
       if (existingFileMap[file.name]) {
@@ -289,7 +316,9 @@ async function upsertFilesMetadata(files) {
       }
     });
 
-    console.log(`📊 To Update: ${toUpdate.length}, To Insert: ${toInsert.length}`);
+    console.log(
+      `📊 To Update: ${toUpdate.length}, To Insert: ${toInsert.length}`
+    );
 
     let updateCount = 0;
     let insertCount = 0;
@@ -304,7 +333,10 @@ async function upsertFilesMetadata(files) {
           .eq("id", file.id);
 
         if (updateError) {
-          console.warn(`⚠️ Error updating file (id: ${file.id}):`, updateError.message);
+          console.warn(
+            `⚠️ Error updating file (id: ${file.id}):`,
+            updateError.message
+          );
           failCount++;
         } else {
           updateCount++;
@@ -324,21 +356,30 @@ async function upsertFilesMetadata(files) {
         failCount += toInsert.length;
       } else {
         insertCount = inserted?.length || 0;
-        console.log(`✅ Inserted ${insertCount} new files (program_id will be added by poller)`);
+        console.log(
+          `✅ Inserted ${insertCount} new files (program_id will be added by poller)`
+        );
       }
     }
 
-    console.log(`✅ Updated: ${updateCount}, Inserted: ${insertCount}, Failed: ${failCount}`);
+    console.log(
+      `✅ Updated: ${updateCount}, Inserted: ${insertCount}, Failed: ${failCount}`
+    );
     return { inserted: insertCount, updated: updateCount, failed: failCount };
   } catch (error) {
     console.error(`❌ Upsert exception:`, error.message);
-    return { inserted: 0, updated: 0, failed: files.length, error: error.message };
+    return {
+      inserted: 0,
+      updated: 0,
+      failed: files.length,
+      error: error.message,
+    };
   }
 }
 
 /**
  * Main sync function - fetches all media from ColorLight and enriches files table
- * 
+ *
  * @returns {Promise<Object>} - Sync statistics and results
  */
 async function syncMediaFromColorLight() {
@@ -360,6 +401,8 @@ async function syncMediaFromColorLight() {
       updated: 0,
       failed: 0,
     },
+    deleted_orphaned: 0,
+    kept_in_programs: 0,
     pages_processed: 0,
     errors: [],
   };
@@ -384,11 +427,17 @@ async function syncMediaFromColorLight() {
     results.total_processed = transformedFiles.length;
 
     // Count files with/without client_id
-    results.files_with_client_id = transformedFiles.filter((f) => f.client_id !== null).length;
-    results.files_without_client_id = transformedFiles.filter((f) => f.client_id === null).length;
+    results.files_with_client_id = transformedFiles.filter(
+      (f) => f.client_id !== null
+    ).length;
+    results.files_without_client_id = transformedFiles.filter(
+      (f) => f.client_id === null
+    ).length;
 
     console.log(`📊 Files with client_id: ${results.files_with_client_id}`);
-    console.log(`⚠️ Files without client_id: ${results.files_without_client_id}`);
+    console.log(
+      `⚠️ Files without client_id: ${results.files_without_client_id}`
+    );
 
     // Step 3: Deduplicate files by name (ColorLight sometimes returns duplicates)
     const filesByName = {};
@@ -398,10 +447,11 @@ async function syncMediaFromColorLight() {
         filesByName[file.name] = file;
       }
     });
-    
+
     const deduplicatedFiles = Object.values(filesByName);
-    const duplicatesRemoved = transformedFiles.length - deduplicatedFiles.length;
-    
+    const duplicatesRemoved =
+      transformedFiles.length - deduplicatedFiles.length;
+
     if (duplicatesRemoved > 0) {
       console.log(`🔧 Removed ${duplicatesRemoved} duplicate filename(s)`);
     }
@@ -436,18 +486,124 @@ async function syncMediaFromColorLight() {
       failed: totalFailed,
     };
 
+    // Step 5: Identify and handle files that are no longer in ColorLight
+    console.log(`\n🔍 Checking for files no longer in ColorLight...`);
+    const syncedFileNames = new Set(deduplicatedFiles.map((f) => f.name));
+    const syncedMediaIds = new Set(
+      deduplicatedFiles
+        .map((f) => f.media_id)
+        .filter((id) => id !== null && id !== undefined)
+    );
+
+    // Find files that were previously synced but are not in current sync
+    // Only consider files that have been synced before (have last_synced_at)
+    const { data: filesToCheck, error: checkError } = await supabase
+      .from("files")
+      .select("id, name, media_id, program_id, removed_at")
+      .not("last_synced_at", "is", null);
+
+    if (checkError) {
+      console.warn(`⚠️ Error checking for deleted files:`, checkError.message);
+      results.errors.push(
+        `Failed to check deleted files: ${checkError.message}`
+      );
+    } else {
+      const filesToDelete = (filesToCheck || []).filter((file) => {
+        // File is no longer in ColorLight if:
+        // 1. It's not in the synced file names, AND
+        // 2. It's not in the synced media IDs (if it has a media_id)
+        const notInNames = !syncedFileNames.has(file.name);
+        const notInMediaIds = file.media_id
+          ? !syncedMediaIds.has(file.media_id)
+          : true;
+
+        // Only delete if both conditions are true
+        return notInNames && notInMediaIds;
+      });
+
+      if (filesToDelete.length > 0) {
+        console.log(
+          `🗑️  Found ${filesToDelete.length} files no longer in ColorLight`
+        );
+
+        // For files with program_id, we should NOT delete them (they might still be in use)
+        // Instead, we'll only delete files that have no program_id (orphaned files)
+        const orphanedFiles = filesToDelete.filter(
+          (f) => f.program_id === null
+        );
+        const filesInPrograms = filesToDelete.filter(
+          (f) => f.program_id !== null
+        );
+
+        if (orphanedFiles.length > 0) {
+          console.log(
+            `   - ${orphanedFiles.length} orphaned files (no program_id) - will be deleted`
+          );
+          const orphanedIds = orphanedFiles.map((f) => f.id);
+
+          const { error: deleteError } = await supabase
+            .from("files")
+            .delete()
+            .in("id", orphanedIds);
+
+          if (deleteError) {
+            console.error(
+              `❌ Error deleting orphaned files:`,
+              deleteError.message
+            );
+            results.errors.push(
+              `Failed to delete orphaned files: ${deleteError.message}`
+            );
+          } else {
+            console.log(`✅ Deleted ${orphanedFiles.length} orphaned files`);
+            results.deleted_orphaned = orphanedFiles.length;
+          }
+        }
+
+        if (filesInPrograms.length > 0) {
+          console.log(
+            `   - ${filesInPrograms.length} files still in programs - keeping (may be removed from ColorLight but still in use)`
+          );
+          results.kept_in_programs = filesInPrograms.length;
+        }
+      } else {
+        console.log(`✅ All previously synced files are still in ColorLight`);
+        results.deleted_orphaned = 0;
+        results.kept_in_programs = 0;
+      }
+    }
+
     results.success = totalFailed === 0;
     results.completed_at = new Date().toISOString();
     results.duration_ms = Date.now() - startTime;
 
     console.log(`\n✅ ===== MEDIA SYNC COMPLETED =====`);
     console.log(`⏰ Completed at: ${results.completed_at}`);
-    console.log(`⏱️ Duration: ${results.duration_ms}ms (${(results.duration_ms / 1000).toFixed(2)}s)`);
+    console.log(
+      `⏱️ Duration: ${results.duration_ms}ms (${(
+        results.duration_ms / 1000
+      ).toFixed(2)}s)`
+    );
     console.log(`📊 Total fetched: ${results.total_fetched}`);
     console.log(`📊 Total processed: ${results.total_processed}`);
     console.log(`✅ Files with client_id: ${results.files_with_client_id}`);
-    console.log(`⚠️ Files without client_id: ${results.files_without_client_id}`);
-    console.log(`💾 Upserted: ${totalInserted}, Failed: ${totalFailed}`);
+    console.log(
+      `⚠️ Files without client_id: ${results.files_without_client_id}`
+    );
+    console.log(
+      `💾 Upserted: ${totalInserted} inserted, ${totalUpdated} updated, ${totalFailed} failed`
+    );
+    if (results.deleted_orphaned !== undefined) {
+      console.log(`🗑️  Deleted: ${results.deleted_orphaned} orphaned files`);
+    }
+    if (
+      results.kept_in_programs !== undefined &&
+      results.kept_in_programs > 0
+    ) {
+      console.log(
+        `📌 Kept: ${results.kept_in_programs} files still in programs`
+      );
+    }
 
     return results;
   } catch (error) {
@@ -472,4 +628,3 @@ module.exports = {
   transformMediaToFile,
   upsertFilesMetadata,
 };
-

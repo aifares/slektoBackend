@@ -25,7 +25,7 @@ const {
  *   "end_at": "2025-12-02T20:00:00Z",    // Optional, calculated from start_at + hours_bought if not provided
  *   "status": "active"  // Optional, defaults to "active"
  * }
- * 
+ *
  * Note: If end_at is not provided, it will be calculated as start_at + hours_bought hours.
  *       If neither end_at nor hours_bought is provided, defaults to 1 week from start.
  */
@@ -43,24 +43,40 @@ router.post("/campaigns/create", async (req, res) => {
     }
 
     // Set defaults
-    const startTime = start_at || new Date().toISOString();
-    
+    // If start_at is provided, parse it; otherwise use now
+    const startTime = start_at
+      ? new Date(start_at).toISOString()
+      : new Date().toISOString();
+
     // Calculate end_at based on start_at and hours_bought if end_at is not provided
+    // This ensures start_at <= end_at even when start_at is in the future
     let endTime;
     if (end_at) {
       // Use explicitly provided end_at
-      endTime = end_at;
+      endTime = new Date(end_at).toISOString();
     } else if (hours_bought) {
       // Calculate end_at by adding hours_bought to start_at
       const startDate = new Date(startTime);
-      const endDate = new Date(startDate.getTime() + hours_bought * 60 * 60 * 1000);
+      const endDate = new Date(
+        startDate.getTime() + hours_bought * 60 * 60 * 1000
+      );
       endTime = endDate.toISOString();
     } else {
       // Default to 7 days from start if neither end_at nor hours_bought provided
-      endTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      endTime = new Date(
+        new Date(startTime).getTime() + 7 * 24 * 60 * 60 * 1000
+      ).toISOString();
     }
-    
     const campaignStatus = status || "active";
+
+    // Validate that start_at <= end_at
+    if (new Date(startTime) > new Date(endTime)) {
+      return res.status(400).json({
+        success: false,
+        error: "start_at must be less than or equal to end_at",
+        details: `start_at: ${startTime}, end_at: ${endTime}`,
+      });
+    }
 
     // Verify client exists
     const { data: client, error: clientError } = await supabase

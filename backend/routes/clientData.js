@@ -28,15 +28,38 @@ router.get("/", async (req, res) => {
     let endDate = gpsEndDate || new Date().toISOString();
     let startDate = gpsStartDate;
 
-    // 1) Resolve client's active programs (via campaigns in active window)
+    // 1) Resolve client's active programs (via campaigns)
+    // A campaign is active if: status="active" AND completed_at IS NULL
+    // Show campaigns with status="planned" that are in the current date window
     const nowIso = new Date().toISOString();
-    const { data: activeCampaigns, error: campaignsError } = await supabase
+
+    // Fetch all active campaigns (status="active" AND not completed)
+    const { data: activeStatusCampaigns, error: activeError } = await supabase
       .from("campaign")
-      .select("program_id, status, start_at, end_at, hours_bought")
+      .select(
+        "program_id, status, start_at, end_at, hours_bought, client_id, completed_at"
+      )
       .eq("client_id", client.id)
-      .in("status", ["active", "planned"]) // consider planned in window
+      .eq("status", "active")
+      .is("completed_at", null);
+
+    // Fetch planned campaigns that are in the current date window
+    const { data: plannedCampaigns, error: plannedError } = await supabase
+      .from("campaign")
+      .select(
+        "program_id, status, start_at, end_at, hours_bought, client_id, completed_at"
+      )
+      .eq("client_id", client.id)
+      .eq("status", "planned")
       .lte("start_at", nowIso)
       .gte("end_at", nowIso);
+
+    // Combine both results
+    const campaignsError = activeError || plannedError;
+    const activeCampaigns = [
+      ...(activeStatusCampaigns || []),
+      ...(plannedCampaigns || []),
+    ];
 
     if (campaignsError) {
       return res.status(500).json({
@@ -45,10 +68,9 @@ router.get("/", async (req, res) => {
       });
     }
 
-    // Compute isActive per campaign based on date window and status
+    // Compute isActive per campaign: status="active" AND completed_at IS NULL
     const campaignsWithActiveStatus = (activeCampaigns || []).map((c) => {
-      const isActive =
-        c.start_at <= nowIso && c.end_at >= nowIso && c.status === "active";
+      const isActive = c.status === "active" && c.completed_at === null;
       return { ...c, isActive };
     });
 
@@ -71,20 +93,23 @@ router.get("/", async (req, res) => {
       // Set to start of day to include full day
       defaultStartDate.setUTCHours(0, 0, 0, 0);
       startDate = defaultStartDate.toISOString();
-      console.log("Using default GPS days for heatmap:", gpsDays, "days (including today)");
-      
+      console.log(
+        "Using default GPS days for heatmap:",
+        gpsDays,
+        "days (including today)"
+      );
+
       // If there are active campaigns, use the earlier of: campaign start date or default 7 days
-      if (
-        campaignsWithActiveStatus &&
-        campaignsWithActiveStatus.length > 0
-      ) {
+      if (campaignsWithActiveStatus && campaignsWithActiveStatus.length > 0) {
         // Only use campaigns that are currently active (isActive = true)
         const activeCampaignsOnly = campaignsWithActiveStatus.filter(
           (c) => c.isActive === true
         );
 
         if (activeCampaignsOnly.length > 0) {
-          const startDates = activeCampaignsOnly.map((c) => new Date(c.start_at));
+          const startDates = activeCampaignsOnly.map(
+            (c) => new Date(c.start_at)
+          );
           const earliestStart = new Date(Math.min(...startDates));
           // Use the earlier of: campaign start or default 7 days ago
           if (earliestStart < defaultStartDate) {
@@ -391,17 +416,58 @@ router.get("/", async (req, res) => {
       // No terminals are currently playing, so return empty terminals array
 
       // Enrich programs with playback metrics if available
+      // Ensure all programs from active campaigns have metrics, even if no playback data exists
       const programsOut = (programDetailsWithThumb || []).map((p) => {
-        const metrics = playbackMetricsByProgram[p.id] || {
-          minutes_played_since_campaign_start: 0,
-          campaign_completion_percent: 0,
-          campaign_hours_bought: 0,
-          campaign_minutes_bought: 0,
-          hours_played_since_campaign_start: 0,
-          campaign_start_at: null,
-          campaign_end_at: null,
-          isActive: false,
-        };
+        let metrics = playbackMetricsByProgram[p.id];
+
+        // If no metrics exist, try to get campaign info from activeCampaigns
+        if (!metrics) {
+          const campaign = campaignsWithActiveStatus.find(
+            (c) => c.program_id === p.id
+          );
+          if (campaign) {
+            // Create default metrics with campaign info
+            const totalHoursBought = Number(campaign.hours_bought || 0);
+            const totalAllowedMinutes = Math.max(
+              0,
+              Math.floor(totalHoursBought * 60)
+            );
+            metrics = {
+              minutes_played_since_campaign_start: 0,
+              campaign_completion_percent: 0,
+              campaign_hours_bought: totalHoursBought,
+              campaign_minutes_bought: totalAllowedMinutes,
+              hours_played_since_campaign_start: 0,
+              campaign_start_at: campaign.start_at,
+              campaign_end_at: campaign.end_at,
+              campaign_completed_at: campaign.completed_at || null,
+              isActive: campaign.isActive || false,
+              share_of_voice_percent: null,
+              media_urls: [],
+            };
+          } else {
+            // Fallback to zero metrics if no campaign found
+            metrics = {
+              minutes_played_since_campaign_start: 0,
+              campaign_completion_percent: 0,
+              campaign_hours_bought: 0,
+              campaign_minutes_bought: 0,
+              hours_played_since_campaign_start: 0,
+              campaign_start_at: null,
+              campaign_end_at: null,
+              isActive: false,
+            };
+          }
+        } else {
+          // Metrics exist, ensure isActive is set
+          if (metrics.isActive === undefined) {
+            const campaign = campaignsWithActiveStatus.find(
+              (c) => c.program_id === p.id
+            );
+            metrics.isActive = campaign?.isActive || false;
+          }
+        }
+
         return { ...p, ...metrics };
       });
 
@@ -573,17 +639,58 @@ router.get("/", async (req, res) => {
     }
 
     // Enrich programs with playback metrics if available
+    // Ensure all programs from active campaigns have metrics, even if no playback data exists
     const programsOut = (programDetailsWithThumb || []).map((p) => {
-      const metrics = playbackMetricsByProgram[p.id] || {
-        minutes_played_since_campaign_start: 0,
-        campaign_completion_percent: 0,
-        campaign_hours_bought: 0,
-        campaign_minutes_bought: 0,
-        hours_played_since_campaign_start: 0,
-        campaign_start_at: null,
-        campaign_end_at: null,
-        isActive: false,
-      };
+      let metrics = playbackMetricsByProgram[p.id];
+
+      // If no metrics exist, try to get campaign info from activeCampaigns
+      if (!metrics) {
+        const campaign = campaignsWithActiveStatus.find(
+          (c) => c.program_id === p.id
+        );
+        if (campaign) {
+          // Create default metrics with campaign info
+          const totalHoursBought = Number(campaign.hours_bought || 0);
+          const totalAllowedMinutes = Math.max(
+            0,
+            Math.floor(totalHoursBought * 60)
+          );
+          metrics = {
+            minutes_played_since_campaign_start: 0,
+            campaign_completion_percent: 0,
+            campaign_hours_bought: totalHoursBought,
+            campaign_minutes_bought: totalAllowedMinutes,
+            hours_played_since_campaign_start: 0,
+            campaign_start_at: campaign.start_at,
+            campaign_end_at: campaign.end_at,
+            campaign_completed_at: campaign.completed_at || null,
+            isActive: campaign.isActive || false,
+            share_of_voice_percent: null,
+            media_urls: [],
+          };
+        } else {
+          // Fallback to zero metrics if no campaign found
+          metrics = {
+            minutes_played_since_campaign_start: 0,
+            campaign_completion_percent: 0,
+            campaign_hours_bought: 0,
+            campaign_minutes_bought: 0,
+            hours_played_since_campaign_start: 0,
+            campaign_start_at: null,
+            campaign_end_at: null,
+            isActive: false,
+          };
+        }
+      } else {
+        // Metrics exist, ensure isActive is set
+        if (metrics.isActive === undefined) {
+          const campaign = campaignsWithActiveStatus.find(
+            (c) => c.program_id === p.id
+          );
+          metrics.isActive = campaign?.isActive || false;
+        }
+      }
+
       return { ...p, ...metrics };
     });
 

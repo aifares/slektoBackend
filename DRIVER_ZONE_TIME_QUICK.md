@@ -3,32 +3,35 @@
 ## Check How Long a Driver Was in Each Zone
 
 **Endpoint:**
+
 ```http
 GET /drivers/:driverId/analytics?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 Authorization: Bearer <TOKEN>
 ```
 
 **Example:**
+
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
   'http://localhost:3000/drivers/7/analytics?startDate=2025-11-01&endDate=2025-11-17'
 ```
 
 **Response:**
+
 ```json
 {
   "summary": {
-    "total_online_hours": 45.5          // Total across all zones
+    "total_online_hours": 45.5 // Total across all zones
   },
   "zone_breakdown": [
     {
       "zone_display_name": "Times Square",
-      "online_hours": 15.0,             // Time in THIS zone
+      "online_hours": 15.0, // Time in THIS zone
       "online_sessions": 12
     },
     {
       "zone_display_name": "Williamsburg",
-      "online_hours": 12.0,             // Time in THIS zone
+      "online_hours": 12.0, // Time in THIS zone
       "online_sessions": 8
     }
   ]
@@ -36,6 +39,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ```
 
 **Key Fields:**
+
 - `total_online_hours` - Total time driver was online (all zones)
 - `zone_breakdown[].online_hours` - Time spent in each specific zone
 - `online_sessions` - Number of times driver visited that zone
@@ -58,5 +62,3 @@ Returns zone breakdown for all drivers, sorted by total online hours.
 5. Groups time by zone for the date range
 
 **Note:** Authentication required for all `/drivers` endpoints.
-
-

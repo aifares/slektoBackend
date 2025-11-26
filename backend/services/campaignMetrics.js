@@ -195,13 +195,32 @@ async function buildCampaignPlaybackMetrics(
       }
     }
 
-    if (!selectedCampaign) continue;
+    // Always create metrics for campaigns, even if no playback data exists
+    if (!selectedCampaign) {
+      // If no campaign selected, use the first one to ensure we return campaign info
+      selectedCampaign = campaigns[0];
+      if (!selectedCampaign) continue;
+    }
 
     const windowStart = selectedCampaign.start_at;
-    const windowEnd =
-      now < new Date(selectedCampaign.end_at)
-        ? now.toISOString()
-        : selectedCampaign.end_at;
+
+    // Calculate effective end date:
+    // - If campaign is completed: use completed_at
+    // - If campaign is active (completed_at is null): use now
+    let windowEnd;
+    if (selectedCampaign.completed_at) {
+      // Campaign is completed - only count time up to completion
+      windowEnd = selectedCampaign.completed_at;
+      console.log(
+        `📅 [Campaign ${programId}] Using completed_at as end date: ${windowEnd}`
+      );
+    } else {
+      // Campaign is active (completed_at is null) - use now
+      windowEnd = now.toISOString();
+      console.log(
+        `📅 [Campaign ${programId}] Campaign is active, using now as end date: ${windowEnd}`
+      );
+    }
 
     const totalHoursBought = Number(selectedCampaign.hours_bought || 0);
 
@@ -210,51 +229,59 @@ async function buildCampaignPlaybackMetrics(
     let sharePercent = 1.0; // Default to 100% if no share data
 
     // Try to use zone-based calculation via RPC (call per campaign with specific dates)
-    const zoneTimeData = await getCampaignZoneTime(
-      [programId], // Single program
-      terminalIds,
-      windowStart, // Campaign-specific start date
-      windowEnd // Campaign-specific end date (or now)
-    );
-
-    // Use zone-based calculation if available (more accurate)
-    if (zoneTimeData && zoneTimeData[programId]) {
-      totalMinutesPlayed = zoneTimeData[programId].total_minutes_in_zones;
-      console.log(
-        `✅ [Campaign ${programId}] Using zone-based time: ${totalMinutesPlayed.toFixed(
-          2
-        )} minutes (from ${windowStart} to ${windowEnd})`
-      );
-    } else {
-      // Fallback to playing table calculation (may include non-zone time)
-      console.log(
-        `⚠️  [Campaign ${programId}] Using fallback (playing table) - may include non-zone time`
+    // Only attempt if we have terminal IDs, otherwise skip to ensure we still return campaign info
+    if (terminalIds && terminalIds.length > 0) {
+      const zoneTimeData = await getCampaignZoneTime(
+        [programId], // Single program
+        terminalIds,
+        windowStart, // Campaign-specific start date
+        windowEnd // Campaign-specific end date (or now)
       );
 
-      // Fetch sessions for this specific campaign window
-      const nowForQuery = new Date().toISOString();
-      const { data: sessions, error: sessionsError } = await supabase
-        .from("playing")
-        .select("program_id, started_at, ended_at, status")
-        .eq("program_id", programId)
-        .lte("started_at", nowForQuery)
-        .or(`ended_at.gte.${windowStart},ended_at.is.null`);
-
-      if (sessionsError) {
-        console.warn(
-          `Failed to fetch sessions for campaign ${programId}:`,
-          sessionsError.message
+      // Use zone-based calculation if available (more accurate)
+      if (zoneTimeData && zoneTimeData[programId]) {
+        totalMinutesPlayed = zoneTimeData[programId].total_minutes_in_zones;
+        console.log(
+          `✅ [Campaign ${programId}] Using zone-based time: ${totalMinutesPlayed.toFixed(
+            2
+          )} minutes (from ${windowStart} to ${windowEnd})`
         );
       } else {
-        for (const s of sessions || []) {
-          totalMinutesPlayed += computeOverlapMinutes(
-            s.started_at,
-            s.ended_at,
-            windowStart,
-            windowEnd
+        // Fallback to playing table calculation (may include non-zone time)
+        console.log(
+          `⚠️  [Campaign ${programId}] Using fallback (playing table) - may include non-zone time`
+        );
+
+        // Fetch sessions for this specific campaign window
+        const nowForQuery = new Date().toISOString();
+        const { data: sessions, error: sessionsError } = await supabase
+          .from("playing")
+          .select("program_id, started_at, ended_at, status")
+          .eq("program_id", programId)
+          .lte("started_at", nowForQuery)
+          .or(`ended_at.gte.${windowStart},ended_at.is.null`);
+
+        if (sessionsError) {
+          console.warn(
+            `Failed to fetch sessions for campaign ${programId}:`,
+            sessionsError.message
           );
+        } else {
+          for (const s of sessions || []) {
+            totalMinutesPlayed += computeOverlapMinutes(
+              s.started_at,
+              s.ended_at,
+              windowStart,
+              windowEnd
+            );
+          }
         }
       }
+    } else {
+      // No terminals have played yet - this is fine, we'll return campaign info with zero playback
+      console.log(
+        `ℹ️  [Campaign ${programId}] No terminals have played yet - returning campaign info with zero playback`
+      );
     }
 
     // Apply Share of Voice if available
@@ -299,6 +326,7 @@ async function buildCampaignPlaybackMetrics(
     // Get campaign start and end times for this program (selected campaign)
     const campaignStartTime = selectedCampaign.start_at;
     const campaignEndTime = selectedCampaign.end_at;
+    const campaignCompletedAt = selectedCampaign.completed_at || null;
 
     // Fetch media URLs for this program and client
     const mediaUrls = await fetchMediaUrlsByProgramAndClient(
@@ -316,6 +344,7 @@ async function buildCampaignPlaybackMetrics(
       campaign_completion_percent: completionPercent,
       campaign_start_at: campaignStartTime,
       campaign_end_at: campaignEndTime,
+      campaign_completed_at: campaignCompletedAt, // When campaign was actually completed
       share_of_voice_percent:
         sharePercent > 0 ? Number((sharePercent * 100).toFixed(1)) : null,
       media_urls: mediaUrls, // Array of image URLs for this client's campaign
