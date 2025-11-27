@@ -6,10 +6,11 @@ const { PROGRAMS_AUTH_HEADER } = require("../utils");
  * Media Sync Service
  *
  * Syncs media metadata from ColorLight's /wp-json/wp/v2/media endpoint
- * to enrich files table with client_id, source_url, title, and other metadata.
+ * to enrich files table with client_id, program_id, source_url, title, and other metadata.
  *
  * Correlation: Matches files by filename (name field)
  * Client ID Extraction: Parses from customTags (format: CompanyName_ClientID)
+ * Program ID Extraction: Parses from attachment_program field (array with id)
  */
 
 const COLORLIGHT_MEDIA_URL =
@@ -175,10 +176,42 @@ function extractTitleFromTags(customTags) {
 }
 
 /**
+ * Extract program_id from attachment_program field
+ * Format: [{"name": "ProgramName", "id": 2620340}] -> returns 2620340
+ * Empty array [] -> returns null
+ *
+ * @param {Array} attachmentProgram - attachment_program array from ColorLight API
+ * @returns {number|null} - Program ID or null
+ */
+function extractProgramId(attachmentProgram) {
+  if (
+    !attachmentProgram ||
+    !Array.isArray(attachmentProgram) ||
+    attachmentProgram.length === 0
+  ) {
+    return null;
+  }
+
+  const firstProgram = attachmentProgram[0];
+  if (firstProgram && firstProgram.id) {
+    const programId = parseInt(firstProgram.id, 10);
+    if (!isNaN(programId)) {
+      console.log(
+        `✅ Extracted program_id ${programId} from attachment_program`
+      );
+      return programId;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Transform ColorLight media item to files table format
  *
  * IMPORTANT: Title comes ONLY from custom tags (format: Title_ClientID)
  * ColorLight's title field is ignored completely
+ * Program ID comes from attachment_program field
  *
  * @param {Object} mediaItem - Media item from ColorLight API
  * @returns {Object} - Transformed file record
@@ -187,6 +220,9 @@ function transformMediaToFile(mediaItem) {
   // Extract client_id and title from custom tags ONLY
   const clientId = parseClientIdFromTags(mediaItem.customTags);
   const title = extractTitleFromTags(mediaItem.customTags);
+
+  // Extract program_id from attachment_program field
+  const programId = extractProgramId(mediaItem.attachment_program);
 
   // Build full filename with extension
   const fileName =
@@ -197,6 +233,7 @@ function transformMediaToFile(mediaItem) {
     name: fileName,
     media_id: mediaItem.id,
     client_id: clientId,
+    program_id: programId, // From attachment_program field
     source_url: mediaItem.source_url,
     title: title, // ONLY from tags, can be null if tag format is incorrect
     custom_tags: mediaItem.customTags || [],
@@ -265,7 +302,7 @@ async function upsertFilesMetadata(files) {
       );
     }
 
-    // NEW FLOW: Media sync INSERTS files, poller UPDATES with program_id
+    // NEW FLOW: Media sync INSERTS/UPDATES files with program_id from attachment_program
     const toUpdate = [];
     const toInsert = [];
 
@@ -283,11 +320,12 @@ async function upsertFilesMetadata(files) {
       }
 
       if (existingFileMap[file.name]) {
-        // Existing file - update metadata only (don't touch program_id)
+        // Existing file - update metadata including program_id from ColorLight
         toUpdate.push({
           id: existingFileMap[file.name],
           media_id: file.media_id,
           client_id: clientId,
+          program_id: file.program_id, // From attachment_program field
           source_url: file.source_url,
           title: file.title,
           custom_tags: file.custom_tags,
@@ -298,11 +336,12 @@ async function upsertFilesMetadata(files) {
           last_synced_at: file.last_synced_at,
         });
       } else {
-        // New file - insert with metadata (program_id will be added by poller)
+        // New file - insert with metadata including program_id from ColorLight
         toInsert.push({
           name: file.name,
           media_id: file.media_id,
           client_id: clientId,
+          program_id: file.program_id, // From attachment_program field
           source_url: file.source_url,
           title: file.title,
           custom_tags: file.custom_tags,
@@ -357,7 +396,7 @@ async function upsertFilesMetadata(files) {
       } else {
         insertCount = inserted?.length || 0;
         console.log(
-          `✅ Inserted ${insertCount} new files (program_id will be added by poller)`
+          `✅ Inserted ${insertCount} new files (program_id from attachment_program)`
         );
       }
     }
@@ -624,6 +663,7 @@ module.exports = {
   syncMediaFromColorLight,
   parseClientIdFromTags,
   extractTitleFromTags,
+  extractProgramId,
   fetchAllMedia,
   transformMediaToFile,
   upsertFilesMetadata,
