@@ -146,6 +146,8 @@ async function buildCampaignPlaybackMetrics(
   const playbackMetricsByProgram = {}; // Keep for backward compatibility with other callers
 
   if (!activeCampaigns || activeCampaigns.length === 0) {
+    // Always initialize _byCampaign even when empty (for internal services like campaignCompletion)
+    playbackMetricsByProgram._byCampaign = playbackMetricsByCampaign;
     return playbackMetricsByProgram;
   }
 

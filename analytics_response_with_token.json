@@ -1,0 +1,174 @@
+{
+  "client": {
+    "id": 5,
+    "name": "ali",
+    "activePrograms": [
+      2620340
+    ]
+  },
+  "terminals": [],
+  "summary": {
+    "total_terminals": 0,
+    "terminals_playing": 0,
+    "terminals_offline": 0,
+    "historical_terminals_count": 1
+  },
+  "historical_terminals": [
+    {
+      "terminal_id": "2355209",
+      "programs_played": [
+        {
+          "program_id": 2620340,
+          "program_name": "TestNewFormat"
+        }
+      ],
+      "first_played_at": "2025-11-24T00:11:08.252+00:00",
+      "last_played_at": "2025-11-26T06:23:12.848+00:00"
+    }
+  ],
+  "campaign_metrics": {
+    "2620340": {
+      "minutes_played_since_campaign_start": 3.995,
+      "hours_played_since_campaign_start": 0.07,
+      "campaign_hours_bought": 0.08,
+      "campaign_minutes_bought": 4,
+      "campaign_completion_percent": 100,
+      "campaign_start_at": "2025-11-26T06:06:25.419+00:00",
+      "campaign_end_at": "2025-12-26T06:11:25.299+00:00",
+      "campaign_completed_at": "2025-11-26T06:21:01.922+00:00",
+      "share_of_voice_percent": 50,
+      "media_urls": [
+        "https://us33.colorlightcloud.com:443/wp-content/Tus/uploads/8e1a784d-680b-436b-b076-b26d208f4066/F_FA0FFB9A202CBFB700696AAC846380FB_2300.png"
+      ],
+      "isActive": false
+    },
+    "_byCampaign": {
+      "undefined": {
+        "minutes_played_since_campaign_start": 3.995,
+        "hours_played_since_campaign_start": 0.07,
+        "campaign_hours_bought": 0.08,
+        "campaign_minutes_bought": 4,
+        "campaign_completion_percent": 100,
+        "campaign_start_at": "2025-11-26T06:06:25.419+00:00",
+        "campaign_end_at": "2025-12-26T06:11:25.299+00:00",
+        "campaign_completed_at": "2025-11-26T06:21:01.922+00:00",
+        "share_of_voice_percent": 50,
+        "media_urls": [
+          "https://us33.colorlightcloud.com:443/wp-content/Tus/uploads/8e1a784d-680b-436b-b076-b26d208f4066/F_FA0FFB9A202CBFB700696AAC846380FB_2300.png"
+        ],
+        "isActive": false
+      }
+    }
+  },
+  "zone_coverage": {
+    "2620340": {
+      "program_id": 2620340,
+      "program_name": "TestNewFormat",
+      "total_zones_visited": 1,
+      "total_zones_available": 418,
+      "coverage_percentage": 0.2,
+      "total_minutes_in_zones": 4,
+      "total_hours_in_zones": 0.065,
+      "high_value_exposure_score": 4.8,
+      "zones": [
+        {
+          "zone_id": 191,
+          "zone_name": "bay-ridge",
+          "display_name": "Bay Ridge",
+          "zone_type": "residential",
+          "density_multiplier": 1.2,
+          "minutes_spent": 3.995,
+          "hours_spent": 0.065,
+          "weighted_exposure": 4.795,
+          "percentage_of_total_time": 100,
+          "time_breakdown": {
+            "morning": {
+              "minutes": 3.995,
+              "hours": 0.065,
+              "percentage": 100
+            },
+            "afternoon": {
+              "minutes": 0,
+              "hours": 0,
+              "percentage": 0
+            },
+            "evening": {
+              "minutes": 0,
+              "hours": 0,
+              "percentage": 0
+            },
+            "night": {
+              "minutes": 0,
+              "hours": 0,
+              "percentage": 0
+            },
+            "rush_hour": {
+              "minutes": 0,
+              "hours": 0,
+              "percentage": 0
+            }
+          }
+        }
+      ],
+      "zone_type_distribution": {
+        "tourist": {
+          "zones_count": 0,
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        },
+        "shopping": {
+          "zones_count": 0,
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        },
+        "residential": {
+          "zones_count": 1,
+          "minutes": 3.995,
+          "hours": 0.065,
+          "percentage": 100
+        },
+        "mixed": {
+          "zones_count": 0,
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        }
+      },
+      "time_zone_distribution": {
+        "morning": {
+          "minutes": 4,
+          "hours": 0.07,
+          "percentage": 100
+        },
+        "afternoon": {
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        },
+        "evening": {
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        },
+        "night": {
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        },
+        "rush_hour": {
+          "minutes": 0,
+          "hours": 0,
+          "percentage": 0
+        }
+      },
+      "date_range": {
+        "start": "2025-11-26",
+        "end": "2025-11-26"
+      },
+      "share_of_voice_percent": 50,
+      "isActive": false
+    }
+  }
+}

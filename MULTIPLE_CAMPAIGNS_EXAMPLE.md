@@ -102,3 +102,4 @@ The response shows:
 3. **No aggregation:** Campaigns are NOT combined - only one campaign's data is used
 4. **Different programs:** Each program gets its own entry in the response
 
+

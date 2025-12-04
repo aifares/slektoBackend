@@ -1,0 +1,25 @@
+{
+  "client": {
+    "id": 5,
+    "name": "ali",
+    "activePrograms": []
+  },
+  "programs": [],
+  "terminals": [],
+  "summary": {
+    "total_terminals": 0,
+    "terminals_playing": 0,
+    "terminals_offline": 0
+  },
+  "heatmap": {
+    "summary": {
+      "totalGpsPoints": 0,
+      "programsCount": 0,
+      "terminalsCount": 0,
+      "distanceMiles": 0,
+      "dateRange": "2025-11-22T00:00:00.000Z to 2025-11-28T16:49:07.731Z"
+    },
+    "programs": []
+  },
+  "historical_terminals": []
+}

@@ -65,7 +65,7 @@ router.get("/", async (req, res) => {
     const { data: allCampaigns, error: campaignsError } = await supabase
       .from("campaign")
       .select(
-        "program_id, status, start_at, end_at, hours_bought, completed_at"
+        "id, program_id, status, start_at, end_at, hours_bought, completed_at"
       )
       .eq("client_id", client.id)
       .in("status", ["active", "planned", "completed", "inactive"]);
@@ -78,16 +78,27 @@ router.get("/", async (req, res) => {
     }
 
     // Mark each campaign as active or inactive based on date range
+    // A campaign is active if: status="active" AND completed_at IS NULL AND within date range
     const campaignsWithActiveStatus = (allCampaigns || []).map((campaign) => {
       const isActive =
         campaign.start_at <= nowIso &&
         campaign.end_at >= nowIso &&
-        campaign.status === "active";
+        campaign.status === "active" &&
+        campaign.completed_at === null;
       return { ...campaign, isActive };
     });
 
     const programIds = Array.from(
       new Set(campaignsWithActiveStatus.map((c) => c.program_id))
+    );
+
+    // Filter to only active program IDs for the activePrograms field
+    const activeProgramIds = Array.from(
+      new Set(
+        campaignsWithActiveStatus
+          .filter((c) => c.isActive)
+          .map((c) => c.program_id)
+      )
     );
 
     console.log(
@@ -99,15 +110,34 @@ router.get("/", async (req, res) => {
       campaignsWithActiveStatus.filter((c) => c.isActive).length
     );
     console.log("Program IDs from campaigns:", programIds);
+    console.log("Active Program IDs:", activeProgramIds);
+
+    // If no active programs, return early with empty data (no historical data for completed campaigns)
+    if (activeProgramIds.length === 0) {
+      return res.json({
+        client: { id: client.id, name: client.name, activePrograms: [] },
+        terminals: [],
+        summary: {
+          total_terminals: 0,
+          terminals_playing: 0,
+          terminals_offline: 0,
+          historical_terminals_count: 0,
+        },
+        historical_terminals: [],
+        campaign_metrics: {},
+        zone_coverage: {},
+      });
+    }
 
     // Fetch ALL playing sessions once to avoid duplicate queries in services
     // This query combines data needed by campaignMetrics, zoneCoverage, and historicalTerminals
+    // Only fetch for active programs
     const { data: allPlayingSessions, error: allPlayingError } = await supabase
       .from("playing")
       .select(
         "terminal_id, program_id, program_name, file_name, source, started_at, ended_at, status"
       )
-      .in("program_id", programIds);
+      .in("program_id", activeProgramIds);
 
     if (allPlayingError) {
       console.warn(
@@ -126,23 +156,22 @@ router.get("/", async (req, res) => {
     );
 
     // Compute campaign playback metrics per program via service
+    // Only include active campaigns for metrics
+    const activeCampaignsOnly = campaignsWithActiveStatus.filter(
+      (c) => c.isActive
+    );
     const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
-      campaignsWithActiveStatus,
-      programIds,
+      activeCampaignsOnly,
+      activeProgramIds,
       terminalIds.length > 0 ? terminalIds : null,
       client.id // Pass client_id for Share of Voice
     );
 
-    // Add isActive flag to campaign metrics
+    // All metrics are for active programs, so set isActive to true
     for (const [programId, metrics] of Object.entries(
       playbackMetricsByProgram
     )) {
-      const campaign = campaignsWithActiveStatus.find(
-        (c) => c.program_id === parseInt(programId)
-      );
-      if (campaign) {
-        metrics.isActive = campaign.isActive;
-      }
+      metrics.isActive = true;
     }
 
     // If no campaigns at all, return early with empty data
@@ -171,10 +200,11 @@ router.get("/", async (req, res) => {
     );
 
     // Get all terminals that have played these programs for historical data
+    // Only for active programs
     let allHistoricalTerminals = [];
     try {
       allHistoricalTerminals = await fetchHistoricalTerminals(
-        programIds,
+        activeProgramIds,
         allPlayingSessions || []
       );
     } catch (error) {
@@ -259,6 +289,7 @@ router.get("/", async (req, res) => {
     ).length;
 
     // Calculate zone coverage date range based on query parameters
+    // Only for active campaigns
     let zoneStartDateFinal = null;
     let zoneEndDateFinal = nowIso;
 
@@ -266,20 +297,13 @@ router.get("/", async (req, res) => {
       // Custom end date provided
       zoneEndDateFinal = zoneEndDate;
     } else {
-      // Calculate effective end date from campaigns
-      // For completed campaigns: use completed_at
+      // Calculate effective end date from active campaigns only
       // For active campaigns: use now or end_at (whichever is earlier)
-      if (campaignsWithActiveStatus && campaignsWithActiveStatus.length > 0) {
-        const effectiveEndDates = campaignsWithActiveStatus.map((c) => {
-          if (c.completed_at) {
-            // Campaign is completed - use completed_at
-            return new Date(c.completed_at);
-          } else {
-            // Campaign is active - use now or end_at (whichever is earlier)
-            const endAt = new Date(c.end_at);
-            const now = new Date(nowIso);
-            return endAt < now ? endAt : now;
-          }
+      if (activeCampaignsOnly && activeCampaignsOnly.length > 0) {
+        const effectiveEndDates = activeCampaignsOnly.map((c) => {
+          const endAt = new Date(c.end_at);
+          const now = new Date(nowIso);
+          return endAt < now ? endAt : now;
         });
         const latestEnd = new Date(Math.max(...effectiveEndDates));
         zoneEndDateFinal = latestEnd.toISOString();
@@ -299,22 +323,21 @@ router.get("/", async (req, res) => {
       zoneStartDateFinal = startDate.toISOString().split("T")[0];
     } else {
       // Default: use campaign start timestamp (full campaign history from exact start time)
-      if (campaignsWithActiveStatus && campaignsWithActiveStatus.length > 0) {
-        const startDates = campaignsWithActiveStatus.map(
-          (c) => new Date(c.start_at)
-        );
+      if (activeCampaignsOnly && activeCampaignsOnly.length > 0) {
+        const startDates = activeCampaignsOnly.map((c) => new Date(c.start_at));
         const earliestStart = new Date(Math.min(...startDates));
         zoneStartDateFinal = earliestStart.toISOString(); // Use full timestamp, not just date
       }
     }
 
     // Build zone coverage metrics with Share of Voice
+    // Only for active programs
     let zoneCoverage = {};
 
     if (zoneStartDateFinal && terminalIdsForCoverage.length > 0) {
       try {
         zoneCoverage = await buildZoneCoverageMetrics(
-          programIds,
+          activeProgramIds,
           terminalIdsForCoverage,
           zoneStartDateFinal,
           zoneEndDateFinal,
@@ -322,22 +345,25 @@ router.get("/", async (req, res) => {
           client.id // Pass client_id for share of voice calculation
         );
 
-        // Add isActive flag to zone coverage for each program
+        // All zone coverage is for active programs
         for (const [programId, coverage] of Object.entries(zoneCoverage)) {
-          const campaign = campaignsWithActiveStatus.find(
-            (c) => c.program_id === parseInt(programId)
-          );
-          if (campaign) {
-            coverage.isActive = campaign.isActive;
-          }
+          coverage.isActive = true;
         }
       } catch (error) {
         console.warn("Failed to build zone coverage metrics:", error.message);
       }
     }
 
+    // Remove internal _byCampaign field before sending to client
+    // _byCampaign is only used internally by campaignCompletion service
+    const { _byCampaign, ...campaignMetricsForClient } = playbackMetricsByProgram;
+
     const response = {
-      client: { id: client.id, name: client.name, activePrograms: programIds },
+      client: {
+        id: client.id,
+        name: client.name,
+        activePrograms: activeProgramIds,
+      },
       terminals: terminalsOut,
       summary: {
         total_terminals: terminalsOut.length,
@@ -346,7 +372,7 @@ router.get("/", async (req, res) => {
         historical_terminals_count: allHistoricalTerminals.length,
       },
       historical_terminals: allHistoricalTerminals,
-      campaign_metrics: playbackMetricsByProgram,
+      campaign_metrics: campaignMetricsForClient,
       zone_coverage: zoneCoverage,
     };
 

@@ -72,3 +72,4 @@ WHERE email = 'user@example.com';
 - `401 Unauthorized` - Missing or invalid token
 - `403 Forbidden` - No client account found
 - `500 Internal Server Error` - Server error
+

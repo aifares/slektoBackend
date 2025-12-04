@@ -62,3 +62,4 @@ Returns zone breakdown for all drivers, sorted by total online hours.
 5. Groups time by zone for the date range
 
 **Note:** Authentication required for all `/drivers` endpoints.
+

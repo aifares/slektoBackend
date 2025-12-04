@@ -137,3 +137,4 @@ The ColorLight API (accessed via `/terminals`) is also used by:
 **Poller Status**: Running (no errors)
 **Terminals Active**: 2 of 11 terminals actively reporting
 
+
