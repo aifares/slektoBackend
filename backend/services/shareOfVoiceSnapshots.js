@@ -1,29 +1,30 @@
 const { supabase } = require("../config/supabase");
 
 /**
- * Create a share of voice snapshot for a specific date
- * This can be called by the daily cron OR when a campaign completes
+ * Create a share of voice snapshot with exact timestamp
+ * This can be called by the daily cron OR when files change
+ * Uses INSERT (not upsert) to allow multiple snapshots per day for accurate intra-day tracking
  *
- * @param {Date} snapshotDate - The date to snapshot (defaults to yesterday)
+ * @param {Date} snapshotTime - The exact time to snapshot (defaults to now)
  * @returns {Promise<Object>} Results summary
  */
-async function createShareOfVoiceSnapshot(snapshotDate = null) {
+async function createShareOfVoiceSnapshot(snapshotTime = null) {
   const results = {
     success: true,
-    snapshot_date: null,
+    snapshot_at: null,
     programs_processed: 0,
     snapshots_created: 0,
     errors: [],
   };
 
   try {
-    // Default to yesterday if not provided (for nightly cron)
-    const targetDate =
-      snapshotDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const dateString = targetDate.toISOString().split("T")[0];
-    results.snapshot_date = dateString;
+    // Default to now if not provided
+    const targetTime = snapshotTime || new Date();
+    const timestampString = targetTime.toISOString();
+    const dateString = timestampString.split("T")[0]; // Keep for backward compatibility
+    results.snapshot_at = timestampString;
 
-    console.log(`📸 Creating Share of Voice snapshot for ${dateString}...`);
+    console.log(`📸 Creating Share of Voice snapshot at ${timestampString}...`);
 
     // Step 1: Find all programs with active campaigns
     const { data: activeCampaigns, error: campaignsError } = await supabase
@@ -82,41 +83,36 @@ async function createShareOfVoiceSnapshot(snapshotDate = null) {
           }
         });
 
-        // Create snapshot for each client
+        // Create snapshot for each client (INSERT, not upsert - allows multiple per day)
         for (const [clientId, fileCount] of Object.entries(clientCounts)) {
           const sharePercent = (fileCount / totalFiles) * 100;
 
-          // Upsert snapshot (replace if already exists for this date)
-          const { error: upsertError } = await supabase
+          const { error: insertError } = await supabase
             .from("share_of_voice_snapshots")
-            .upsert(
-              {
-                program_id: programId,
-                client_id: parseInt(clientId),
-                file_count: fileCount,
-                total_files_in_program: totalFiles,
-                share_percent: sharePercent,
-                snapshot_date: dateString,
-              },
-              {
-                onConflict: "program_id,client_id,snapshot_date",
-              }
-            );
+            .insert({
+              program_id: programId,
+              client_id: parseInt(clientId),
+              file_count: fileCount,
+              total_files_in_program: totalFiles,
+              share_percent: sharePercent,
+              snapshot_date: dateString, // Keep for backward compatibility
+              snapshot_at: timestampString, // New timestamp field
+            });
 
-          if (upsertError) {
+          if (insertError) {
             console.warn(
               `⚠️  Error creating snapshot for program ${programId}, client ${clientId}:`,
-              upsertError.message
+              insertError.message
             );
             results.errors.push(
-              `Program ${programId}, Client ${clientId}: ${upsertError.message}`
+              `Program ${programId}, Client ${clientId}: ${insertError.message}`
             );
           } else {
             results.snapshots_created++;
             console.log(
               `✅ Snapshot: Program ${programId}, Client ${clientId}: ${fileCount}/${totalFiles} (${sharePercent.toFixed(
                 1
-              )}%)`
+              )}%) at ${timestampString}`
             );
           }
         }
@@ -232,8 +228,116 @@ async function getCurrentShare(programId, clientId) {
   }
 }
 
+/**
+ * Create a share of voice snapshot for a single program with exact timestamp
+ * Called immediately when files are added/updated with valid program_id and client_id
+ * Uses INSERT (not upsert) to allow multiple snapshots per day for accurate intra-day tracking
+ *
+ * @param {number} programId - Program ID to snapshot
+ * @param {Date} snapshotTime - Exact time for the snapshot (defaults to now)
+ * @returns {Promise<Object>} Result summary
+ */
+async function createSnapshotForProgram(programId, snapshotTime = null) {
+  const result = {
+    success: true,
+    program_id: programId,
+    snapshot_at: null,
+    snapshots_created: 0,
+    errors: [],
+  };
+
+  try {
+    const targetTime = snapshotTime || new Date();
+    const timestampString = targetTime.toISOString();
+    const dateString = timestampString.split("T")[0]; // Keep for backward compatibility
+    result.snapshot_at = timestampString;
+
+    console.log(
+      `📸 Creating instant snapshot for program ${programId} at ${timestampString}...`
+    );
+
+    // Get all files for this program that are NOT removed
+    const { data: files, error: filesError } = await supabase
+      .from("files")
+      .select("id, client_id")
+      .eq("program_id", programId)
+      .is("removed_at", null);
+
+    if (filesError) {
+      console.warn(
+        `⚠️  Error fetching files for program ${programId}:`,
+        filesError.message
+      );
+      result.success = false;
+      result.errors.push(filesError.message);
+      return result;
+    }
+
+    if (!files || files.length === 0) {
+      console.log(
+        `ℹ️  Program ${programId}: No active files - skipping snapshot`
+      );
+      return result;
+    }
+
+    const totalFiles = files.length;
+
+    // Count files per client
+    const clientCounts = {};
+    files.forEach((f) => {
+      if (f.client_id) {
+        clientCounts[f.client_id] = (clientCounts[f.client_id] || 0) + 1;
+      }
+    });
+
+    // Create snapshot for each client (INSERT, not upsert - allows multiple per day)
+    for (const [clientId, fileCount] of Object.entries(clientCounts)) {
+      const sharePercent = (fileCount / totalFiles) * 100;
+
+      const { error: insertError } = await supabase
+        .from("share_of_voice_snapshots")
+        .insert({
+          program_id: programId,
+          client_id: parseInt(clientId),
+          file_count: fileCount,
+          total_files_in_program: totalFiles,
+          share_percent: sharePercent,
+          snapshot_date: dateString, // Keep for backward compatibility
+          snapshot_at: timestampString, // New timestamp field
+        });
+
+      if (insertError) {
+        console.warn(
+          `⚠️  Error creating snapshot for program ${programId}, client ${clientId}:`,
+          insertError.message
+        );
+        result.errors.push(insertError.message);
+      } else {
+        result.snapshots_created++;
+        console.log(
+          `✅ Instant snapshot: Program ${programId}, Client ${clientId}: ${fileCount}/${totalFiles} (${sharePercent.toFixed(
+            1
+          )}%) at ${timestampString}`
+        );
+      }
+    }
+
+    result.success = result.errors.length === 0;
+  } catch (error) {
+    console.error(
+      `❌ Error creating snapshot for program ${programId}:`,
+      error.message
+    );
+    result.success = false;
+    result.errors.push(error.message);
+  }
+
+  return result;
+}
+
 module.exports = {
   createShareOfVoiceSnapshot,
+  createSnapshotForProgram,
   getTimeWeightedShare,
   getCurrentShare,
 };

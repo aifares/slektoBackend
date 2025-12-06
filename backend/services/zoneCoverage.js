@@ -4,7 +4,56 @@ const {
   isRushHour,
   splitMinutesAcrossPeriods,
 } = require("../utils/timePeriod");
-const { getTimeWeightedShare, getCurrentShare } = require("./shareOfVoiceSnapshots");
+const { getCurrentShare } = require("./shareOfVoiceSnapshots");
+
+/**
+ * Get share of voice for a program and client over a date range
+ * Uses RPC function for efficient time-weighted calculation from snapshots
+ * Falls back to current share if no snapshots exist
+ *
+ * @param {number} programId - Program ID
+ * @param {number} clientId - Client ID
+ * @param {string} startDate - Start date (ISO string)
+ * @param {string} endDate - End date (ISO string)
+ * @returns {Promise<number>} Share percentage as decimal (0-1)
+ */
+async function getShareForDateRange(programId, clientId, startDate, endDate) {
+  try {
+    // Use RPC function for efficient database-side calculation
+    const { data, error } = await supabase.rpc("get_time_weighted_share", {
+      p_program_id: programId,
+      p_client_id: clientId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+
+    if (error) {
+      console.warn(
+        `⚠️  RPC error getting time-weighted share for program ${programId}, client ${clientId}:`,
+        error.message
+      );
+      // Fall through to fallback
+    } else if (data !== null && data !== undefined) {
+      // RPC returns percentage (0-100), convert to decimal (0-1)
+      const shareDecimal = parseFloat(data) / 100;
+      if (shareDecimal >= 0 && shareDecimal <= 1) {
+        return shareDecimal;
+      }
+    }
+
+    // Fallback to current share if RPC returns null or no snapshots exist
+    const currentShare = await getCurrentShare(programId, clientId);
+    return currentShare / 100; // Convert from percentage to decimal
+  } catch (error) {
+    console.error(
+      `❌ Error in getShareForDateRange for program ${programId}, client ${clientId}:`,
+      error.message
+    );
+    // Fallback to current share on error
+    const currentShare = await getCurrentShare(programId, clientId);
+    return currentShare / 100;
+  }
+}
 
 /**
  * Fetch all GPS points with pagination (handles >1000 records)
@@ -317,11 +366,7 @@ async function buildZoneCoverageMetrics(
     return {};
   }
 
-  // Calculate Share of Voice if client_id provided
-  let shareOfVoice = {};
-  if (clientId) {
-    shareOfVoice = await getShareOfVoiceForZones(programIds);
-  }
+  // Share of Voice will be calculated per program with date ranges using RPC
 
   try {
     // Pass full timestamps (not just dates) for precise campaign timing
@@ -329,7 +374,7 @@ async function buildZoneCoverageMetrics(
       p_program_ids: programIds,
       p_terminal_ids: terminalIds,
       p_start_date: startDate, // Now accepts full ISO timestamp
-      p_end_date: endDate,     // Now accepts full ISO timestamp
+      p_end_date: endDate, // Now accepts full ISO timestamp
       p_zone_limit: zoneLimit,
     });
 
@@ -458,51 +503,71 @@ async function buildZoneCoverageMetrics(
 
       // Apply share percentage if available
       let sharePercent = 1.0;
-      if (
-        clientId &&
-        shareOfVoice[programId] &&
-        shareOfVoice[programId][clientId]
-      ) {
-        sharePercent = shareOfVoice[programId][clientId];
-        console.log(
-          `📊 [Zone Coverage] Program ${programId}: Applying ${(
-            sharePercent * 100
-          ).toFixed(1)}% share for client ${clientId}`
+      if (clientId) {
+        // Get time-weighted share for this program's date range using RPC
+        sharePercent = await getShareForDateRange(
+          programId,
+          clientId,
+          startDate,
+          endDate
         );
 
-        // Apply share to all time-based metrics
-        entry.total_minutes_in_zones *= sharePercent;
-        entry.total_hours_in_zones *= sharePercent;
-        entry.high_value_exposure_score *= sharePercent;
-
-        // Apply to each zone
-        entry.zones.forEach((zone) => {
-          zone.minutes_spent *= sharePercent;
-          zone.hours_spent *= sharePercent;
-          zone.weighted_exposure *= sharePercent;
-
-          // Apply to time breakdown
-          Object.keys(zone.time_breakdown).forEach((period) => {
-            zone.time_breakdown[period].minutes *= sharePercent;
-            zone.time_breakdown[period].hours *= sharePercent;
-          });
-        });
-
-        // Apply to time zone distribution
-        Object.keys(entry.time_zone_distribution).forEach((period) => {
-          entry.time_zone_distribution[period].minutes *= sharePercent;
-          entry.time_zone_distribution[period].hours *= sharePercent;
-        });
-
-        // Apply to zone type distribution
-        Object.keys(entry.zone_type_distribution).forEach((zoneType) => {
-          entry.zone_type_distribution[zoneType].minutes *= sharePercent;
-          entry.zone_type_distribution[zoneType].hours *= sharePercent;
-        });
-
-        // Add share info to response
-        entry.share_of_voice_percent = Number((sharePercent * 100).toFixed(1));
+        if (sharePercent > 0 && sharePercent <= 1) {
+          console.log(
+            `📊 [Zone Coverage] Program ${programId}: Applying time-weighted ${(
+              sharePercent * 100
+            ).toFixed(
+              1
+            )}% share for client ${clientId} (from ${startDate} to ${endDate})`
+          );
+        } else if (sharePercent === 0) {
+          // Share is 0 - client has no files in the program
+          console.warn(
+            `⚠️  [Zone Coverage] Program ${programId}: Share is 0% for client ${clientId}. ` +
+              `Client has no active files in program - all zone metrics will be 0`
+          );
+          // Keep sharePercent at 0 - this will zero out all zone metrics
+        } else {
+          // Invalid share (negative or > 1)
+          console.error(
+            `❌ [Zone Coverage] Program ${programId}: Invalid share value ${sharePercent}. Using 100% as fallback.`
+          );
+          sharePercent = 1.0;
+        }
       }
+
+      // Apply share to all time-based metrics (always applies, even if sharePercent = 1.0)
+      entry.total_minutes_in_zones *= sharePercent;
+      entry.total_hours_in_zones *= sharePercent;
+      entry.high_value_exposure_score *= sharePercent;
+
+      // Apply to each zone
+      entry.zones.forEach((zone) => {
+        zone.minutes_spent *= sharePercent;
+        zone.hours_spent *= sharePercent;
+        zone.weighted_exposure *= sharePercent;
+
+        // Apply to time breakdown
+        Object.keys(zone.time_breakdown).forEach((period) => {
+          zone.time_breakdown[period].minutes *= sharePercent;
+          zone.time_breakdown[period].hours *= sharePercent;
+        });
+      });
+
+      // Apply to time zone distribution
+      Object.keys(entry.time_zone_distribution).forEach((period) => {
+        entry.time_zone_distribution[period].minutes *= sharePercent;
+        entry.time_zone_distribution[period].hours *= sharePercent;
+      });
+
+      // Apply to zone type distribution
+      Object.keys(entry.zone_type_distribution).forEach((zoneType) => {
+        entry.zone_type_distribution[zoneType].minutes *= sharePercent;
+        entry.zone_type_distribution[zoneType].hours *= sharePercent;
+      });
+
+      // Add share info to response
+      entry.share_of_voice_percent = Number((sharePercent * 100).toFixed(1));
 
       entry.total_zones_visited = entry.zones.length;
       entry.coverage_percentage =

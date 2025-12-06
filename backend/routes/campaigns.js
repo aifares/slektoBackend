@@ -3,13 +3,62 @@ const router = express.Router();
 
 const { supabase } = require("../config/supabase");
 const {
-  getShareOfVoice,
   getCampaignZoneTime,
   computeOverlapMinutes,
 } = require("../services/campaignMetrics");
 const { fetchMediaUrlsByProgramAndClient } = require("../services/media");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
+const { getCurrentShare } = require("../services/shareOfVoiceSnapshots");
+
+/**
+ * Get share of voice for a program and client over a date range
+ * Uses RPC function for efficient time-weighted calculation from snapshots
+ * Falls back to current share if no snapshots exist
+ *
+ * @param {number} programId - Program ID
+ * @param {number} clientId - Client ID
+ * @param {string} startDate - Start date (ISO string)
+ * @param {string} endDate - End date (ISO string)
+ * @returns {Promise<number>} Share percentage as decimal (0-1)
+ */
+async function getShareForDateRange(programId, clientId, startDate, endDate) {
+  try {
+    // Use RPC function for efficient database-side calculation
+    const { data, error } = await supabase.rpc("get_time_weighted_share", {
+      p_program_id: programId,
+      p_client_id: clientId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+
+    if (error) {
+      console.warn(
+        `⚠️  RPC error getting time-weighted share for program ${programId}, client ${clientId}:`,
+        error.message
+      );
+      // Fall through to fallback
+    } else if (data !== null && data !== undefined) {
+      // RPC returns percentage (0-100), convert to decimal (0-1)
+      const shareDecimal = parseFloat(data) / 100;
+      if (shareDecimal >= 0 && shareDecimal <= 1) {
+        return shareDecimal;
+      }
+    }
+
+    // Fallback to current share if RPC returns null or no snapshots exist
+    const currentShare = await getCurrentShare(programId, clientId);
+    return currentShare / 100; // Convert from percentage to decimal
+  } catch (error) {
+    console.error(
+      `❌ Error in getShareForDateRange for program ${programId}, client ${clientId}:`,
+      error.message
+    );
+    // Fallback to current share on error
+    const currentShare = await getCurrentShare(programId, clientId);
+    return currentShare / 100;
+  }
+}
 
 /**
  * GET /campaigns/past
@@ -83,7 +132,10 @@ router.get("/past", async (req, res) => {
       .in("terminalid", terminalIds.length > 0 ? terminalIds : []);
 
     if (terminalsError) {
-      console.warn("Failed to fetch terminal metadata:", terminalsError.message);
+      console.warn(
+        "Failed to fetch terminal metadata:",
+        terminalsError.message
+      );
     }
 
     // 3. Fetch terminal online status from terminal_status_log (if RPC exists)
@@ -101,12 +153,14 @@ router.get("/past", async (req, res) => {
           }
         }
       } catch (error) {
-        console.warn("RPC get_latest_terminal_status not available:", error.message);
+        console.warn(
+          "RPC get_latest_terminal_status not available:",
+          error.message
+        );
       }
     }
 
-    // 4. Fetch share of voice for all programs (single query)
-    const shareOfVoice = await getShareOfVoice(programIds);
+    // Share of voice will be calculated per campaign with date ranges using RPC
 
     // 5. Fetch media URLs for all programs (batch queries)
     const mediaUrlsByProgram = {};
@@ -132,9 +186,31 @@ router.get("/past", async (req, res) => {
     const campaignsWithMetrics = await Promise.all(
       completedCampaigns.map(async (campaign) => {
         const windowStart = campaign.start_at;
-        const windowEnd = campaign.completed_at || campaign.end_at; // Use completed_at for analytics date range
+
+        // Calculate effective end date:
+        // - If campaign has completed_at AND it's before end_at: use completed_at (completed early)
+        // - If campaign has completed_at BUT it's after end_at: use end_at (ran full duration)
+        // - Otherwise: use end_at (campaign ended normally)
+        const now = new Date();
+        const endAt = new Date(campaign.end_at);
+        const completedAt = campaign.completed_at
+          ? new Date(campaign.completed_at)
+          : null;
+
+        let windowEnd;
+        if (completedAt && completedAt < endAt) {
+          // Campaign completed early
+          windowEnd = campaign.completed_at;
+        } else {
+          // Campaign ran full duration or no completed_at
+          windowEnd = campaign.end_at;
+        }
+
         const totalHoursBought = Number(campaign.hours_bought || 0);
-        const totalAllowedMinutes = Math.max(0, Math.floor(totalHoursBought * 60));
+        const totalAllowedMinutes = Math.max(
+          0,
+          Math.floor(totalHoursBought * 60)
+        );
 
         // Filter playing sessions for this campaign's program and date range
         const campaignSessions = (allPlayingSessions || []).filter(
@@ -171,7 +247,8 @@ router.get("/past", async (req, res) => {
         );
 
         if (zoneTimeData && zoneTimeData[campaign.program_id]) {
-          totalMinutesPlayed = zoneTimeData[campaign.program_id].total_minutes_in_zones;
+          totalMinutesPlayed =
+            zoneTimeData[campaign.program_id].total_minutes_in_zones;
         } else {
           // Fallback to playing table calculation
           for (const session of sessionsDuringCampaign) {
@@ -185,11 +262,37 @@ router.get("/past", async (req, res) => {
         }
 
         // Apply Share of Voice if available
-        if (shareOfVoice[campaign.program_id] && client.id) {
-          const clientShare = shareOfVoice[campaign.program_id][client.id];
-          if (clientShare) {
-            sharePercent = clientShare.share_percent;
+        if (client.id) {
+          // Get time-weighted share for this campaign's specific date range using RPC
+          sharePercent = await getShareForDateRange(
+            campaign.program_id,
+            client.id,
+            windowStart,
+            windowEnd
+          );
+
+          if (sharePercent > 0 && sharePercent <= 1) {
             totalMinutesPlayed = totalMinutesPlayed * sharePercent;
+            console.log(
+              `📊 [Past Campaign ${
+                campaign.id
+              }] Time-weighted Share of Voice: ${(sharePercent * 100).toFixed(
+                1
+              )}% (from ${windowStart} to ${windowEnd})`
+            );
+          } else if (sharePercent === 0) {
+            // Share is 0 - client has no files in the program
+            totalMinutesPlayed = 0;
+            console.warn(
+              `⚠️  [Past Campaign ${campaign.id}] Share is 0% for client ${client.id}. ` +
+                `Client has no active files in program - playback time set to 0`
+            );
+          } else {
+            // Invalid share (negative or > 1)
+            console.error(
+              `❌ [Past Campaign ${campaign.id}] Invalid share value ${sharePercent}. Using 100% as fallback.`
+            );
+            sharePercent = 1.0;
           }
         }
 
@@ -214,7 +317,8 @@ router.get("/past", async (req, res) => {
 
         const terminalsOut = terminalsForCampaign.map((terminal) => {
           const playing = playingByTerminalId[terminal.terminalid] || null;
-          const isOnline = latestStatusByTerminal[terminal.terminalid] === "online";
+          const isOnline =
+            latestStatusByTerminal[terminal.terminalid] === "online";
 
           return {
             terminalId: terminal.terminalid,
@@ -244,8 +348,9 @@ router.get("/past", async (req, res) => {
         ).length;
 
         // Get historical terminals for this campaign's program
-        const campaignHistoricalTerminals = allHistoricalTerminals.filter((ht) =>
-          ht.programs_played.some((p) => p.program_id === campaign.program_id)
+        const campaignHistoricalTerminals = allHistoricalTerminals.filter(
+          (ht) =>
+            ht.programs_played.some((p) => p.program_id === campaign.program_id)
         );
 
         // Calculate zone coverage for this campaign
@@ -254,9 +359,7 @@ router.get("/past", async (req, res) => {
           campaignTerminalIds.length > 0
             ? campaignTerminalIds
             : Array.from(
-                new Set(
-                  campaignHistoricalTerminals.map((t) => t.terminal_id)
-                )
+                new Set(campaignHistoricalTerminals.map((t) => t.terminal_id))
               );
 
         // Calculate zone coverage for this campaign - exactly like analytics endpoint
@@ -284,9 +387,9 @@ router.get("/past", async (req, res) => {
         }
 
         // Extract zone coverage for this specific program (handle both string and number keys)
-        const programZoneCoverage = 
-          zoneCoverageResult[campaign.program_id] || 
-          zoneCoverageResult[String(campaign.program_id)] || 
+        const programZoneCoverage =
+          zoneCoverageResult[campaign.program_id] ||
+          zoneCoverageResult[String(campaign.program_id)] ||
           zoneCoverageResult[Number(campaign.program_id)] ||
           {};
 
@@ -344,4 +447,3 @@ router.get("/past", async (req, res) => {
 });
 
 module.exports = router;
-

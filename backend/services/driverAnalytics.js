@@ -120,6 +120,7 @@ async function getDriverZoneTimeBreakdown(driverId, startDate, endDate) {
 
 /**
  * Fallback method for zone time breakdown (direct query)
+ * Uses delta-based calculation between GPS points for accurate zone time
  * @param {number} driverId - Driver ID
  * @param {string} startDate - ISO date string
  * @param {string} endDate - ISO date string
@@ -187,14 +188,16 @@ async function getDriverZoneTimeBreakdownFallback(
       return [];
     }
 
-    // Step 4: For each online session, get GPS data and calculate zone time
+    // Step 4: For each online session, get GPS data and calculate zone time using deltas
     const zoneMap = new Map();
+    let totalSessionSeconds = 0;
 
     for (const log of filteredLogs) {
       const sessionStart = new Date(log.status_changed_at);
       const sessionEnd = new Date(
         sessionStart.getTime() + log.duration_seconds * 1000
       );
+      totalSessionSeconds += log.duration_seconds;
 
       // Get GPS data during this online session
       const { data: gpsData, error: gpsError } = await supabase
@@ -210,20 +213,48 @@ async function getDriverZoneTimeBreakdownFallback(
         continue; // Skip this session if no GPS data
       }
 
-      // Calculate time in each zone based on GPS points
-      // Assume time is evenly distributed between GPS points
-      const avgTimePerPoint = log.duration_seconds / (gpsData.length + 1);
+      // Calculate time in each zone using delta between consecutive GPS points
+      // This is more accurate than averaging, especially with variable GPS intervals
+      for (let i = 0; i < gpsData.length; i++) {
+        const currentPoint = gpsData[i];
+        const currentTime = new Date(currentPoint.recorded_at);
 
-      for (const gpsPoint of gpsData) {
-        if (!zoneMap.has(gpsPoint.zone_id)) {
-          zoneMap.set(gpsPoint.zone_id, {
-            zone_id: gpsPoint.zone_id,
+        // Determine the end time for this GPS point's zone
+        let deltaEndTime;
+        if (i < gpsData.length - 1) {
+          // Use the next GPS point's timestamp
+          deltaEndTime = new Date(gpsData[i + 1].recorded_at);
+        } else {
+          // Last GPS point - use session end time
+          deltaEndTime = sessionEnd;
+        }
+
+        // Calculate delta in seconds
+        let deltaSeconds = (deltaEndTime - currentTime) / 1000;
+
+        // Cap delta to prevent unreasonable values (max 10 minutes between points)
+        // This handles cases where GPS had gaps
+        const MAX_DELTA_SECONDS = 600; // 10 minutes
+        if (deltaSeconds > MAX_DELTA_SECONDS) {
+          deltaSeconds = MAX_DELTA_SECONDS;
+        }
+
+        // Ensure non-negative
+        if (deltaSeconds < 0) {
+          deltaSeconds = 0;
+        }
+
+        // Initialize zone in map if needed
+        if (!zoneMap.has(currentPoint.zone_id)) {
+          zoneMap.set(currentPoint.zone_id, {
+            zone_id: currentPoint.zone_id,
             online_seconds: 0,
             gps_points: 0,
           });
         }
-        const zoneData = zoneMap.get(gpsPoint.zone_id);
-        zoneData.online_seconds += avgTimePerPoint;
+
+        const zoneData = zoneMap.get(currentPoint.zone_id);
+        zoneData.online_seconds += deltaSeconds;
         zoneData.gps_points += 1;
       }
     }
@@ -232,7 +263,25 @@ async function getDriverZoneTimeBreakdownFallback(
       return [];
     }
 
-    // Step 5: Get zone info
+    // Step 5: Normalize zone times to not exceed total session time
+    const totalZoneSeconds = Array.from(zoneMap.values()).reduce(
+      (sum, z) => sum + z.online_seconds,
+      0
+    );
+
+    if (totalZoneSeconds > totalSessionSeconds && totalZoneSeconds > 0) {
+      const ratio = totalSessionSeconds / totalZoneSeconds;
+      console.log(
+        `⚠️ Zone time (${totalZoneSeconds}s) exceeded session time (${totalSessionSeconds}s), normalizing by ratio ${ratio.toFixed(
+          3
+        )}`
+      );
+      zoneMap.forEach((zoneData) => {
+        zoneData.online_seconds = zoneData.online_seconds * ratio;
+      });
+    }
+
+    // Step 6: Get zone info
     const zoneIds = Array.from(zoneMap.keys());
     const { data: zones, error: zoneError } = await supabase
       .from("nyc_zones")
@@ -243,7 +292,7 @@ async function getDriverZoneTimeBreakdownFallback(
       throw new Error(`Failed to fetch zones: ${zoneError.message}`);
     }
 
-    // Step 6: Build final results
+    // Step 7: Build final results
     const results = Array.from(zoneMap.entries()).map(([zoneId, zoneData]) => {
       const zone = zones.find((z) => z.id === zoneId);
       return {

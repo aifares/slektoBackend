@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { supabase } = require("../config/supabase");
 const { PROGRAMS_AUTH_HEADER } = require("../utils");
+const { createSnapshotForProgram } = require("./shareOfVoiceSnapshots");
 
 /**
  * Media Sync Service
@@ -321,6 +322,7 @@ async function upsertFilesMetadata(files) {
 
       if (existingFileMap[file.name]) {
         // Existing file - update metadata including program_id from ColorLight
+        // Clear removed_at since the file is back in ColorLight (re-activated)
         toUpdate.push({
           id: existingFileMap[file.name],
           media_id: file.media_id,
@@ -334,6 +336,7 @@ async function upsertFilesMetadata(files) {
           media_width: file.media_width,
           media_height: file.media_height,
           last_synced_at: file.last_synced_at,
+          removed_at: null, // Clear removed_at - file is active in ColorLight
         });
       } else {
         // New file - insert with metadata including program_id from ColorLight
@@ -362,6 +365,7 @@ async function upsertFilesMetadata(files) {
     let updateCount = 0;
     let insertCount = 0;
     let failCount = 0;
+    const failedFiles = [];
 
     // Handle updates
     if (toUpdate.length > 0) {
@@ -377,6 +381,11 @@ async function upsertFilesMetadata(files) {
             updateError.message
           );
           failCount++;
+          failedFiles.push({
+            id: file.id,
+            media_id: file.media_id,
+            error: updateError.message,
+          });
         } else {
           updateCount++;
         }
@@ -393,6 +402,11 @@ async function upsertFilesMetadata(files) {
       if (insertError) {
         console.error(`❌ Error inserting files:`, insertError.message);
         failCount += toInsert.length;
+        failedFiles.push({
+          operation: "bulk_insert",
+          count: toInsert.length,
+          error: insertError.message,
+        });
       } else {
         insertCount = inserted?.length || 0;
         console.log(
@@ -404,7 +418,12 @@ async function upsertFilesMetadata(files) {
     console.log(
       `✅ Updated: ${updateCount}, Inserted: ${insertCount}, Failed: ${failCount}`
     );
-    return { inserted: insertCount, updated: updateCount, failed: failCount };
+    return {
+      inserted: insertCount,
+      updated: updateCount,
+      failed: failCount,
+      failedFiles,
+    };
   } catch (error) {
     console.error(`❌ Upsert exception:`, error.message);
     return {
@@ -517,6 +536,11 @@ async function syncMediaFromColorLight() {
       if (batchResult.error) {
         results.errors.push(batchResult.error);
       }
+
+      // Add failed file details to errors
+      if (batchResult.failedFiles && batchResult.failedFiles.length > 0) {
+        results.errors.push(...batchResult.failedFiles);
+      }
     }
 
     results.upsert_results = {
@@ -524,6 +548,42 @@ async function syncMediaFromColorLight() {
       updated: totalUpdated,
       failed: totalFailed,
     };
+
+    // Step 4.5: Create instant snapshots for affected programs
+    // Only snapshot programs where files have valid program_id AND client_id
+    const programsToSnapshot = new Set();
+    deduplicatedFiles.forEach((file) => {
+      if (file.program_id && file.client_id) {
+        programsToSnapshot.add(file.program_id);
+      }
+    });
+
+    if (programsToSnapshot.size > 0) {
+      console.log(
+        `\n📸 Creating instant snapshots for ${programsToSnapshot.size} affected programs...`
+      );
+
+      let snapshotsCreated = 0;
+      for (const programId of programsToSnapshot) {
+        try {
+          const snapshotResult = await createSnapshotForProgram(programId);
+          if (snapshotResult.success) {
+            snapshotsCreated += snapshotResult.snapshots_created;
+          }
+        } catch (error) {
+          console.warn(
+            `⚠️  Failed to create snapshot for program ${programId}:`,
+            error.message
+          );
+        }
+      }
+
+      console.log(
+        `✅ Created ${snapshotsCreated} instant snapshots for ${programsToSnapshot.size} programs`
+      );
+      results.instant_snapshots_created = snapshotsCreated;
+      results.programs_snapshotted = programsToSnapshot.size;
+    }
 
     // Step 5: Identify and handle files that are no longer in ColorLight
     console.log(`\n🔍 Checking for files no longer in ColorLight...`);

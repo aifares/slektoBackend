@@ -13,6 +13,18 @@ CREATE TABLE IF NOT EXISTS drivers (
   phone TEXT,                                 -- contact number
   email TEXT,                                 -- optional
   license_number TEXT,                        -- optional: driver's license/ID
+  address TEXT,                               -- driver's address
+  city TEXT,                                  -- driver's city
+  state TEXT,                                 -- driver's state
+  date_of_birth DATE,                         -- driver's date of birth
+  daily_hours NUMERIC,                        -- expected daily hours
+  weekly_hours NUMERIC,                       -- expected weekly hours
+  submission_date DATE,                       -- when application was submitted
+  submission_time TIME,                       -- time of submission
+  ip_address TEXT,                            -- IP address at submission
+  terms_accepted BOOLEAN DEFAULT FALSE,       -- whether terms were accepted
+  terms_accepted_at TIMESTAMPTZ,              -- when terms were accepted
+  status TEXT DEFAULT 'pending',              -- driver status (pending, active, etc.)
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -40,20 +52,33 @@ CREATE TABLE IF NOT EXISTS terminals (
 CREATE TABLE IF NOT EXISTS programs (
   id BIGINT PRIMARY KEY,                      -- program.id
   name TEXT,                                  -- program.name
-  terminal_id TEXT REFERENCES terminals(terminalid),  -- link back to terminal
-  download_status_time TIMESTAMPTZ,           -- program.downloadstatustime
-  files JSONB                                 -- program.files[] stored as JSON
+  thumbnail_url TEXT,                         -- program thumbnail URL
+  modified TIMESTAMPTZ,                       -- last modified timestamp
+  created TIMESTAMPTZ,                        -- creation timestamp
+  status TEXT,                                -- program status
+  author_id BIGINT                            -- author ID
 );
 
--- 4. Files (optional per-file tracking)
+-- 4. Files (per-file tracking with media metadata)
 CREATE TABLE IF NOT EXISTS files (
-  program_id BIGINT REFERENCES programs(id),
-  name TEXT,                                  -- file.name
+  id BIGSERIAL PRIMARY KEY,
+  program_id BIGINT,                          -- references programs.id
+  name TEXT NOT NULL,                         -- file.name
   size BIGINT,                                -- file.size
   downloaded BIGINT,                          -- file.downloaded
   type TEXT,                                  -- file.type
   created_at TIMESTAMPTZ,                     -- file.createtime
-  PRIMARY KEY (program_id, name)
+  client_id BIGINT,                           -- references client.id
+  media_id BIGINT,                            -- external media ID
+  source_url TEXT,                            -- original media URL
+  title TEXT,                                 -- media title
+  custom_tags JSONB,                          -- custom metadata tags
+  mime_type TEXT,                             -- MIME type of the file
+  file_size_bytes BIGINT,                     -- file size in bytes
+  media_width INTEGER,                        -- media width in pixels
+  media_height INTEGER,                       -- media height in pixels
+  last_synced_at TIMESTAMPTZ,                 -- last sync timestamp
+  removed_at TIMESTAMPTZ                      -- soft delete timestamp
 );
 
 -- 5. Playing & Recently Played
@@ -64,7 +89,7 @@ CREATE TABLE IF NOT EXISTS playing (
   program_name TEXT,                          -- extracted program name for easy querying
   file_name TEXT,                             -- playing.filename
   source TEXT,                                -- playing.source
-  status TEXT DEFAULT 'current' CHECK (status IN ('current', 'completed', 'stopped')), -- playback status
+  status TEXT DEFAULT 'current',              -- playback status (current, completed, stopped)
   started_at TIMESTAMPTZ DEFAULT NOW(),       -- derived from rtc.time
   ended_at TIMESTAMPTZ,                       -- when playback ended
   duration_seconds INTEGER                     -- calculated duration (ended_at - started_at)
@@ -107,7 +132,7 @@ CREATE TABLE IF NOT EXISTS connectivity (
 CREATE TABLE IF NOT EXISTS terminal_status_log (
   id BIGSERIAL PRIMARY KEY,
   terminal_id TEXT REFERENCES terminals(terminalid),
-  status TEXT NOT NULL CHECK (status IN ('online', 'offline')),
+  status TEXT NOT NULL,                       -- online, offline
   status_changed_at TIMESTAMPTZ NOT NULL,
   duration_seconds INTEGER,                   -- Duration of previous status
   power_status TEXT,                          -- 'on' or 'off' from terminal
@@ -128,13 +153,7 @@ CREATE TABLE IF NOT EXISTS terminal_driver_assignments (
   assigned_by UUID,                          -- Who made the assignment (from auth.users.id)
   unassigned_by UUID,                        -- Who unassigned (if applicable)
   notes TEXT,                                -- Optional: reason for assignment/swap
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  -- Ensure logical time ordering
-  CONSTRAINT check_assignment_times CHECK (
-    assigned_at IS NOT NULL AND 
-    (unassigned_at IS NULL OR unassigned_at > assigned_at)
-  )
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 9. NYC Zones (geographic zones for analytics)
@@ -142,7 +161,7 @@ CREATE TABLE IF NOT EXISTS nyc_zones (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   display_name TEXT NOT NULL,
-  zone_type TEXT NOT NULL CHECK (zone_type IN ('tourist', 'shopping', 'residential', 'mixed')),
+  zone_type TEXT NOT NULL,                    -- tourist, shopping, residential, mixed
   min_latitude DOUBLE PRECISION NOT NULL,
   max_latitude DOUBLE PRECISION NOT NULL,
   min_longitude DOUBLE PRECISION NOT NULL,
@@ -164,11 +183,12 @@ CREATE TABLE IF NOT EXISTS terminal_gps_data (
   latitude DOUBLE PRECISION NOT NULL,
   recorded_at TIMESTAMPTZ,                    -- Actual GPS recording time from terminal
   inserted_at TIMESTAMPTZ DEFAULT NOW(),      -- When data was imported to database
-  zone_id BIGINT REFERENCES nyc_zones(id),   -- References nyc_zones.id, detected during polling
-  impressions INTEGER,                         -- Number of impressions at this GPS point
-  quality_weighted_impressions DOUBLE PRECISION -- Quality-weighted impression count
+  zone_id INTEGER REFERENCES nyc_zones(id),   -- References nyc_zones.id, detected during polling
+  impressions INTEGER DEFAULT 0,              -- Number of impressions at this GPS point
+  quality_weighted_impressions DOUBLE PRECISION DEFAULT 0 -- Quality-weighted impression count
 );
 
+-- 11. Client (users/customers)
 CREATE TABLE IF NOT EXISTS client (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
@@ -178,7 +198,7 @@ CREATE TABLE IF NOT EXISTS client (
   email_verified BOOLEAN DEFAULT FALSE,
   last_login_at TIMESTAMPTZ,
   -- Account and access control
-  account_status TEXT NOT NULL DEFAULT 'active' CHECK (account_status IN ('active','suspended','deleted')),
+  account_status TEXT NOT NULL DEFAULT 'active', -- active, suspended, deleted
   role TEXT NOT NULL DEFAULT 'user',
   permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
   subscription_tier TEXT NOT NULL DEFAULT 'free',
@@ -190,17 +210,36 @@ CREATE TABLE IF NOT EXISTS client (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. Campaigns (each row represents a single campaign)
+-- 12. Campaigns (each row represents a single campaign)
 CREATE TABLE IF NOT EXISTS campaign (
   id BIGSERIAL PRIMARY KEY,
   client_id BIGINT REFERENCES client(id) ON DELETE CASCADE,
   program_id BIGINT REFERENCES programs(id),
-  hours_bought NUMERIC(10,2) NOT NULL CHECK (hours_bought >= 0),
+  hours_bought NUMERIC NOT NULL,
   start_at TIMESTAMPTZ NOT NULL,
   end_at TIMESTAMPTZ NOT NULL,
-  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'active', 'paused', 'completed', 'cancelled')),
+  status TEXT NOT NULL DEFAULT 'planned',     -- planned, active, paused, completed, cancelled
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  CHECK (start_at <= end_at)
+  completed_at TIMESTAMPTZ                    -- when campaign was completed
+);
+
+-- 13. Job Locks (for distributed job coordination)
+CREATE TABLE IF NOT EXISTS job_locks (
+  job_name TEXT PRIMARY KEY,
+  acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  machine_id TEXT NOT NULL
+);
+
+-- 14. Share of Voice Snapshots (daily tracking of client's share in programs)
+CREATE TABLE IF NOT EXISTS share_of_voice_snapshots (
+  id BIGSERIAL PRIMARY KEY,
+  program_id BIGINT NOT NULL,
+  client_id BIGINT NOT NULL,
+  file_count INTEGER NOT NULL DEFAULT 0,
+  total_files_in_program INTEGER NOT NULL DEFAULT 0,
+  share_percent NUMERIC NOT NULL DEFAULT 0.00,
+  snapshot_date DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==========================================================
@@ -213,10 +252,12 @@ CREATE INDEX IF NOT EXISTS idx_terminals_group_id ON terminals(group_id);
 CREATE INDEX IF NOT EXISTS idx_terminals_last_report_time ON terminals(last_report_time);
 
 -- Indexes for programs
-CREATE INDEX IF NOT EXISTS idx_programs_terminal_id ON programs(terminal_id);
+CREATE INDEX IF NOT EXISTS idx_programs_author_id ON programs(author_id);
 
--- Indexes for files (primary key already provides index on program_id, name)
--- CREATE INDEX IF NOT EXISTS idx_files_program_id ON files(program_id); -- Not needed with composite PK
+-- Indexes for files
+CREATE INDEX IF NOT EXISTS idx_files_program_id ON files(program_id);
+CREATE INDEX IF NOT EXISTS idx_files_client_id ON files(client_id);
+CREATE INDEX IF NOT EXISTS idx_files_media_id ON files(media_id);
 
 -- Indexes for playing
 CREATE INDEX IF NOT EXISTS idx_playing_terminal_id ON playing(terminal_id);
@@ -224,6 +265,7 @@ CREATE INDEX IF NOT EXISTS idx_playing_started_at ON playing(started_at);
 CREATE INDEX IF NOT EXISTS idx_playing_status ON playing(status);
 CREATE INDEX IF NOT EXISTS idx_playing_terminal_status ON playing(terminal_id, status); -- composite for efficient queries
 CREATE INDEX IF NOT EXISTS idx_playing_program_name ON playing(program_name); -- for program analytics
+CREATE INDEX IF NOT EXISTS idx_playing_program_id ON playing(program_id);
 
 -- Indexes for device_status (terminal_id already indexed as PRIMARY KEY)
 CREATE INDEX IF NOT EXISTS idx_device_status_report_time ON device_status(report_time);
@@ -261,15 +303,27 @@ CREATE INDEX IF NOT EXISTS idx_nyc_zones_borough_code ON nyc_zones(borough_code)
 -- GIST index for PostGIS geography boundary column
 CREATE INDEX IF NOT EXISTS idx_nyc_zones_boundary ON nyc_zones USING GIST(boundary);
 
--- Indexes for client and campaign
+-- Indexes for client
 CREATE INDEX IF NOT EXISTS idx_client_name ON client(name);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_client_user_id ON client(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_client_email ON client(email);
 CREATE INDEX IF NOT EXISTS idx_client_account_status ON client(account_status);
+
+-- Indexes for campaign
 CREATE INDEX IF NOT EXISTS idx_campaign_client_id ON campaign(client_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_program_id ON campaign(program_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_status ON campaign(status);
 CREATE INDEX IF NOT EXISTS idx_campaign_date_range ON campaign(start_at, end_at);
+
+-- Indexes for share_of_voice_snapshots
+CREATE INDEX IF NOT EXISTS idx_sov_program_id ON share_of_voice_snapshots(program_id);
+CREATE INDEX IF NOT EXISTS idx_sov_client_id ON share_of_voice_snapshots(client_id);
+CREATE INDEX IF NOT EXISTS idx_sov_snapshot_date ON share_of_voice_snapshots(snapshot_date);
+CREATE INDEX IF NOT EXISTS idx_sov_program_client_date ON share_of_voice_snapshots(program_id, client_id, snapshot_date);
+
+-- Indexes for drivers
+CREATE INDEX IF NOT EXISTS idx_drivers_status ON drivers(status);
+CREATE INDEX IF NOT EXISTS idx_drivers_email ON drivers(email);
 
 -- ==========================================================
 -- 📑 Row Level Security (RLS) - Optional
@@ -289,20 +343,11 @@ CREATE INDEX IF NOT EXISTS idx_campaign_date_range ON campaign(start_at, end_at)
 -- CREATE POLICY "Enable insert for authenticated users only" ON terminals FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 -- ==========================================================
--- 📑 Sample Data (Optional)
--- ==========================================================
-
--- Insert a sample driver
-INSERT INTO drivers (name, phone, email, license_number) 
-VALUES ('John Doe', '+1234567890', 'john.doe@example.com', 'DL123456789')
-ON CONFLICT DO NOTHING;
-
--- ==========================================================
 -- 📑 Mapping Guide for JSON → DB Inserts
 -- ==========================================================
 -- drivers:
 --   Not present in JSON; assign manually in app or join from external HR/ops system
---   fields: name, phone, email, license_number
+--   fields: name, phone, email, license_number, address, city, state, etc.
 --
 -- terminals:
 --   terminal.* (terminalid=serialno, name, description, authorid, authordisplayname,
@@ -313,11 +358,11 @@ ON CONFLICT DO NOTHING;
 --   driver_id → foreign key to drivers
 --
 -- programs:
---   program.id, program.name, program.downloadstatustime, program.files[]
---   link via terminal_id
+--   program.id, program.name, thumbnail_url, modified, created, status, author_id
 --
 -- files:
 --   from program.files[] (name, size, downloaded, type, createtime)
+--   plus media metadata: client_id, media_id, source_url, title, custom_tags, etc.
 --
 -- playing:
 --   playing.programid, playing.filename, playing.source

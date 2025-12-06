@@ -22,12 +22,12 @@ const {
  *   "program_id": 2620340,
  *   "hours_bought": 0.0833,  // 5 minutes
  *   "start_at": "2025-11-25T20:00:00Z",  // Optional, defaults to NOW
- *   "end_at": "2025-12-02T20:00:00Z",    // Optional, calculated from start_at + hours_bought if not provided
+ *   "end_at": "2025-12-02T20:00:00Z",    // Optional, defaults to 1 year from start_at
  *   "status": "active"  // Optional, defaults to "active"
  * }
  *
- * Note: If end_at is not provided, it will be calculated as start_at + hours_bought hours.
- *       If neither end_at nor hours_bought is provided, defaults to 1 week from start.
+ * Note: If end_at is not provided, it defaults to 1 year from start_at.
+ *       Campaign completion is tracked via hours_bought and completed_at timestamp.
  */
 router.post("/campaigns/create", async (req, res) => {
   try {
@@ -48,24 +48,18 @@ router.post("/campaigns/create", async (req, res) => {
       ? new Date(start_at).toISOString()
       : new Date().toISOString();
 
-    // Calculate end_at based on start_at and hours_bought if end_at is not provided
-    // This ensures start_at <= end_at even when start_at is in the future
+    // Calculate end_at: if not provided, default to 1 year in the future
+    // This allows campaigns to run until hours_bought is reached (tracked via completed_at)
     let endTime;
     if (end_at) {
       // Use explicitly provided end_at
       endTime = new Date(end_at).toISOString();
-    } else if (hours_bought) {
-      // Calculate end_at by adding hours_bought to start_at
-      const startDate = new Date(startTime);
-      const endDate = new Date(
-        startDate.getTime() + hours_bought * 60 * 60 * 1000
-      );
-      endTime = endDate.toISOString();
     } else {
-      // Default to 7 days from start if neither end_at nor hours_bought provided
-      endTime = new Date(
-        new Date(startTime).getTime() + 7 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      // Default to 1 year from start - campaign completion is tracked by hours_bought and completed_at
+      const startDate = new Date(startTime);
+      const oneYearLater = new Date(startDate);
+      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+      endTime = oneYearLater.toISOString();
     }
     const campaignStatus = status || "active";
 

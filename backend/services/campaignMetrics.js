@@ -1,9 +1,61 @@
 const { supabase } = require("../config/supabase");
 const { fetchMediaUrlsByProgramAndClient } = require("./media");
-const {
-  getTimeWeightedShare,
-  getCurrentShare,
-} = require("./shareOfVoiceSnapshots");
+const { getCurrentShare } = require("./shareOfVoiceSnapshots");
+
+/**
+ * Get share of voice for a program and client over a date range
+ * Uses RPC function for efficient time-weighted calculation from snapshots
+ * Falls back to current share if no snapshots exist
+ *
+ * @param {number} programId - Program ID
+ * @param {number} clientId - Client ID
+ * @param {string} startDate - Start date (ISO string)
+ * @param {string} endDate - End date (ISO string)
+ * @returns {Promise<number>} Share percentage as decimal (0-1)
+ */
+async function getShareForDateRange(programId, clientId, startDate, endDate) {
+  try {
+    // Use RPC function for efficient database-side calculation
+    const { data, error } = await supabase.rpc("get_time_weighted_share", {
+      p_program_id: programId,
+      p_client_id: clientId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+
+    if (error) {
+      console.warn(
+        `⚠️  RPC error getting time-weighted share for program ${programId}, client ${clientId}:`,
+        error.message
+      );
+      // Fall through to fallback
+    } else if (data !== null && data !== undefined) {
+      // RPC returns percentage (0-100), convert to decimal (0-1)
+      const shareDecimal = parseFloat(data) / 100;
+      if (shareDecimal >= 0 && shareDecimal <= 1) {
+        console.log(
+          `📊 [RPC] Time-weighted share for program ${programId}, client ${clientId}: ${data}%`
+        );
+        return shareDecimal;
+      }
+    }
+
+    // Fallback to current share if RPC returns null or no snapshots exist
+    console.log(
+      `ℹ️  No snapshots found for program ${programId}, client ${clientId} - using current share`
+    );
+    const currentShare = await getCurrentShare(programId, clientId);
+    return currentShare / 100; // Convert from percentage to decimal
+  } catch (error) {
+    console.error(
+      `❌ Error in getShareForDateRange for program ${programId}, client ${clientId}:`,
+      error.message
+    );
+    // Fallback to current share on error
+    const currentShare = await getCurrentShare(programId, clientId);
+    return currentShare / 100;
+  }
+}
 
 function computeOverlapMinutes(
   sessionStartIso,
@@ -151,8 +203,6 @@ async function buildCampaignPlaybackMetrics(
     return playbackMetricsByProgram;
   }
 
-  // Calculate Share of Voice for all programs (single batch query)
-  const shareOfVoice = await getShareOfVoice(programIds);
   const now = new Date();
 
   // Process each campaign individually to calculate metrics per campaign
@@ -162,20 +212,33 @@ async function buildCampaignPlaybackMetrics(
     const windowStart = campaign.start_at;
 
     // Calculate effective end date:
-    // - If campaign is completed: use completed_at
-    // - If campaign is active (completed_at is null): use now
+    // - If campaign has completed_at AND it's before end_at: use completed_at (completed early)
+    // - If campaign has completed_at BUT it's after end_at: use end_at (ran full duration)
+    // - If no completed_at but past end_at: use end_at (should have ended)
+    // - If no completed_at and before end_at: use now (still active)
     let windowEnd;
-    if (campaign.completed_at) {
-      // Campaign is completed - only count time up to completion
+    const endAt = new Date(campaign.end_at);
+    const completedAt = campaign.completed_at
+      ? new Date(campaign.completed_at)
+      : null;
+
+    if (completedAt && completedAt < endAt) {
+      // Campaign completed early - use completed_at
       windowEnd = campaign.completed_at;
       console.log(
-        `📅 [Campaign ${campaignId}] Using completed_at as end date: ${windowEnd}`
+        `📅 [Campaign ${campaignId}] Completed early, using completed_at: ${windowEnd}`
+      );
+    } else if (endAt <= now) {
+      // Campaign has reached or passed its end date - use end_at
+      windowEnd = campaign.end_at;
+      console.log(
+        `📅 [Campaign ${campaignId}] Past end date, using end_at: ${windowEnd}`
       );
     } else {
-      // Campaign is active (completed_at is null) - use now
+      // Campaign is still active - use now
       windowEnd = now.toISOString();
       console.log(
-        `📅 [Campaign ${campaignId}] Campaign is active, using now as end date: ${windowEnd}`
+        `📅 [Campaign ${campaignId}] Still active, using now: ${windowEnd}`
       );
     }
 
@@ -245,29 +308,46 @@ async function buildCampaignPlaybackMetrics(
     // Use the clientId parameter (from auth) or fall back to campaign.client_id
     const effectiveClientId = clientId || campaign.client_id;
 
-    if (shareOfVoice[programId] && effectiveClientId) {
-      const clientShare = shareOfVoice[programId][effectiveClientId];
-      if (clientShare) {
-        sharePercent = clientShare.share_percent;
+    if (effectiveClientId) {
+      // Get time-weighted share for this campaign's specific date range using RPC
+      sharePercent = await getShareForDateRange(
+        programId,
+        effectiveClientId,
+        windowStart,
+        windowEnd
+      );
+
+      if (sharePercent > 0 && sharePercent <= 1) {
+        // Valid share - apply it to playback time
         totalMinutesPlayed = totalMinutesPlayed * sharePercent;
         console.log(
-          `📊 [Campaign ${campaignId}] Share of Voice: ${(
+          `📊 [Campaign ${campaignId}] Time-weighted Share of Voice: ${(
             sharePercent * 100
-          ).toFixed(1)}% ` +
-            `(${clientShare.file_count}/${clientShare.total_files} files)`
+          ).toFixed(1)}% (from ${windowStart} to ${windowEnd})`
         );
         console.log(
           `   Client's adjusted time: ${totalMinutesPlayed.toFixed(2)} minutes`
         );
-      } else {
+      } else if (sharePercent === 0) {
+        // Share is 0 - client has no files in the program
+        // This could mean: files were removed, or campaign was never allocated files
+        // Set playback time to 0 - they haven't earned any time
+        totalMinutesPlayed = 0;
         console.warn(
-          `⚠️  [Campaign ${campaignId}] No share data found for client ${effectiveClientId}. ` +
-            `Using 100% (may be incorrect if program is shared)`
+          `⚠️  [Campaign ${campaignId}] Share is 0% for client ${effectiveClientId}. ` +
+            `Client has no active files in program - playback time set to 0`
         );
+      } else {
+        // Invalid share (negative or > 1) - this shouldn't happen, log error but continue
+        console.error(
+          `❌ [Campaign ${campaignId}] Invalid share value ${sharePercent} for client ${effectiveClientId}. ` +
+            `This is unexpected - check share calculation. Using 100% as fallback.`
+        );
+        sharePercent = 1.0;
       }
     } else {
       console.log(
-        `ℹ️  [Campaign ${campaignId}] No share of voice calculation (single client or no client_id)`
+        `ℹ️  [Campaign ${campaignId}] No share of voice calculation (no client_id)`
       );
     }
 

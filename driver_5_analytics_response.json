@@ -1,0 +1,4 @@
+{
+    "error": "Invalid Supabase access token",
+    "details": "invalid JWT: unable to parse or verify signature, token has invalid claims: token is expired"
+}

@@ -1,8 +1,10 @@
 const { supabase } = require("../config/supabase");
-const { createShareOfVoiceSnapshot } = require("./shareOfVoiceSnapshots");
+const { createSnapshotForProgram } = require("./shareOfVoiceSnapshots");
 
 /**
  * Check for campaigns that have reached 100% completion
+ * Each campaign is checked individually with its own client_id to ensure
+ * share of voice is applied correctly per campaign
  * @returns {Promise<Array>} List of completed campaigns
  */
 async function checkForCompletedCampaigns() {
@@ -24,16 +26,11 @@ async function checkForCompletedCampaigns() {
       return [];
     }
 
-    // Calculate completion for each and find those at 100%+
-    const { buildCampaignPlaybackMetrics } = require("./campaignMetrics");
+    console.log(
+      `🔍 Checking ${campaigns.length} active campaigns for completion...`
+    );
 
-    const campaignsWithStatus = campaigns.map((c) => {
-      const now = new Date();
-      return {
-        ...c,
-        isActive: new Date(c.start_at) <= now && new Date(c.end_at) >= now,
-      };
-    });
+    const { buildCampaignPlaybackMetrics } = require("./campaignMetrics");
 
     const programIds = [...new Set(campaigns.map((c) => c.program_id))];
 
@@ -47,45 +44,72 @@ async function checkForCompletedCampaigns() {
       ? [...new Set(sessions.map((s) => s.terminal_id))]
       : null;
 
-    // Calculate metrics for all campaigns
-    const metrics = await buildCampaignPlaybackMetrics(
-      campaignsWithStatus,
-      programIds,
-      terminalIds,
-      null // No client filter - need metrics for all campaigns
-    );
-
     // Find campaigns at 100%+
     const completedCampaigns = [];
 
-    // Use campaign-level metrics if available (for accurate per-campaign calculations)
-    const campaignMetrics = metrics._byCampaign || {};
-
+    // Process each campaign INDIVIDUALLY to ensure correct share of voice per campaign
     for (const campaign of campaigns) {
-      // Try campaign-level metrics first (more accurate for multiple campaigns per program)
-      let campaignMetricsData = campaignMetrics[campaign.id];
+      const now = new Date();
+      const campaignWithStatus = {
+        ...campaign,
+        isActive:
+          new Date(campaign.start_at) <= now &&
+          new Date(campaign.end_at) >= now,
+      };
 
-      // Fallback to program-level metrics for backward compatibility
+      console.log(
+        `\n📊 Checking campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}, Hours bought: ${campaign.hours_bought})...`
+      );
+
+      // Calculate metrics for THIS SPECIFIC campaign with its client_id
+      // This ensures share of voice is calculated for THIS client only
+      const metrics = await buildCampaignPlaybackMetrics(
+        [campaignWithStatus], // Single campaign
+        [campaign.program_id], // Single program
+        terminalIds,
+        campaign.client_id // IMPORTANT: Pass the campaign's client_id for accurate share calculation
+      );
+
+      // Get campaign-specific metrics
+      const campaignMetrics = metrics._byCampaign || {};
+      const campaignMetricsData =
+        campaignMetrics[campaign.id] || metrics[campaign.program_id];
+
       if (!campaignMetricsData) {
-        campaignMetricsData = metrics[campaign.program_id];
+        console.warn(`⚠️  No metrics found for campaign ${campaign.id}`);
+        continue;
       }
 
-      if (
-        campaignMetricsData &&
-        campaignMetricsData.campaign_completion_percent >= 100
-      ) {
+      console.log(
+        `   Hours played: ${campaignMetricsData.hours_played_since_campaign_start} / ${campaign.hours_bought} (${campaignMetricsData.campaign_completion_percent}%)`
+      );
+      console.log(
+        `   Share of Voice: ${
+          campaignMetricsData.share_of_voice_percent || 100
+        }%`
+      );
+
+      if (campaignMetricsData.campaign_completion_percent >= 100) {
         completedCampaigns.push({
           ...campaign,
           completion_percent: campaignMetricsData.campaign_completion_percent,
           hours_played: campaignMetricsData.hours_played_since_campaign_start,
+          share_of_voice: campaignMetricsData.share_of_voice_percent,
         });
 
         console.log(
-          `🎯 Campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}) is complete: ${campaignMetricsData.campaign_completion_percent}% (hours_bought: ${campaign.hours_bought}, hours_played: ${campaignMetricsData.hours_played_since_campaign_start})`
+          `🎯 Campaign ${campaign.id} is COMPLETE: ${campaignMetricsData.campaign_completion_percent}%`
+        );
+      } else {
+        console.log(
+          `   Campaign ${campaign.id} is NOT complete yet (${campaignMetricsData.campaign_completion_percent}%)`
         );
       }
     }
 
+    console.log(
+      `\n✅ Found ${completedCampaigns.length} campaigns ready for completion`
+    );
     return completedCampaigns;
   } catch (error) {
     console.error("Error checking for completed campaigns:", error.message);
@@ -181,15 +205,17 @@ async function completeCampaign(campaignId) {
       });
     }
 
-    // Step 4: Create immediate snapshot to capture the state change
-    console.log("📸 Creating immediate snapshot to capture completion...");
-    const today = new Date();
-    const snapshotResult = await createShareOfVoiceSnapshot(today);
+    // Step 4: Create immediate snapshot for THIS program to capture the state change
+    // After files are removed, remaining clients will have updated share percentages
+    console.log(
+      `📸 Creating snapshot for program ${campaign.program_id} to capture new share distribution...`
+    );
+    const snapshotResult = await createSnapshotForProgram(campaign.program_id);
 
     if (snapshotResult && snapshotResult.success) {
       results.snapshot_created = true;
       console.log(
-        `✅ Immediate snapshot created: ${snapshotResult.snapshots_created} snapshots`
+        `✅ Snapshot created: ${snapshotResult.snapshots_created} snapshots for program ${campaign.program_id}`
       );
     } else {
       console.warn("⚠️  Snapshot creation had issues:", snapshotResult?.errors);
