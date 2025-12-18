@@ -3,6 +3,7 @@ const router = express.Router();
 const { supabase } = require("../config/supabase");
 const driverAssignment = require("../services/driverAssignment");
 const driverAnalytics = require("../services/driverAnalytics");
+const { registerDriver } = require("../services/driverRegistration");
 
 /**
  * POST /drivers/register
@@ -29,101 +30,20 @@ const driverAnalytics = require("../services/driverAnalytics");
  */
 router.post("/register", async (req, res) => {
   try {
-    const {
-      fullName,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      dateOfBirth,
-      driversLicense,
-      dailyHours,
-      weeklyHours,
-      submissionDate,
-      submissionTime,
-      ipAddress,
-      termsAccepted,
-      termsAcceptedAt,
-    } = req.body;
+    const result = await registerDriver(req.body);
 
-    // Validate required fields
-    if (!fullName) {
-      return res.status(400).json({
-        error: "Missing required field: fullName",
-      });
+    if (!result.success) {
+      const response = { error: result.error };
+      if (result.details) response.details = result.details;
+      if (result.driverId) response.driverId = result.driverId;
+      if (result.driverStatus) response.status = result.driverStatus;
+      return res.status(result.status).json(response);
     }
 
-    if (!termsAccepted) {
-      return res.status(400).json({
-        error: "Terms must be accepted to register",
-      });
-    }
-
-    // Check if driver with this email already exists
-    if (email) {
-      const { data: existingDriver, error: checkError } = await supabase
-        .from("drivers")
-        .select("id, email, status")
-        .eq("email", email)
-        .single();
-
-      if (existingDriver) {
-        return res.status(409).json({
-          error: "Driver with this email already exists",
-          driverId: existingDriver.id,
-          status: existingDriver.status,
-        });
-      }
-    }
-
-    // Insert new driver
-    const { data, error } = await supabase
-      .from("drivers")
-      .insert([
-        {
-          name: fullName,
-          email: email || null,
-          phone: phone || null,
-          address: address || null,
-          city: city || null,
-          state: state || null,
-          date_of_birth: dateOfBirth || null,
-          license_number: driversLicense || null,
-          daily_hours: dailyHours ? parseFloat(dailyHours) : null,
-          weekly_hours: weeklyHours ? parseFloat(weeklyHours) : null,
-          submission_date: submissionDate || null,
-          submission_time: submissionTime || null,
-          ip_address: ipAddress || null,
-          terms_accepted: termsAccepted,
-          terms_accepted_at: termsAcceptedAt || new Date().toISOString(),
-          status: "pending",
-        },
-      ])
-      .select();
-
-    if (error) {
-      console.error("❌ Error inserting driver:", error);
-      return res.status(500).json({
-        error: "Failed to register driver",
-        details: error.message,
-      });
-    }
-
-    console.log(
-      `✅ Driver registered successfully: ${fullName} (ID: ${data[0].id})`
-    );
-
-    return res.status(201).json({
+    return res.status(result.status).json({
       success: true,
-      message: "Driver registration submitted successfully",
-      driver: {
-        id: data[0].id,
-        name: data[0].name,
-        email: data[0].email,
-        status: data[0].status,
-        createdAt: data[0].created_at,
-      },
+      message: result.message,
+      driver: result.driver,
     });
   } catch (err) {
     console.error("❌ Unexpected error in driver registration:", err);

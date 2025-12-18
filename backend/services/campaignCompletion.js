@@ -1,5 +1,6 @@
 const { supabase } = require("../config/supabase");
 const { createSnapshotForProgram } = require("./shareOfVoiceSnapshots");
+const { removeClientFilesFromProgram } = require("./colorLightPrograms");
 
 /**
  * Check for campaigns that have reached 100% completion
@@ -131,6 +132,7 @@ async function completeCampaign(campaignId) {
     success: true,
     campaign_id: campaignId,
     campaign_updated: false,
+    colorlight_pages_removed: 0,
     files_removed: 0,
     snapshot_created: false,
     errors: [],
@@ -181,7 +183,31 @@ async function completeCampaign(campaignId) {
       `✅ Campaign ${campaignId} status updated to 'completed' at ${now}`
     );
 
-    // Step 3: Mark client's files as removed from the program
+    // Step 3: Remove files from ColorLight program via API
+    console.log(
+      `🌐 Removing client's files from ColorLight program ${campaign.program_id}...`
+    );
+    const colorLightResult = await removeClientFilesFromProgram(
+      campaign.program_id,
+      campaign.client_id
+    );
+
+    if (!colorLightResult.success) {
+      console.warn(
+        `⚠️  ColorLight API update had issues:`,
+        colorLightResult.errors
+      );
+      results.errors.push(
+        `ColorLight update failed: ${colorLightResult.errors.join(", ")}`
+      );
+    } else {
+      console.log(
+        `✅ Removed ${colorLightResult.pagesRemoved.length} pages from ColorLight program`
+      );
+      results.colorlight_pages_removed = colorLightResult.pagesRemoved.length;
+    }
+
+    // Step 4: Mark client's files as removed in local database
     const { data: removedFiles, error: removeError } = await supabase
       .from("files")
       .update({ removed_at: now })
@@ -191,12 +217,12 @@ async function completeCampaign(campaignId) {
       .select("id, name");
 
     if (removeError) {
-      throw new Error(`Failed to remove files: ${removeError.message}`);
+      throw new Error(`Failed to mark files as removed: ${removeError.message}`);
     }
 
     results.files_removed = removedFiles ? removedFiles.length : 0;
     console.log(
-      `✅ Marked ${results.files_removed} files as removed from program ${campaign.program_id}`
+      `✅ Marked ${results.files_removed} files as removed in database`
     );
 
     if (removedFiles && removedFiles.length > 0) {
@@ -205,7 +231,7 @@ async function completeCampaign(campaignId) {
       });
     }
 
-    // Step 4: Create immediate snapshot for THIS program to capture the state change
+    // Step 5: Create immediate snapshot for THIS program to capture the state change
     // After files are removed, remaining clients will have updated share percentages
     console.log(
       `📸 Creating snapshot for program ${campaign.program_id} to capture new share distribution...`

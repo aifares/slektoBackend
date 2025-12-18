@@ -121,64 +121,95 @@ router.get("/", async (req, res) => {
       });
     }
 
-    // Optionally enhance with status and driver info
-    if (includeStatus === "true" || includeDrivers === "true") {
-      terminals = await Promise.all(
-        terminals.map(async (terminal) => {
-          const enhanced = { ...terminal };
+    // Always enhance with program info, optionally with status and driver info
+    terminals = await Promise.all(
+      terminals.map(async (terminal) => {
+        const enhanced = { ...terminal };
 
-          // Add online/offline status
-          if (includeStatus === "true") {
-            const { isOnline, reason, indicators } =
-              databaseService.determineOnlineStatus(terminal);
-            const currentStatus =
-              await databaseService.getCurrentTerminalStatus(terminal.id);
+        // Add online/offline status
+        if (includeStatus === "true") {
+          const { isOnline, reason, indicators } =
+            databaseService.determineOnlineStatus(terminal);
+          const currentStatus = await databaseService.getCurrentTerminalStatus(
+            terminal.id
+          );
 
-            enhanced.status_info = {
-              is_online: isOnline,
-              status: isOnline ? "online" : "offline",
-              reason,
-              indicators,
-              last_status_change: currentStatus?.status_changed_at || null,
-              duration_seconds: currentStatus?.duration_seconds || null,
-            };
-          }
+          enhanced.status_info = {
+            is_online: isOnline,
+            status: isOnline ? "online" : "offline",
+            reason,
+            indicators,
+            last_status_change: currentStatus?.status_changed_at || null,
+            duration_seconds: currentStatus?.duration_seconds || null,
+          };
+        }
 
-          // Add driver assignment info
-          if (includeDrivers === "true") {
-            try {
-              const assignment = await driverAssignment.getCurrentAssignment(
-                terminal.id
+        // Add driver assignment info
+        if (includeDrivers === "true") {
+          try {
+            const assignment = await driverAssignment.getCurrentAssignment(
+              terminal.id
+            );
+            if (assignment) {
+              const assignedDuration = Math.floor(
+                (Date.now() - new Date(assignment.assigned_at).getTime()) / 1000
               );
-              if (assignment) {
-                const assignedDuration = Math.floor(
-                  (Date.now() - new Date(assignment.assigned_at).getTime()) /
-                    1000
-                );
-                enhanced.driver_assignment = {
-                  driver: assignment.drivers,
-                  assigned_at: assignment.assigned_at,
-                  assigned_duration_seconds: assignedDuration,
-                  assigned_duration_hours:
-                    Math.round((assignedDuration / 3600) * 100) / 100,
-                  notes: assignment.notes,
-                };
-              } else {
-                enhanced.driver_assignment = null;
-              }
-            } catch (driverError) {
-              console.warn(
-                `Failed to fetch driver for terminal ${terminal.id}:`,
-                driverError.message
-              );
+              enhanced.driver_assignment = {
+                driver: assignment.drivers,
+                assigned_at: assignment.assigned_at,
+                assigned_duration_seconds: assignedDuration,
+                assigned_duration_hours:
+                  Math.round((assignedDuration / 3600) * 100) / 100,
+                notes: assignment.notes,
+              };
+            } else {
               enhanced.driver_assignment = null;
             }
+          } catch (driverError) {
+            console.warn(
+              `Failed to fetch driver for terminal ${terminal.id}:`,
+              driverError.message
+            );
+            enhanced.driver_assignment = null;
           }
+        }
 
-          return enhanced;
-        })
-      );
-    }
+        // Always add currently playing program info
+        try {
+          const currentlyPlaying = await databaseService.getCurrentlyPlaying(
+            terminal.id
+          );
+          if (currentlyPlaying) {
+            const playingDuration = Math.floor(
+              (Date.now() - new Date(currentlyPlaying.started_at).getTime()) /
+                1000
+            );
+            enhanced.currently_playing = {
+              program_id: currentlyPlaying.program_id,
+              program_name: currentlyPlaying.program_name,
+              file_name: currentlyPlaying.file_name,
+              source: currentlyPlaying.source,
+              started_at: currentlyPlaying.started_at,
+              playing_duration_seconds: playingDuration,
+              playing_duration_minutes:
+                Math.round((playingDuration / 60) * 100) / 100,
+              playing_duration_hours:
+                Math.round((playingDuration / 3600) * 100) / 100,
+            };
+          } else {
+            enhanced.currently_playing = null;
+          }
+        } catch (playingError) {
+          console.warn(
+            `Failed to fetch currently playing for terminal ${terminal.id}:`,
+            playingError.message
+          );
+          enhanced.currently_playing = null;
+        }
+
+        return enhanced;
+      })
+    );
 
     res.json(terminals);
   } catch (err) {

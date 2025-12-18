@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
       gpsStartDate,
       gpsEndDate,
       gpsProgramId,
-      gpsDays = "7",
+      gpsDays = "1",
     } = req.query;
 
     // Set default date range for GPS data

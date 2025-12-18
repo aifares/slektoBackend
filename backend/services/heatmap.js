@@ -152,7 +152,7 @@ async function buildGpsHeatmapData(
       .gte("data_date", startDateOnly)
       .lte("data_date", endDateOnly)
       .order("inserted_at", { ascending: true })
-      .limit(5000);
+      .limit(100000);
 
     if (gpsError) {
       throw new Error(`Failed to fetch GPS points: ${gpsError.message}`);

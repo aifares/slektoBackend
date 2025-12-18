@@ -29,6 +29,32 @@ const PORT = 3000;
 // Public routes (no auth)
 app.use("/public", publicRoutes);
 
+// Public driver registration (no auth required)
+const { registerDriver } = require("./services/driverRegistration");
+app.post("/drivers/register", async (req, res) => {
+  try {
+    const result = await registerDriver(req.body);
+    if (!result.success) {
+      const response = { error: result.error };
+      if (result.details) response.details = result.details;
+      if (result.driverId) response.driverId = result.driverId;
+      if (result.driverStatus) response.status = result.driverStatus;
+      return res.status(result.status).json(response);
+    }
+    return res.status(result.status).json({
+      success: true,
+      message: result.message,
+      driver: result.driver,
+    });
+  } catch (err) {
+    console.error("❌ Unexpected error in driver registration:", err);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: err.message,
+    });
+  }
+});
+
 // Protect all other routes with auth
 app.use(authMiddleware);
 app.use("/drivers", driversRoutes);
