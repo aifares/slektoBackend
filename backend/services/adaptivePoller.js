@@ -76,6 +76,7 @@ class AdaptivePoller {
 
     const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
       ...AUTH_HEADER,
+      params: { per_page: 100 },
       timeout: 10000, // 10 second timeout
     });
 

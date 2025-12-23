@@ -1,0 +1,146 @@
+{
+  "zone": {
+    "id": 466,
+    "name": "Tribeca",
+    "type": "mixed"
+  },
+  "location": {
+    "latitude": 40.7192962333333,
+    "longitude": -74.00219765
+  },
+  "base_demographics": {
+    "residential": {
+      "median_income": 250001,
+      "median_age": 43.5,
+      "bachelors_pct": 93.5,
+      "total_population": 5787,
+      "mgmt_prof_pct": 72.4,
+      "age_distribution": {
+        "18-24": 2.9,
+        "25-34": 3.5,
+        "35-44": 11.1,
+        "45-54": 17.1,
+        "55-64": 26.3,
+        "65+": 7
+      }
+    },
+    "workforce": {
+      "median_income": 337501,
+      "median_age": 41.5,
+      "bachelors_pct": 85,
+      "mgmt_prof_pct": 80,
+      "age_distribution": {
+        "18-24": 2.32,
+        "25-34": 4.55,
+        "35-44": 14.43,
+        "45-54": 18.810000000000002,
+        "55-64": 23.67,
+        "65+": 2.1
+      }
+    },
+    "tourist": {
+      "median_income": 95000,
+      "median_age": 36,
+      "bachelors_pct": 68,
+      "age_distribution": {
+        "18-24": 12,
+        "25-34": 35,
+        "35-44": 32,
+        "45-54": 14,
+        "55-64": 5,
+        "65+": 2
+      },
+      "profile_type": "mixed_visitor",
+      "description": "Mix of shoppers, diners, and local visitors",
+      "matched_by": "zone_name"
+    }
+  },
+  "time_analysis": [
+    {
+      "time_label": "Monday 8am (Morning Commute)",
+      "hour": 8,
+      "day_of_week": 1,
+      "demographics": {
+        "median_income": 221001,
+        "median_age": 40.9,
+        "bachelors_pct": 84.2,
+        "weights": {
+          "residential": 0.5,
+          "workforce": 0.2,
+          "tourist": 0.3
+        },
+        "reasoning": "Mixed zone during off hours"
+      }
+    },
+    {
+      "time_label": "Wednesday 1pm (Lunch Hour)",
+      "hour": 13,
+      "day_of_week": 3,
+      "demographics": {
+        "median_income": 271501,
+        "median_age": 40.8,
+        "bachelors_pct": 83.3,
+        "weights": {
+          "residential": 0.2,
+          "workforce": 0.6,
+          "tourist": 0.2
+        },
+        "reasoning": "Mixed zone during business hours"
+      }
+    },
+    {
+      "time_label": "Friday 6pm (Evening Rush)",
+      "hour": 18,
+      "day_of_week": 5,
+      "demographics": {
+        "median_income": 271501,
+        "median_age": 40.8,
+        "bachelors_pct": 83.3,
+        "weights": {
+          "residential": 0.2,
+          "workforce": 0.6,
+          "tourist": 0.2
+        },
+        "reasoning": "Mixed zone during business hours"
+      }
+    },
+    {
+      "time_label": "Saturday 10pm (Night Out)",
+      "hour": 22,
+      "day_of_week": 6,
+      "demographics": {
+        "median_income": 214251,
+        "median_age": 39.9,
+        "bachelors_pct": 80.8,
+        "weights": {
+          "residential": 0.3,
+          "workforce": 0.3,
+          "tourist": 0.4
+        },
+        "reasoning": "Mixed zone during dining hours"
+      }
+    },
+    {
+      "time_label": "Sunday 2am (Late Night)",
+      "hour": 2,
+      "day_of_week": 3,
+      "demographics": {
+        "median_income": 224376,
+        "median_age": 41.3,
+        "bachelors_pct": 85.8,
+        "weights": {
+          "residential": 0.6,
+          "workforce": 0.15,
+          "tourist": 0.25
+        },
+        "reasoning": "Mixed zone during late night"
+      }
+    }
+  ],
+  "key_insights": [
+    "Income varies by 27% throughout the day: Wednesday 1pm (Lunch Hour) ($271,501) vs Saturday 10pm (Night Out) ($214,251)",
+    "Wednesday 1pm (Lunch Hour) has highest worker presence (60%) - ideal for B2B advertising",
+    "Sunday 2am (Late Night) is dominated by local residents (60%) - ideal for local services"
+  ],
+  "generated_at": "2025-12-18T17:04:04.982Z"
+}

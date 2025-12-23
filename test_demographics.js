@@ -59,10 +59,10 @@ const TOURIST_PROFILE = {
 /**
  * Step 1: Get GPS data from database
  */
-async function getGPSData() {
+async function getGPSData(zoneId = null) {
   console.log("📍 STEP 1: Fetching GPS data from database...\n");
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("terminal_gps_data")
     .select(
       `
@@ -74,7 +74,14 @@ async function getGPSData() {
       zone_id
     `
     )
-    .not("zone_id", "is", null)
+    .not("zone_id", "is", null);
+
+  // Filter by zone if specified
+  if (zoneId) {
+    query = query.eq("zone_id", zoneId);
+  }
+
+  const { data, error } = await query
     .order("recorded_at", { ascending: false })
     .limit(1);
 
@@ -436,7 +443,7 @@ function calculateWeightedDemographics(
 /**
  * Main execution
  */
-async function main() {
+async function main(zoneId = null) {
   console.log("\n");
   console.log(
     "═══════════════════════════════════════════════════════════════"
@@ -447,9 +454,13 @@ async function main() {
   );
   console.log("");
 
+  if (zoneId) {
+    console.log(`   Filtering for Zone ID: ${zoneId}\n`);
+  }
+
   try {
     // Step 1: Get GPS data
-    const gpsData = await getGPSData();
+    const gpsData = await getGPSData(zoneId);
 
     // Step 2: Get census tract
     const tract = await getCensusTract(gpsData.latitude, gpsData.longitude);
@@ -548,23 +559,101 @@ async function main() {
     console.log("");
 
     // Return structured data for potential API integration
-    return {
+    const result = {
       location: {
         latitude: gpsData.latitude,
         longitude: gpsData.longitude,
         zone: gpsData.zone?.display_name,
         zone_type: zoneClass.type,
+        zone_description: zoneClass.description,
         census_tract: tract.tract,
+        census_fips: tract.fips,
         county: tract.countyName,
+        state: tract.state,
       },
       timestamp: gpsData.recorded_at,
-      demographics: weighted,
+      demographics: {
+        median_income: weighted.median_income,
+        median_age: parseFloat(weighted.median_age),
+        bachelors_degree_pct: parseFloat(weighted.bachelors_pct),
+        primary_age_group: weighted.primary_age_group,
+        age_distribution: {
+          "18-24": parseFloat(weighted.age_distribution["18-24"]),
+          "25-34": parseFloat(weighted.age_distribution["25-34"]),
+          "35-44": parseFloat(weighted.age_distribution["35-44"]),
+          "45-54": parseFloat(weighted.age_distribution["45-54"]),
+          "55-64": parseFloat(weighted.age_distribution["55-64"]),
+          "65+": parseFloat(weighted.age_distribution["65+"]),
+        },
+        audience_composition: {
+          residents_pct: parseFloat(
+            (weighted.weights.residential * 100).toFixed(1)
+          ),
+          workers_pct: parseFloat(
+            (weighted.weights.workforce * 100).toFixed(1)
+          ),
+          tourists_visitors_pct: parseFloat(
+            (weighted.weights.tourist * 100).toFixed(1)
+          ),
+        },
+      },
       source_data: {
-        residential,
-        workforce,
+        residential: {
+          area_name: residential.area_name,
+          median_income: residential.median_income,
+          median_age: residential.median_age,
+          bachelors_pct: residential.bachelors_pct,
+          total_population: residential.total_population,
+          employment_rate: residential.employment_rate,
+          mgmt_prof_pct: residential.mgmt_prof_pct,
+          age_distribution: residential.age_distribution,
+          profile_type: residential.profile_type,
+        },
+        workforce: {
+          daytime_workers: workforce.daytime_workers,
+          median_income: workforce.median_income,
+          median_age: workforce.median_age,
+          bachelors_pct: workforce.bachelors_pct,
+          mgmt_prof_pct: workforce.mgmt_prof_pct,
+          age_distribution: workforce.age_distribution,
+          profile_type: workforce.profile_type,
+        },
         tourist: TOURIST_PROFILE,
       },
+      metadata: {
+        confidence_level: zoneClass.poi_count > 0 ? "high" : "medium",
+        poi_count: zoneClass.poi_count,
+        data_sources: [
+          "US Census Bureau ACS 5-Year (2022)",
+          "FCC Census Geocoding API",
+          zoneClass.poi_count > 0 ? "OpenStreetMap Overpass API" : null,
+          "NYC Zones Database",
+        ].filter(Boolean),
+        generated_at: new Date().toISOString(),
+      },
     };
+
+    // Output JSON to file
+    const fs = require("fs");
+    const zoneName = gpsData.zone?.name || "unknown";
+    const outputPath = `./demographics_${zoneName}.json`;
+    fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+    console.log(`📄 JSON output saved to: ${outputPath}`);
+    console.log("");
+    console.log(
+      "═══════════════════════════════════════════════════════════════"
+    );
+    console.log("   📋 JSON PREVIEW");
+    console.log(
+      "═══════════════════════════════════════════════════════════════"
+    );
+    console.log(JSON.stringify(result, null, 2));
+    console.log(
+      "═══════════════════════════════════════════════════════════════"
+    );
+    console.log("");
+
+    return result;
   } catch (error) {
     console.error("\n❌ ERROR:", error.message);
     console.error(error.stack);
@@ -574,7 +663,10 @@ async function main() {
 
 // Run if called directly
 if (require.main === module) {
-  main()
+  // Accept zone ID as command line argument: node test_demographics.js 191
+  const zoneId = process.argv[2] ? parseInt(process.argv[2]) : null;
+
+  main(zoneId)
     .then(() => process.exit(0))
     .catch((err) => {
       console.error(err);

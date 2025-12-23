@@ -5,6 +5,10 @@ const {
   splitMinutesAcrossPeriods,
 } = require("../utils/timePeriod");
 const { getCurrentShare } = require("./shareOfVoiceSnapshots");
+const {
+  calculateEnhancedExposure,
+  calculateAggregateDemographics,
+} = require("./exposureScoring");
 
 /**
  * Get share of voice for a program and client over a date range
@@ -369,17 +373,17 @@ async function buildZoneCoverageMetrics(
   // Share of Voice will be calculated per program with date ranges using RPC
 
   try {
-    // Pass full timestamps (not just dates) for precise campaign timing
-    const { data, error } = await supabase.rpc("get_zone_coverage_topn", {
+    // Use demographics-enhanced RPC for zone coverage with demographic data
+    const { data, error } = await supabase.rpc("get_zone_coverage_with_demographics", {
       p_program_ids: programIds,
       p_terminal_ids: terminalIds,
-      p_start_date: startDate, // Now accepts full ISO timestamp
-      p_end_date: endDate, // Now accepts full ISO timestamp
+      p_start_date: startDate,
+      p_end_date: endDate,
       p_zone_limit: zoneLimit,
     });
 
     if (error) {
-      console.error("Error from get_zone_coverage_topn:", error.message);
+      console.error("Error from get_zone_coverage_with_demographics:", error.message);
       throw new Error(
         `Failed to build zone coverage metrics: ${error.message}`
       );
@@ -422,11 +426,20 @@ async function buildZoneCoverageMetrics(
             night: { minutes: 0, hours: 0, percentage: 0 },
             rush_hour: { minutes: 0, hours: 0, percentage: 0 },
           },
-          date_range: { start: row.date_start, end: row.date_end },
+          date_range: { start: startDate, end: endDate },
         };
       }
 
-      // Per-zone entry
+      // Calculate enhanced exposure with demographics
+      const enhancedData = calculateEnhancedExposure({
+        weighted_exposure: row.weighted_exposure,
+        residential_demographics: row.residential_demographics,
+        workforce_demographics: row.workforce_demographics,
+        tourist_demographics: row.tourist_demographics,
+        time_period_breakdown: row.time_period_breakdown,
+      });
+
+      // Per-zone entry with demographics
       zoneCoverageByProgram[programId].zones.push({
         zone_id: row.zone_id,
         zone_name: row.zone_name,
@@ -436,6 +449,13 @@ async function buildZoneCoverageMetrics(
         minutes_spent: Number(row.total_minutes),
         hours_spent: Number(row.total_hours),
         weighted_exposure: Number(row.weighted_exposure),
+        // NEW: Demographics-enhanced exposure
+        demographics_enhanced_exposure: enhancedData.demographics_enhanced_exposure,
+        demographic_value_multiplier: enhancedData.demographic_value_multiplier,
+        audience_quality_tier: enhancedData.audience_quality_tier,
+        audience_composition: enhancedData.audience_composition,
+        blended_demographics: enhancedData.blended_demographics,
+        demographics: enhancedData.demographics,
         percentage_of_total_time: 0,
         time_breakdown: {
           morning: {
@@ -654,6 +674,9 @@ async function buildZoneCoverageMetrics(
         Math.round(entry.total_minutes_in_zones * 100) / 100;
       entry.high_value_exposure_score =
         Math.round(entry.high_value_exposure_score * 100) / 100;
+
+      // NEW: Calculate aggregate demographics summary for this program
+      entry.demographics_summary = calculateAggregateDemographics(entry.zones);
     }
 
     return zoneCoverageByProgram;

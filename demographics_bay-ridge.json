@@ -1,0 +1,93 @@
+{
+  "location": {
+    "latitude": 40.6351021166667,
+    "longitude": -74.03158635,
+    "zone": "Bay Ridge",
+    "zone_type": "residential",
+    "zone_description": "Classification based on zone database",
+    "census_tract": "003600",
+    "census_fips": "360470036002000",
+    "county": "Kings County",
+    "state": "36"
+  },
+  "timestamp": "2025-12-17T07:14:00.953+00:00",
+  "demographics": {
+    "median_income": 86128,
+    "median_age": 40.6,
+    "bachelors_degree_pct": 51.7,
+    "primary_age_group": "35-44",
+    "age_distribution": {
+      "18-24": 6,
+      "25-34": 12,
+      "35-44": 18.8,
+      "45-54": 16.4,
+      "55-64": 9.8,
+      "65+": 6.3
+    },
+    "audience_composition": {
+      "residents_pct": 70,
+      "workers_pct": 10,
+      "tourists_visitors_pct": 20
+    }
+  },
+  "source_data": {
+    "residential": {
+      "area_name": "Census Tract 36; Kings County; New York",
+      "median_income": 85183,
+      "median_age": 41.5,
+      "bachelors_pct": 50.8,
+      "total_population": 3792,
+      "employment_rate": 59.4,
+      "mgmt_prof_pct": 58.6,
+      "age_distribution": {
+        "18-24": 3.8,
+        "25-34": 7.2,
+        "35-44": 16.6,
+        "45-54": 16.6,
+        "55-64": 9.9,
+        "65+": 7.3
+      },
+      "profile_type": "residential"
+    },
+    "workforce": {
+      "daytime_workers": 9480,
+      "median_income": 114997,
+      "median_age": 39.5,
+      "bachelors_pct": 60.959999999999994,
+      "mgmt_prof_pct": 76.18,
+      "age_distribution": {
+        "18-24": 3.04,
+        "25-34": 9.360000000000001,
+        "35-44": 21.580000000000002,
+        "45-54": 18.26,
+        "55-64": 8.91,
+        "65+": 2.19
+      },
+      "profile_type": "workforce"
+    },
+    "tourist": {
+      "median_income": 75000,
+      "median_age": 38,
+      "bachelors_pct": 50,
+      "age_distribution": {
+        "18-24": 15,
+        "25-34": 30,
+        "35-44": 25,
+        "45-54": 15,
+        "55-64": 10,
+        "65+": 5
+      },
+      "profile_type": "tourist/visitor"
+    }
+  },
+  "metadata": {
+    "confidence_level": "medium",
+    "poi_count": 0,
+    "data_sources": [
+      "US Census Bureau ACS 5-Year (2022)",
+      "FCC Census Geocoding API",
+      "NYC Zones Database"
+    ],
+    "generated_at": "2025-12-18T16:53:29.316Z"
+  }
+}

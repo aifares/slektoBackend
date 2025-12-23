@@ -1,0 +1,388 @@
+{
+  "client": {
+    "id": 5,
+    "name": "TestClient",
+    "activePrograms": [123]
+  },
+  
+  "campaign_metrics": {
+    "123": {
+      "program_id": 123,
+      "program_name": "Summer Campaign 2025",
+      "hours_completed": 156.5,
+      "hours_target": 200,
+      "percent_complete": 78.25,
+      "share_of_voice": 35.2,
+      "isActive": true
+    }
+  },
+  
+  "zone_coverage": {
+    "123": {
+      "program_id": 123,
+      "total_zones": 2,
+      
+      "total_minutes_in_zones": 5400,
+      "total_hours_in_zones": 90.0,
+      "high_value_exposure_score": 10920.0,
+      
+      "demographics_enhanced_exposure": {
+        "total_base_exposure": 10920.0,
+        "total_enhanced_exposure": 19847.4,
+        "average_audience_value": 1.82,
+        "exposure_lift_percent": 81.7,
+        "overall_quality_tier": {
+          "tier": "high",
+          "label": "High Value Audience",
+          "description": "High income professionals and shoppers"
+        }
+      },
+      
+      "zones": [
+        {
+          "zone_id": 466,
+          "zone_name": "Tribeca",
+          "display_name": "Tribeca",
+          "zone_type": "mixed",
+          "density_multiplier": 3.0,
+          
+          "minutes_spent": 3240,
+          "hours_spent": 54.0,
+          "weighted_exposure": 9720.0,
+          "percentage_of_total_time": 60.0,
+          
+          "time_breakdown": {
+            "morning": {
+              "minutes": 890,
+              "hours": 14.83,
+              "percentage": 27.5
+            },
+            "afternoon": {
+              "minutes": 1000,
+              "hours": 16.67,
+              "percentage": 30.9
+            },
+            "evening": {
+              "minutes": 810,
+              "hours": 13.5,
+              "percentage": 25.0
+            },
+            "night": {
+              "minutes": 540,
+              "hours": 9.0,
+              "percentage": 16.7
+            },
+            "rush_hour": {
+              "minutes": 945,
+              "hours": 15.75,
+              "percentage": 29.2
+            }
+          },
+          
+          "demographics_enhanced_exposure": {
+            "base_exposure": 9720.0,
+            "enhanced_exposure": 17635.2,
+            "average_audience_value": 1.81,
+            "exposure_lift_percent": 81.4,
+            "quality_tier": {
+              "tier": "high",
+              "label": "High Value Audience",
+              "description": "High income professionals and shoppers",
+              "cpm_multiplier": 2.0
+            }
+          },
+          
+          "demographics_breakdown": {
+            "weighted_average": {
+              "median_income": 251500,
+              "median_age": 41.2,
+              "bachelors_degree_pct": 82.3,
+              "audience_composition": {
+                "residents_pct": 28,
+                "workers_pct": 52,
+                "tourists_pct": 20
+              }
+            },
+            
+            "time_periods": [
+              {
+                "period": "Weekday Business Hours (Mon-Fri 9am-6pm)",
+                "minutes": 1890,
+                "percent_of_zone_time": 58.3,
+                
+                "exposure_metrics": {
+                  "base_exposure": 5670.0,
+                  "audience_value_score": 2.08,
+                  "enhanced_exposure": 11793.6,
+                  "quality_tier": {
+                    "tier": "high",
+                    "label": "High Value Audience",
+                    "cpm_multiplier": 2.0
+                  }
+                },
+                
+                "demographics": {
+                  "median_income": 267500,
+                  "bachelors_degree_pct": 83.5,
+                  "audience_composition": {
+                    "residents_pct": 20,
+                    "workers_pct": 60,
+                    "tourists_pct": 20
+                  }
+                },
+                
+                "audience_profile": "Business professionals, high earners"
+              },
+              
+              {
+                "period": "Weekday Evenings (Mon-Fri 6pm-11pm)",
+                "minutes": 810,
+                "percent_of_zone_time": 25.0,
+                
+                "exposure_metrics": {
+                  "base_exposure": 2430.0,
+                  "audience_value_score": 1.62,
+                  "enhanced_exposure": 3936.6,
+                  "quality_tier": {
+                    "tier": "medium-high",
+                    "label": "Above Average Audience",
+                    "cpm_multiplier": 1.5
+                  }
+                },
+                
+                "demographics": {
+                  "median_income": 221000,
+                  "bachelors_degree_pct": 84.0,
+                  "audience_composition": {
+                    "residents_pct": 40,
+                    "workers_pct": 30,
+                    "tourists_pct": 30
+                  }
+                },
+                
+                "audience_profile": "Affluent residents and diners"
+              },
+              
+              {
+                "period": "Weekends (Sat-Sun 10am-10pm)",
+                "minutes": 540,
+                "percent_of_zone_time": 16.7,
+                
+                "exposure_metrics": {
+                  "base_exposure": 1620.0,
+                  "audience_value_score": 1.54,
+                  "enhanced_exposure": 2494.8,
+                  "quality_tier": {
+                    "tier": "medium-high",
+                    "label": "Above Average Audience",
+                    "cpm_multiplier": 1.5
+                  }
+                },
+                
+                "demographics": {
+                  "median_income": 215000,
+                  "bachelors_degree_pct": 80.0,
+                  "audience_composition": {
+                    "residents_pct": 35,
+                    "workers_pct": 20,
+                    "tourists_pct": 45
+                  }
+                },
+                
+                "audience_profile": "Weekend visitors and residents"
+              }
+            ]
+          },
+          
+          "key_insights": [
+            "Peak audience value during weekday business hours (2.08 score)",
+            "60% of weekday exposure reaches high-earning workers",
+            "Enhanced exposure is 81% higher than base due to affluent audience",
+            "Optimal for premium brand advertising"
+          ]
+        },
+        
+        {
+          "zone_id": 191,
+          "zone_name": "Bay Ridge",
+          "display_name": "Bay Ridge",
+          "zone_type": "residential",
+          "density_multiplier": 1.5,
+          
+          "minutes_spent": 2160,
+          "hours_spent": 36.0,
+          "weighted_exposure": 3240.0,
+          "percentage_of_total_time": 40.0,
+          
+          "time_breakdown": {
+            "morning": {
+              "minutes": 380,
+              "hours": 6.33,
+              "percentage": 17.6
+            },
+            "afternoon": {
+              "minutes": 720,
+              "hours": 12.0,
+              "percentage": 33.3
+            },
+            "evening": {
+              "minutes": 960,
+              "hours": 16.0,
+              "percentage": 44.4
+            },
+            "night": {
+              "minutes": 100,
+              "hours": 1.67,
+              "percentage": 4.6
+            },
+            "rush_hour": {
+              "minutes": 540,
+              "hours": 9.0,
+              "percentage": 25.0
+            }
+          },
+          
+          "demographics_enhanced_exposure": {
+            "base_exposure": 3240.0,
+            "enhanced_exposure": 3411.6,
+            "average_audience_value": 1.05,
+            "exposure_lift_percent": 5.3,
+            "quality_tier": {
+              "tier": "medium",
+              "label": "Average Audience",
+              "description": "Middle class, diverse demographics",
+              "cpm_multiplier": 1.0
+            }
+          },
+          
+          "demographics_breakdown": {
+            "weighted_average": {
+              "median_income": 87500,
+              "median_age": 39.8,
+              "bachelors_degree_pct": 53.2,
+              "audience_composition": {
+                "residents_pct": 62,
+                "workers_pct": 22,
+                "tourists_pct": 16
+              }
+            },
+            
+            "time_periods": [
+              {
+                "period": "Weekday Business Hours (Mon-Fri 9am-6pm)",
+                "minutes": 720,
+                "percent_of_zone_time": 33.3,
+                
+                "exposure_metrics": {
+                  "base_exposure": 1080.0,
+                  "audience_value_score": 1.12,
+                  "enhanced_exposure": 1209.6,
+                  "quality_tier": {
+                    "tier": "medium",
+                    "label": "Average Audience",
+                    "cpm_multiplier": 1.0
+                  }
+                },
+                
+                "demographics": {
+                  "median_income": 92000,
+                  "bachelors_degree_pct": 55.0,
+                  "audience_composition": {
+                    "residents_pct": 35,
+                    "workers_pct": 40,
+                    "tourists_pct": 25
+                  }
+                },
+                
+                "audience_profile": "Local workers and shoppers"
+              },
+              
+              {
+                "period": "Weekday Evenings (Mon-Fri 6pm-11pm)",
+                "minutes": 960,
+                "percent_of_zone_time": 44.4,
+                
+                "exposure_metrics": {
+                  "base_exposure": 1440.0,
+                  "audience_value_score": 1.02,
+                  "enhanced_exposure": 1468.8,
+                  "quality_tier": {
+                    "tier": "medium",
+                    "label": "Average Audience",
+                    "cpm_multiplier": 1.0
+                  }
+                },
+                
+                "demographics": {
+                  "median_income": 86000,
+                  "bachelors_degree_pct": 52.0,
+                  "audience_composition": {
+                    "residents_pct": 70,
+                    "workers_pct": 15,
+                    "tourists_pct": 15
+                  }
+                },
+                
+                "audience_profile": "Local residents and families"
+              },
+              
+              {
+                "period": "Weekends (Sat-Sun 10am-10pm)",
+                "minutes": 480,
+                "percent_of_zone_time": 22.2,
+                
+                "exposure_metrics": {
+                  "base_exposure": 720.0,
+                  "audience_value_score": 1.02,
+                  "enhanced_exposure": 734.4,
+                  "quality_tier": {
+                    "tier": "medium",
+                    "label": "Average Audience",
+                    "cpm_multiplier": 1.0
+                  }
+                },
+                
+                "demographics": {
+                  "median_income": 85000,
+                  "bachelors_degree_pct": 52.5,
+                  "audience_composition": {
+                    "residents_pct": 75,
+                    "workers_pct": 10,
+                    "tourists_pct": 15
+                  }
+                },
+                
+                "audience_profile": "Residential neighborhood, family-focused"
+              }
+            ]
+          },
+          
+          "key_insights": [
+            "Strong residential audience (62% overall)",
+            "Consistent middle-income demographic ($87,500)",
+            "Best for family-oriented and local business advertising",
+            "Value-conscious audience with high reach"
+          ]
+        }
+      ],
+      
+      "campaign_insights": [
+        "Tribeca delivers 5.2x higher enhanced exposure than Bay Ridge despite 1.5x time",
+        "81% of total enhanced exposure comes from high-value audiences",
+        "Weekday business hours in Tribeca reach ultra-affluent professionals ($267,500 median)",
+        "Bay Ridge provides consistent middle-market reach for broad campaigns",
+        "Overall campaign audience value 82% above standard (1.82 vs 1.0 baseline)"
+      ],
+      
+      "zone_comparison": {
+        "tribeca_vs_bayridge": {
+          "audience_value_difference": 0.76,
+          "audience_value_difference_percent": 72,
+          "enhanced_exposure_difference": 14223.6,
+          "recommendation": "Tribeca delivers significantly higher audience quality (High Value vs Average)"
+        }
+      }
+    }
+  }
+}
+
