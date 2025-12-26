@@ -1,0 +1,7692 @@
+[
+  {
+    "date": "2025-10-28T00:00:00",
+    "executingTasks": [],
+    "author": 4403,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Bag 3",
+      "raw": "Bag 3"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "_led_latest_screenshot_time": 1766452685,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1766452700,
+        "programs": [
+          {
+            "name": "Shake Shack",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2682475
+              },
+              {
+                "total": 1389,
+                "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2682475
+              }
+            ],
+            "id": 2682475
+          },
+          {
+            "name": "Dec17th",
+            "files": [
+              {
+                "total": 251177,
+                "name": "F_04B007451BBED1394A233A88C3832063_251177.jpg",
+                "downloaded": 251177,
+                "programId": 2673688
+              },
+              {
+                "total": 1378,
+                "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                "downloaded": 1378,
+                "programId": 2673688
+              }
+            ],
+            "id": 2673688
+          },
+          {
+            "name": "Dec15",
+            "files": [
+              {
+                "total": 6117,
+                "name": "F_F544974673C664823A6474D25F8225AF_6117.jpg",
+                "downloaded": 6117,
+                "programId": 2668050
+              },
+              {
+                "total": 6501,
+                "name": "F_C4FEEB6801DE63298BD743130412EABF_6501.jpg",
+                "downloaded": 6501,
+                "programId": 2668050
+              },
+              {
+                "total": 2575,
+                "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                "downloaded": 2575,
+                "programId": 2668050
+              }
+            ],
+            "id": 2668050
+          },
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "Playlist3020",
+            "files": [
+              {
+                "total": 637220,
+                "name": "F_0FD2B45B66EE05C85CF38782F41835CE_637220.jpeg",
+                "downloaded": 637220,
+                "programId": 2377238
+              },
+              {
+                "total": 20959,
+                "name": "F_69822353FE151964E64F7FE8EE7E082F_20959.png",
+                "downloaded": 20959,
+                "programId": 2377238
+              },
+              {
+                "total": 2612,
+                "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                "downloaded": 2612,
+                "programId": 2377238
+              }
+            ],
+            "id": 2377238
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {},
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 229,
+          "_report_time": 1766452695,
+          "colortemperature": 6500
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "CN",
+          "language": "zh"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "off"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1766452688,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1766452688,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1766452700,
+          "info": {
+            "mem": {
+              "total": 463642624,
+              "free": 247635968
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Download",
+              "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+              "source": "internet"
+            },
+            "up": 163174,
+            "storage": {
+              "total": 4487905280,
+              "free": 4279197696
+            },
+            "vername": "1.83.4.0001",
+            "serialno": "CLCA20003975"
+          }
+        },
+        "rtc": {
+          "_report_time": 1766452688,
+          "timezone": "-05",
+          "isautotimezone": 1,
+          "time": "2025-12-22 20:18:08",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1766452695
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 229,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 229,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1766452688,
+          "name": "Terminal3975",
+          "leddescription": ""
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [
+                {
+                  "ip": "192.168.43.70",
+                  "mac": "f0:2f:4b:0c:38:c6"
+                }
+              ],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003975",
+              "enabled": 1,
+              "mac": "26:d7:eb:f6:14:e0",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "static",
+              "carrier": 0,
+              "ssids": [],
+              "operstate": "down",
+              "state": "UNINITIALIZED",
+              "type": "wifi",
+              "enabled": 0,
+              "mac": "24:d7:eb:f6:14:e0",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "6c:fa:7b:fc:0e:1c",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "LTE",
+              "carrier": 0,
+              "strength": 4,
+              "type": "4G",
+              "enabled": 1,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 0
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "ntp7.aliyun.com",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 5,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 12,
+          "_report_time": 1766452695
+        },
+        "contentreport": {
+          "content_report_status": 0
+        },
+        "vsns": {
+          "_report_time": 1766452700,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": [
+                {
+                  "size": 28424265,
+                  "name": "160×120.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            },
+            {
+              "unused": 0,
+              "ressize": 945039,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 660791,
+                  "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 15193,
+                  "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 252555,
+                  "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+            "type": "internet"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "simoperatorname": "",
+            "simserial": "89464278206108784737",
+            "hasicc": "true",
+            "imsi": "240422610878473",
+            "networktype": "LTE",
+            "deviceid": "864839042560298",
+            "operator": "310260",
+            "phonetype": "NO_PHONE",
+            "simoperator": "24042",
+            "dataactivity": "NONE",
+            "datastate": "CONNECTED",
+            "simstate": "READY",
+            "operatorname": "T-Mobile Hologram"
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 45,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            9830,
+            10010,
+            10190,
+            10370,
+            10550,
+            10729,
+            10909,
+            11089,
+            11269,
+            11449,
+            11629,
+            11809,
+            11989,
+            12169,
+            12349,
+            12528,
+            12708,
+            12888,
+            13068,
+            13248,
+            13428,
+            13608,
+            13788,
+            13968,
+            14148,
+            14327,
+            14507,
+            14687,
+            14867,
+            15047,
+            15227,
+            15407,
+            15587,
+            15767,
+            15947,
+            16126,
+            16306,
+            16486,
+            16666,
+            16846,
+            17026,
+            17206,
+            17386,
+            17566,
+            17746,
+            17925,
+            18105,
+            18285,
+            18465,
+            18645,
+            18825,
+            19005,
+            19185,
+            19365,
+            19544,
+            19724,
+            19904,
+            20084,
+            20264,
+            20444,
+            20624,
+            20804,
+            20984,
+            21164,
+            21343,
+            21523,
+            21703,
+            21883,
+            22063,
+            22243,
+            22423,
+            22603,
+            22783,
+            22963,
+            23142,
+            23322,
+            23502,
+            23682,
+            23862,
+            24042,
+            24222,
+            24402,
+            24582,
+            24762,
+            24941,
+            25121,
+            25301,
+            25481,
+            25661,
+            25841,
+            26021,
+            26201,
+            26381,
+            26561,
+            26740,
+            26920,
+            27100,
+            27280,
+            27460,
+            27640,
+            27820,
+            28000,
+            28180,
+            28359,
+            28539,
+            28719,
+            28899,
+            29079,
+            29259,
+            29439,
+            29619,
+            29799,
+            29979,
+            30158,
+            30338,
+            30518,
+            30698,
+            30878,
+            31058,
+            31238,
+            31418,
+            31598,
+            31778,
+            31957,
+            32137,
+            32317,
+            32497,
+            32677,
+            32857,
+            33037,
+            33217,
+            33397,
+            33577,
+            33756,
+            33936,
+            34116,
+            34296,
+            34476,
+            34656,
+            34836,
+            35016,
+            35196,
+            35376,
+            35555,
+            35735,
+            35915,
+            36095,
+            36275,
+            36455,
+            36635,
+            36815,
+            36995,
+            37175,
+            37354,
+            37534,
+            37714,
+            37894,
+            38074,
+            38254,
+            38434,
+            38614,
+            38794,
+            38973,
+            39153,
+            39333,
+            39513,
+            39693,
+            39873,
+            40053,
+            40233,
+            40413,
+            40593,
+            40772,
+            40952,
+            41132,
+            41312,
+            41492,
+            41672,
+            41852,
+            42032,
+            42212,
+            42392,
+            42571,
+            42751,
+            42931,
+            43111,
+            43291,
+            43471,
+            43651,
+            43831,
+            44011,
+            44191,
+            44370,
+            44550,
+            44730,
+            44910,
+            45090,
+            45270,
+            45450,
+            45630,
+            45810,
+            45990,
+            46169,
+            46349,
+            46529,
+            46709,
+            46889,
+            47069,
+            47249,
+            47429,
+            47609,
+            47788,
+            47968,
+            48148,
+            48328,
+            48508,
+            48688,
+            48868,
+            49048,
+            49228,
+            49408,
+            49587,
+            49767,
+            49947,
+            50127,
+            50307,
+            50487,
+            50667,
+            50847,
+            51027,
+            51207,
+            51386,
+            51566,
+            51746,
+            51926,
+            52106,
+            52286,
+            52466,
+            52646,
+            52826,
+            53006,
+            53185,
+            53365,
+            53545,
+            53725,
+            53905,
+            54085,
+            54265,
+            54445,
+            54625,
+            54805,
+            54984,
+            55164,
+            55344,
+            55524,
+            55704
+          ],
+          "save": 0,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            30684,
+            30907,
+            31128,
+            31347,
+            31563,
+            31777,
+            31989,
+            32199,
+            32407,
+            32613,
+            32817,
+            33019,
+            33220,
+            33418,
+            33615,
+            33809,
+            34003,
+            34195,
+            34385,
+            34574,
+            34761,
+            34946,
+            35131,
+            35313,
+            35495,
+            35674,
+            35852,
+            36029,
+            36205,
+            36380,
+            36554,
+            36726,
+            36897,
+            37067,
+            37235,
+            37402,
+            37568,
+            37734,
+            37898,
+            38061,
+            38223,
+            38385,
+            38545,
+            38704,
+            38862,
+            39018,
+            39174,
+            39330,
+            39484,
+            39638,
+            39790,
+            39942,
+            40093,
+            40243,
+            40391,
+            40540,
+            40687,
+            40834,
+            40980,
+            41125,
+            41270,
+            41414,
+            41557,
+            41699,
+            41839,
+            41980,
+            42120,
+            42260,
+            42398,
+            42536,
+            42674,
+            42811,
+            42947,
+            43082,
+            43216,
+            43350,
+            43484,
+            43617,
+            43749,
+            43881,
+            44012,
+            44142,
+            44272,
+            44402,
+            44530,
+            44658,
+            44786,
+            44913,
+            45039,
+            45166,
+            45291,
+            45416,
+            45541,
+            45665,
+            45788,
+            45911,
+            46033,
+            46155,
+            46277,
+            46398,
+            46519,
+            46639,
+            46758,
+            46877,
+            46996,
+            47114,
+            47232,
+            47350,
+            47467,
+            47583,
+            47699,
+            47815,
+            47930,
+            48045,
+            48159,
+            48273,
+            48387,
+            48500,
+            48613,
+            48726,
+            48838,
+            48949,
+            49061,
+            49171,
+            49282,
+            49392,
+            49502,
+            49611,
+            49720,
+            49829,
+            49938,
+            50046,
+            50153,
+            50260,
+            50367,
+            50474,
+            50580,
+            50686,
+            50792,
+            50897,
+            51002,
+            51107,
+            51211,
+            51315,
+            51419,
+            51522,
+            51625,
+            51728,
+            51831,
+            51933,
+            52035,
+            52136,
+            52238,
+            52338,
+            52439,
+            52539,
+            52640,
+            52739,
+            52839,
+            52938,
+            53037,
+            53136,
+            53234,
+            53332,
+            53430,
+            53528,
+            53625,
+            53722,
+            53819,
+            53916,
+            54012,
+            54108,
+            54204,
+            54299,
+            54395,
+            54490,
+            54585,
+            54679,
+            54773,
+            54868,
+            54961,
+            55055,
+            55148,
+            55241,
+            55334,
+            55427,
+            55519,
+            55611,
+            55703,
+            55795,
+            55887,
+            55978,
+            56069,
+            56159,
+            56250,
+            56341,
+            56431,
+            56521,
+            56611,
+            56700,
+            56790,
+            56879,
+            56967,
+            57056,
+            57144,
+            57233,
+            57321,
+            57409,
+            57496,
+            57584,
+            57671,
+            57758,
+            57845,
+            57932,
+            58018,
+            58104,
+            58191,
+            58277,
+            58362,
+            58448,
+            58533,
+            58618,
+            58703,
+            58788,
+            58873,
+            58957,
+            59041,
+            59125,
+            59209,
+            59293,
+            59377,
+            59460,
+            59543,
+            59626,
+            59709,
+            59791,
+            59874,
+            59956,
+            60039,
+            60121,
+            60202,
+            60284,
+            60365,
+            60447,
+            60528,
+            60609,
+            60690,
+            60770,
+            60851,
+            60931,
+            61012,
+            61091,
+            61171,
+            61251,
+            61330,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 55,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 64,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1766452688,
+          "timezone": -5,
+          "timezoneId": "America/New_York",
+          "time": "2025-12-22 20:18:08",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1766454441,
+      "lat": 10000
+    },
+    "id": 2557339,
+    "excerpt": {
+      "rendered": "Terminal3975",
+      "raw": "Terminal3975"
+    },
+    "date_gmt": "2025-10-28T07:07:44Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-12-22T23:16:00",
+    "executingTasks": [],
+    "author": 8251,
+    "title": {
+      "rendered": "Bag 3",
+      "raw": "Bag 3"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "AliFares"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2684039,
+    "excerpt": {
+      "rendered": "",
+      "raw": ""
+    },
+    "date_gmt": "2025-12-22T23:16:00Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-11-04T04:19:09",
+    "executingTasks": [],
+    "author": 8251,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Bag-2",
+      "raw": "Bag-2"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "AliFares"
+    },
+    "post_meta": {
+      "_led_latest_screenshot_time": 1766345649,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1766452129,
+        "programs": [
+          {
+            "name": "Shake Shack",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2682475
+              },
+              {
+                "total": 1389,
+                "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2682475
+              }
+            ],
+            "id": 2682475
+          },
+          {
+            "name": "Dec17th",
+            "files": [
+              {
+                "total": 251177,
+                "name": "F_04B007451BBED1394A233A88C3832063_251177.jpg",
+                "downloaded": 251177,
+                "programId": 2673688
+              },
+              {
+                "total": 1378,
+                "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                "downloaded": 1378,
+                "programId": 2673688
+              }
+            ],
+            "id": 2673688
+          },
+          {
+            "name": "Dec15",
+            "files": [
+              {
+                "total": 6117,
+                "name": "F_F544974673C664823A6474D25F8225AF_6117.jpg",
+                "downloaded": 6117,
+                "programId": 2668050
+              },
+              {
+                "total": 6501,
+                "name": "F_C4FEEB6801DE63298BD743130412EABF_6501.jpg",
+                "downloaded": 6501,
+                "programId": 2668050
+              },
+              {
+                "total": 2575,
+                "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                "downloaded": 2575,
+                "programId": 2668050
+              }
+            ],
+            "id": 2668050
+          },
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "Playlist3020",
+            "files": [
+              {
+                "total": 637220,
+                "name": "F_0FD2B45B66EE05C85CF38782F41835CE_637220.jpeg",
+                "downloaded": 637220,
+                "programId": 2377238
+              },
+              {
+                "total": 20959,
+                "name": "F_69822353FE151964E64F7FE8EE7E082F_20959.png",
+                "downloaded": 20959,
+                "programId": 2377238
+              },
+              {
+                "total": 2612,
+                "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                "downloaded": 2612,
+                "programId": 2377238
+              }
+            ],
+            "id": 2377238
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "auto_upload": 0,
+            "exposure": 0,
+            "size": "640x480",
+            "interval": 0,
+            "whitebalance": "auto",
+            "quality": 100
+          }
+        },
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 255,
+          "_report_time": 1766452129,
+          "colortemperature": 6500
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "CN",
+          "language": "zh"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "off"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1766452123,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1766452123,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1766452123,
+          "info": {
+            "mem": {
+              "total": 463642624,
+              "free": 227000320
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Download",
+              "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+              "source": "internet"
+            },
+            "up": 71217,
+            "storage": {
+              "total": 4487905280,
+              "free": 4288503808
+            },
+            "vername": "1.83.4.0001",
+            "serialno": "CLCA20003759"
+          }
+        },
+        "rtc": {
+          "_report_time": 1766452123,
+          "timezone": "-05",
+          "isautotimezone": 1,
+          "time": "2025-12-22 20:08:42",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1766452129
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 255,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 255,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1766452123,
+          "name": "Terminal3759",
+          "leddescription": ""
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003759",
+              "enabled": 1,
+              "mac": "42:91:51:67:6b:19",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "static",
+              "carrier": 0,
+              "ssids": [],
+              "operstate": "down",
+              "state": "UNINITIALIZED",
+              "type": "wifi",
+              "enabled": 0,
+              "mac": "40:91:51:67:6b:19",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "c0:e2:2d:58:b9:7f",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "LTE",
+              "carrier": 0,
+              "strength": 2,
+              "type": "4G",
+              "enabled": 1,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 30
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "ntp7.aliyun.com",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 5,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 12,
+          "_report_time": 1766452129
+        },
+        "contentreport": {
+          "content_report_status": 1
+        },
+        "vsns": {
+          "_report_time": 1766452129,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": [
+                {
+                  "size": 19523,
+                  "name": "老化测试.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 6381406,
+                  "name": "160×120.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            },
+            {
+              "unused": 1851808,
+              "ressize": 2796847,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 24454,
+                  "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 252555,
+                  "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 15193,
+                  "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 660791,
+                  "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+            "type": "internet"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "simoperatorname": "",
+            "simserial": "89464278206108784703",
+            "hasicc": "true",
+            "imsi": "240422610878470",
+            "networktype": "LTE",
+            "deviceid": "864839044792121",
+            "operator": "310410",
+            "phonetype": "NO_PHONE",
+            "simoperator": "24042",
+            "dataactivity": "NONE",
+            "datastate": "CONNECTED",
+            "simstate": "READY",
+            "operatorname": "AT&T Hologram"
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 45,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            9830,
+            10010,
+            10190,
+            10370,
+            10550,
+            10729,
+            10909,
+            11089,
+            11269,
+            11449,
+            11629,
+            11809,
+            11989,
+            12169,
+            12349,
+            12528,
+            12708,
+            12888,
+            13068,
+            13248,
+            13428,
+            13608,
+            13788,
+            13968,
+            14148,
+            14327,
+            14507,
+            14687,
+            14867,
+            15047,
+            15227,
+            15407,
+            15587,
+            15767,
+            15947,
+            16126,
+            16306,
+            16486,
+            16666,
+            16846,
+            17026,
+            17206,
+            17386,
+            17566,
+            17746,
+            17925,
+            18105,
+            18285,
+            18465,
+            18645,
+            18825,
+            19005,
+            19185,
+            19365,
+            19544,
+            19724,
+            19904,
+            20084,
+            20264,
+            20444,
+            20624,
+            20804,
+            20984,
+            21164,
+            21343,
+            21523,
+            21703,
+            21883,
+            22063,
+            22243,
+            22423,
+            22603,
+            22783,
+            22963,
+            23142,
+            23322,
+            23502,
+            23682,
+            23862,
+            24042,
+            24222,
+            24402,
+            24582,
+            24762,
+            24941,
+            25121,
+            25301,
+            25481,
+            25661,
+            25841,
+            26021,
+            26201,
+            26381,
+            26561,
+            26740,
+            26920,
+            27100,
+            27280,
+            27460,
+            27640,
+            27820,
+            28000,
+            28180,
+            28359,
+            28539,
+            28719,
+            28899,
+            29079,
+            29259,
+            29439,
+            29619,
+            29799,
+            29979,
+            30158,
+            30338,
+            30518,
+            30698,
+            30878,
+            31058,
+            31238,
+            31418,
+            31598,
+            31778,
+            31957,
+            32137,
+            32317,
+            32497,
+            32677,
+            32857,
+            33037,
+            33217,
+            33397,
+            33577,
+            33756,
+            33936,
+            34116,
+            34296,
+            34476,
+            34656,
+            34836,
+            35016,
+            35196,
+            35376,
+            35555,
+            35735,
+            35915,
+            36095,
+            36275,
+            36455,
+            36635,
+            36815,
+            36995,
+            37175,
+            37354,
+            37534,
+            37714,
+            37894,
+            38074,
+            38254,
+            38434,
+            38614,
+            38794,
+            38973,
+            39153,
+            39333,
+            39513,
+            39693,
+            39873,
+            40053,
+            40233,
+            40413,
+            40593,
+            40772,
+            40952,
+            41132,
+            41312,
+            41492,
+            41672,
+            41852,
+            42032,
+            42212,
+            42392,
+            42571,
+            42751,
+            42931,
+            43111,
+            43291,
+            43471,
+            43651,
+            43831,
+            44011,
+            44191,
+            44370,
+            44550,
+            44730,
+            44910,
+            45090,
+            45270,
+            45450,
+            45630,
+            45810,
+            45990,
+            46169,
+            46349,
+            46529,
+            46709,
+            46889,
+            47069,
+            47249,
+            47429,
+            47609,
+            47788,
+            47968,
+            48148,
+            48328,
+            48508,
+            48688,
+            48868,
+            49048,
+            49228,
+            49408,
+            49587,
+            49767,
+            49947,
+            50127,
+            50307,
+            50487,
+            50667,
+            50847,
+            51027,
+            51207,
+            51386,
+            51566,
+            51746,
+            51926,
+            52106,
+            52286,
+            52466,
+            52646,
+            52826,
+            53006,
+            53185,
+            53365,
+            53545,
+            53725,
+            53905,
+            54085,
+            54265,
+            54445,
+            54625,
+            54805,
+            54984,
+            55164,
+            55344,
+            55524,
+            55704
+          ],
+          "save": 0,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            30684,
+            30907,
+            31128,
+            31347,
+            31563,
+            31777,
+            31989,
+            32199,
+            32407,
+            32613,
+            32817,
+            33019,
+            33220,
+            33418,
+            33615,
+            33809,
+            34003,
+            34195,
+            34385,
+            34574,
+            34761,
+            34946,
+            35131,
+            35313,
+            35495,
+            35674,
+            35852,
+            36029,
+            36205,
+            36380,
+            36554,
+            36726,
+            36897,
+            37067,
+            37235,
+            37402,
+            37568,
+            37734,
+            37898,
+            38061,
+            38223,
+            38385,
+            38545,
+            38704,
+            38862,
+            39018,
+            39174,
+            39330,
+            39484,
+            39638,
+            39790,
+            39942,
+            40093,
+            40243,
+            40391,
+            40540,
+            40687,
+            40834,
+            40980,
+            41125,
+            41270,
+            41414,
+            41557,
+            41699,
+            41839,
+            41980,
+            42120,
+            42260,
+            42398,
+            42536,
+            42674,
+            42811,
+            42947,
+            43082,
+            43216,
+            43350,
+            43484,
+            43617,
+            43749,
+            43881,
+            44012,
+            44142,
+            44272,
+            44402,
+            44530,
+            44658,
+            44786,
+            44913,
+            45039,
+            45166,
+            45291,
+            45416,
+            45541,
+            45665,
+            45788,
+            45911,
+            46033,
+            46155,
+            46277,
+            46398,
+            46519,
+            46639,
+            46758,
+            46877,
+            46996,
+            47114,
+            47232,
+            47350,
+            47467,
+            47583,
+            47699,
+            47815,
+            47930,
+            48045,
+            48159,
+            48273,
+            48387,
+            48500,
+            48613,
+            48726,
+            48838,
+            48949,
+            49061,
+            49171,
+            49282,
+            49392,
+            49502,
+            49611,
+            49720,
+            49829,
+            49938,
+            50046,
+            50153,
+            50260,
+            50367,
+            50474,
+            50580,
+            50686,
+            50792,
+            50897,
+            51002,
+            51107,
+            51211,
+            51315,
+            51419,
+            51522,
+            51625,
+            51728,
+            51831,
+            51933,
+            52035,
+            52136,
+            52238,
+            52338,
+            52439,
+            52539,
+            52640,
+            52739,
+            52839,
+            52938,
+            53037,
+            53136,
+            53234,
+            53332,
+            53430,
+            53528,
+            53625,
+            53722,
+            53819,
+            53916,
+            54012,
+            54108,
+            54204,
+            54299,
+            54395,
+            54490,
+            54585,
+            54679,
+            54773,
+            54868,
+            54961,
+            55055,
+            55148,
+            55241,
+            55334,
+            55427,
+            55519,
+            55611,
+            55703,
+            55795,
+            55887,
+            55978,
+            56069,
+            56159,
+            56250,
+            56341,
+            56431,
+            56521,
+            56611,
+            56700,
+            56790,
+            56879,
+            56967,
+            57056,
+            57144,
+            57233,
+            57321,
+            57409,
+            57496,
+            57584,
+            57671,
+            57758,
+            57845,
+            57932,
+            58018,
+            58104,
+            58191,
+            58277,
+            58362,
+            58448,
+            58533,
+            58618,
+            58703,
+            58788,
+            58873,
+            58957,
+            59041,
+            59125,
+            59209,
+            59293,
+            59377,
+            59460,
+            59543,
+            59626,
+            59709,
+            59791,
+            59874,
+            59956,
+            60039,
+            60121,
+            60202,
+            60284,
+            60365,
+            60447,
+            60528,
+            60609,
+            60690,
+            60770,
+            60851,
+            60931,
+            61012,
+            61091,
+            61171,
+            61251,
+            61330,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 55,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 64,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1766452123,
+          "timezone": -5,
+          "timezoneId": "America/New_York",
+          "time": "2025-12-22 20:08:42",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1766452516,
+      "lat": 10000
+    },
+    "id": 2573828,
+    "excerpt": {
+      "rendered": "",
+      "raw": ""
+    },
+    "date_gmt": "2025-11-04T04:19:09Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-11-03T22:38:28",
+    "executingTasks": [],
+    "author": 8251,
+    "title": {
+      "rendered": "Term2",
+      "raw": "Term2"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "AliFares"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2573664,
+    "excerpt": {
+      "rendered": "",
+      "raw": ""
+    },
+    "date_gmt": "2025-11-03T22:38:28Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-11-03T23:15:14",
+    "executingTasks": [],
+    "author": 8251,
+    "title": {
+      "rendered": "Term2",
+      "raw": "Term2"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "AliFares"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2573674,
+    "excerpt": {
+      "rendered": "",
+      "raw": ""
+    },
+    "date_gmt": "2025-11-03T23:15:14Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-07-31T00:00:00",
+    "executingTasks": [],
+    "author": 4403,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Terminal1 ",
+      "raw": "Terminal1 "
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "_led_latest_screenshot_time": 1766345785,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1766352637,
+        "programs": [
+          {
+            "name": "Shake Shack",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2682475
+              },
+              {
+                "total": 1389,
+                "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2682475
+              }
+            ],
+            "id": 2682475
+          },
+          {
+            "name": "Dec17th",
+            "files": [
+              {
+                "total": 251177,
+                "name": "F_04B007451BBED1394A233A88C3832063_251177.jpg",
+                "downloaded": 251177,
+                "programId": 2673688
+              },
+              {
+                "total": 1378,
+                "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                "downloaded": 1378,
+                "programId": 2673688
+              }
+            ],
+            "id": 2673688
+          },
+          {
+            "name": "Dec15",
+            "files": [
+              {
+                "total": 6117,
+                "name": "F_F544974673C664823A6474D25F8225AF_6117.jpg",
+                "downloaded": 6117,
+                "programId": 2668050
+              },
+              {
+                "total": 6501,
+                "name": "F_C4FEEB6801DE63298BD743130412EABF_6501.jpg",
+                "downloaded": 6501,
+                "programId": 2668050
+              },
+              {
+                "total": 2575,
+                "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                "downloaded": 2575,
+                "programId": 2668050
+              }
+            ],
+            "id": 2668050
+          },
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "TestNewFormat",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2620340
+              },
+              {
+                "total": 1389,
+                "name": "TestNewFormat_30dcf1132158cc4836b71c62083779b8_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2620340
+              }
+            ],
+            "id": 2620340
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "auto_upload": 0,
+            "exposure": 0,
+            "size": "640x480",
+            "interval": 0,
+            "whitebalance": "auto",
+            "quality": 100
+          }
+        },
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 255,
+          "_report_time": 1766352636,
+          "colortemperature": 3000
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "US",
+          "language": "en"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "on"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1766352630,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1766352630,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1766352630,
+          "info": {
+            "mem": {
+              "total": 463646720,
+              "free": 233467904
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Download",
+              "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+              "source": "internet"
+            },
+            "up": 79664,
+            "storage": {
+              "total": 4487905280,
+              "free": 4278968320
+            },
+            "vername": "1.80.8",
+            "serialno": "CLCA20003400"
+          }
+        },
+        "rtc": {
+          "_report_time": 1766352630,
+          "timezone": "+08",
+          "isautotimezone": 1,
+          "time": "2025-12-21 16:30:28",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1766352636
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 255,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 255,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1766352630,
+          "name": "RedTerm",
+          "leddescription": "RedTerm"
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003400",
+              "enabled": 1,
+              "mac": "42:91:51:67:01:6a",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "static",
+              "carrier": 0,
+              "ssids": [],
+              "operstate": "down",
+              "state": "UNINITIALIZED",
+              "type": "wifi",
+              "enabled": 0,
+              "mac": "40:91:51:67:01:6a",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "d2:c5:ac:14:aa:6b",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "LTE",
+              "carrier": 0,
+              "strength": 4,
+              "type": "4G",
+              "enabled": 1,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 30
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "pool.ntp.org",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 10,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 0,
+          "_report_time": 1766352636
+        },
+        "contentreport": {
+          "content_report_status": 1
+        },
+        "vsns": {
+          "_report_time": 1766352636,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": []
+            },
+            {
+              "unused": 3210928,
+              "ressize": 3497788,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 24454,
+                  "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 252555,
+                  "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 15193,
+                  "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "TestNewFormat_30dcf1132158cc4836b71c62083779b8_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+            "type": "internet"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "simoperatorname": "",
+            "simserial": "89464278206109788802",
+            "hasicc": "true",
+            "imsi": "240422610978880",
+            "networktype": "LTE",
+            "deviceid": "864839042567996",
+            "operator": "311480",
+            "phonetype": "NO_PHONE",
+            "simoperator": "24042",
+            "dataactivity": "NONE",
+            "datastate": "CONNECTED",
+            "simstate": "READY",
+            "operatorname": "Verizon Wireless Hologram"
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 1,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            61,
+            123,
+            184,
+            246,
+            307,
+            369,
+            430,
+            492,
+            553,
+            614,
+            676,
+            737,
+            799,
+            860,
+            922,
+            983,
+            1044,
+            1106,
+            1167,
+            1229,
+            1290,
+            1352,
+            1413,
+            1475,
+            1536,
+            1597,
+            1659,
+            1720,
+            1782,
+            1843,
+            1905,
+            1966,
+            2048,
+            2130,
+            2212,
+            2294,
+            2376,
+            2458,
+            2539,
+            2621,
+            2703,
+            2785,
+            2867,
+            2949,
+            3031,
+            3113,
+            3195,
+            3277,
+            3359,
+            3441,
+            3523,
+            3604,
+            3686,
+            3768,
+            3850,
+            3932,
+            4014,
+            4096,
+            4178,
+            4260,
+            4342,
+            4424,
+            4506,
+            4587,
+            4751,
+            4915,
+            5079,
+            5243,
+            5407,
+            5570,
+            5734,
+            5898,
+            6062,
+            6226,
+            6390,
+            6554,
+            6717,
+            6881,
+            7045,
+            7209,
+            7373,
+            7537,
+            7700,
+            7864,
+            8028,
+            8192,
+            8356,
+            8520,
+            8683,
+            8847,
+            9011,
+            9175,
+            9339,
+            9503,
+            9666,
+            9830,
+            10056,
+            10281,
+            10506,
+            10731,
+            10957,
+            11182,
+            11407,
+            11632,
+            11858,
+            12083,
+            12308,
+            12534,
+            12759,
+            12984,
+            13209,
+            13435,
+            13660,
+            13885,
+            14111,
+            14336,
+            14561,
+            14786,
+            15012,
+            15237,
+            15462,
+            15687,
+            15913,
+            16138,
+            16363,
+            16589,
+            16814,
+            17039,
+            17346,
+            17653,
+            17961,
+            18268,
+            18575,
+            18882,
+            19189,
+            19497,
+            19804,
+            20111,
+            20418,
+            20725,
+            21033,
+            21340,
+            21647,
+            21954,
+            22261,
+            22569,
+            22876,
+            23183,
+            23490,
+            23797,
+            24105,
+            24412,
+            24719,
+            25026,
+            25333,
+            25641,
+            25948,
+            26255,
+            26562,
+            26869,
+            27279,
+            27689,
+            28098,
+            28508,
+            28917,
+            29327,
+            29737,
+            30146,
+            30556,
+            30965,
+            31375,
+            31784,
+            32194,
+            32604,
+            33013,
+            33423,
+            33832,
+            34242,
+            34652,
+            35061,
+            35471,
+            35880,
+            36290,
+            36700,
+            37109,
+            37519,
+            37928,
+            38338,
+            38748,
+            39157,
+            39567,
+            39976,
+            40468,
+            40959,
+            41451,
+            41942,
+            42434,
+            42925,
+            43417,
+            43908,
+            44400,
+            44891,
+            45383,
+            45875,
+            46366,
+            46858,
+            47349,
+            47841,
+            48332,
+            48824,
+            49315,
+            49807,
+            50298,
+            50790,
+            51281,
+            51773,
+            52264,
+            52756,
+            53247,
+            53739,
+            54230,
+            54722,
+            55213,
+            55705
+          ],
+          "save": 8,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4018,
+            5319,
+            6249,
+            7019,
+            7669,
+            8255,
+            8775,
+            9261,
+            9705,
+            10119,
+            10516,
+            10886,
+            11244,
+            11579,
+            11906,
+            12215,
+            12513,
+            12805,
+            13083,
+            13357,
+            13618,
+            13876,
+            14123,
+            14368,
+            14603,
+            14832,
+            15060,
+            15279,
+            15497,
+            15707,
+            15916,
+            16118,
+            16384,
+            16643,
+            16897,
+            17144,
+            17387,
+            17624,
+            17855,
+            18083,
+            18307,
+            18527,
+            18744,
+            18956,
+            19165,
+            19371,
+            19574,
+            19773,
+            19970,
+            20163,
+            20354,
+            20540,
+            20726,
+            20909,
+            21090,
+            21268,
+            21444,
+            21619,
+            21791,
+            21961,
+            22129,
+            22295,
+            22460,
+            22620,
+            22940,
+            23254,
+            23561,
+            23862,
+            24158,
+            24447,
+            24732,
+            25013,
+            25289,
+            25560,
+            25828,
+            26091,
+            26348,
+            26604,
+            26856,
+            27104,
+            27349,
+            27591,
+            27828,
+            28063,
+            28296,
+            28526,
+            28753,
+            28977,
+            29198,
+            29417,
+            29634,
+            29849,
+            30061,
+            30271,
+            30478,
+            30684,
+            30964,
+            31239,
+            31511,
+            31779,
+            32045,
+            32307,
+            32565,
+            32821,
+            33074,
+            33324,
+            33571,
+            33816,
+            34057,
+            34296,
+            34533,
+            34768,
+            35000,
+            35229,
+            35457,
+            35682,
+            35905,
+            36126,
+            36346,
+            36563,
+            36778,
+            36991,
+            37204,
+            37413,
+            37621,
+            37828,
+            38032,
+            38235,
+            38509,
+            38780,
+            39050,
+            39315,
+            39578,
+            39839,
+            40096,
+            40353,
+            40606,
+            40856,
+            41104,
+            41351,
+            41595,
+            41837,
+            42077,
+            42315,
+            42550,
+            42785,
+            43017,
+            43247,
+            43475,
+            43701,
+            43927,
+            44149,
+            44371,
+            44590,
+            44808,
+            45025,
+            45240,
+            45454,
+            45666,
+            45876,
+            46155,
+            46431,
+            46704,
+            46975,
+            47244,
+            47511,
+            47775,
+            48037,
+            48297,
+            48555,
+            48811,
+            49065,
+            49317,
+            49567,
+            49815,
+            50061,
+            50305,
+            50548,
+            50790,
+            51029,
+            51266,
+            51502,
+            51737,
+            51970,
+            52201,
+            52431,
+            52658,
+            52885,
+            53111,
+            53334,
+            53557,
+            53778,
+            54042,
+            54303,
+            54563,
+            54821,
+            55077,
+            55331,
+            55584,
+            55834,
+            56084,
+            56331,
+            56577,
+            56822,
+            57064,
+            57306,
+            57545,
+            57784,
+            58020,
+            58256,
+            58489,
+            58722,
+            58953,
+            59183,
+            59411,
+            59638,
+            59864,
+            60089,
+            60312,
+            60534,
+            60755,
+            60975,
+            61193,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 29,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 3,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1766352630,
+          "timezone": -5,
+          "timezoneId": "America/New_York",
+          "time": "2025-12-21 16:30:28",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1766354074,
+      "lat": 10000
+    },
+    "id": 2355209,
+    "excerpt": {
+      "rendered": "Terminal3400",
+      "raw": "Terminal3400"
+    },
+    "date_gmt": "2025-07-31T08:34:14Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T09:48:01",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3936",
+      "raw": "Terminal3936"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552852,
+    "excerpt": {
+      "rendered": "Terminal3936",
+      "raw": "Terminal3936"
+    },
+    "date_gmt": "2025-10-27T09:48:01Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T07:42:14",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3937",
+      "raw": "Terminal3937"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560630,
+    "excerpt": {
+      "rendered": "Terminal3937",
+      "raw": "Terminal3937"
+    },
+    "date_gmt": "2025-10-29T07:42:14Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-28T08:22:07",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3938",
+      "raw": "Terminal3938"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2557342,
+    "excerpt": {
+      "rendered": "Terminal3938",
+      "raw": "Terminal3938"
+    },
+    "date_gmt": "2025-10-28T08:22:07Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T08:01:01",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3941",
+      "raw": "Terminal3941"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560632,
+    "excerpt": {
+      "rendered": "Terminal3941",
+      "raw": "Terminal3941"
+    },
+    "date_gmt": "2025-10-29T08:01:01Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T10:04:30",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3945",
+      "raw": "Terminal3945"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552854,
+    "excerpt": {
+      "rendered": "Terminal3945",
+      "raw": "Terminal3945"
+    },
+    "date_gmt": "2025-10-27T10:04:30Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T03:00:32",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3946",
+      "raw": "Terminal3946"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560551,
+    "excerpt": {
+      "rendered": "Terminal3946",
+      "raw": "Terminal3946"
+    },
+    "date_gmt": "2025-10-29T03:00:32Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-28T07:25:02",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3947",
+      "raw": "Terminal3947"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2557340,
+    "excerpt": {
+      "rendered": "Terminal3947",
+      "raw": "Terminal3947"
+    },
+    "date_gmt": "2025-10-28T07:25:02Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T07:50:52",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3949",
+      "raw": "Terminal3949"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560631,
+    "excerpt": {
+      "rendered": "Terminal3949",
+      "raw": "Terminal3949"
+    },
+    "date_gmt": "2025-10-29T07:50:52Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T03:54:31",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3950",
+      "raw": "Terminal3950"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552843,
+    "excerpt": {
+      "rendered": "Terminal3950",
+      "raw": "Terminal3950"
+    },
+    "date_gmt": "2025-10-27T03:54:31Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T03:28:57",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3954",
+      "raw": "Terminal3954"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552840,
+    "excerpt": {
+      "rendered": "Terminal3954",
+      "raw": "Terminal3954"
+    },
+    "date_gmt": "2025-10-27T03:28:57Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T03:37:14",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3958",
+      "raw": "Terminal3958"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552841,
+    "excerpt": {
+      "rendered": "Terminal3958",
+      "raw": "Terminal3958"
+    },
+    "date_gmt": "2025-10-27T03:37:14Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T03:22:33",
+    "executingTasks": [],
+    "author": 4403,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Terminal3961",
+      "raw": "Terminal3961"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "_led_latest_screenshot_time": 1766468674,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1766468513,
+        "programs": [
+          {
+            "name": "Shake Shack",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2682475
+              },
+              {
+                "total": 1389,
+                "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2682475
+              }
+            ],
+            "id": 2682475
+          },
+          {
+            "name": "Dec17th",
+            "files": [
+              {
+                "total": 251177,
+                "name": "F_04B007451BBED1394A233A88C3832063_251177.jpg",
+                "downloaded": 251177,
+                "programId": 2673688
+              },
+              {
+                "total": 1378,
+                "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                "downloaded": 1378,
+                "programId": 2673688
+              }
+            ],
+            "id": 2673688
+          },
+          {
+            "name": "Dec15",
+            "files": [
+              {
+                "total": 6117,
+                "name": "F_F544974673C664823A6474D25F8225AF_6117.jpg",
+                "downloaded": 6117,
+                "programId": 2668050
+              },
+              {
+                "total": 6501,
+                "name": "F_C4FEEB6801DE63298BD743130412EABF_6501.jpg",
+                "downloaded": 6501,
+                "programId": 2668050
+              },
+              {
+                "total": 2575,
+                "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                "downloaded": 2575,
+                "programId": 2668050
+              }
+            ],
+            "id": 2668050
+          },
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "Playlist3020",
+            "files": [
+              {
+                "total": 637220,
+                "name": "F_0FD2B45B66EE05C85CF38782F41835CE_637220.jpeg",
+                "downloaded": 637220,
+                "programId": 2377238
+              },
+              {
+                "total": 20959,
+                "name": "F_69822353FE151964E64F7FE8EE7E082F_20959.png",
+                "downloaded": 20959,
+                "programId": 2377238
+              },
+              {
+                "total": 2612,
+                "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                "downloaded": 2612,
+                "programId": 2377238
+              }
+            ],
+            "id": 2377238
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {},
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 229,
+          "_report_time": 1766468512,
+          "colortemperature": 6500
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "CN",
+          "language": "zh"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "off"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1766468506,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1766468506,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1766468506,
+          "info": {
+            "mem": {
+              "total": 463642624,
+              "free": 241106944
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Download",
+              "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+              "source": "internet"
+            },
+            "up": 232394,
+            "storage": {
+              "total": 4487905280,
+              "free": 4279312384
+            },
+            "vername": "1.83.4.0001",
+            "serialno": "CLCA20003961"
+          }
+        },
+        "rtc": {
+          "_report_time": 1766468506,
+          "timezone": "-05",
+          "isautotimezone": 1,
+          "time": "2025-12-23 00:41:45",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1766468512
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 229,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 229,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1766468506,
+          "name": "Terminal3961",
+          "leddescription": ""
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [
+                {
+                  "ip": "192.168.43.117",
+                  "mac": "ba:de:c5:a6:9c:10"
+                }
+              ],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003961",
+              "enabled": 1,
+              "mac": "26:d7:eb:f6:15:1f",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "static",
+              "carrier": 0,
+              "ssids": [],
+              "operstate": "down",
+              "state": "UNINITIALIZED",
+              "type": "wifi",
+              "enabled": 0,
+              "mac": "24:d7:eb:f6:15:1f",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "d8:92:18:0b:f6:b7",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "LTE",
+              "carrier": 0,
+              "strength": 1,
+              "type": "4G",
+              "enabled": 1,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 0
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "ntp7.aliyun.com",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 5,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 12,
+          "_report_time": 1766468512
+        },
+        "contentreport": {
+          "content_report_status": 0
+        },
+        "vsns": {
+          "_report_time": 1766468673,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": [
+                {
+                  "size": 28424265,
+                  "name": "160×120.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            },
+            {
+              "unused": 0,
+              "ressize": 945039,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 660791,
+                  "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 15193,
+                  "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 252555,
+                  "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+            "type": "internet"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "simoperatorname": "",
+            "simserial": "89464278206108784687",
+            "hasicc": "true",
+            "imsi": "240422610878468",
+            "networktype": "LTE",
+            "deviceid": "864839042588620",
+            "operator": "310260",
+            "phonetype": "NO_PHONE",
+            "simoperator": "24042",
+            "dataactivity": "NONE",
+            "datastate": "CONNECTED",
+            "simstate": "READY",
+            "operatorname": "T-Mobile Hologram"
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 45,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            9830,
+            10010,
+            10190,
+            10370,
+            10550,
+            10729,
+            10909,
+            11089,
+            11269,
+            11449,
+            11629,
+            11809,
+            11989,
+            12169,
+            12349,
+            12528,
+            12708,
+            12888,
+            13068,
+            13248,
+            13428,
+            13608,
+            13788,
+            13968,
+            14148,
+            14327,
+            14507,
+            14687,
+            14867,
+            15047,
+            15227,
+            15407,
+            15587,
+            15767,
+            15947,
+            16126,
+            16306,
+            16486,
+            16666,
+            16846,
+            17026,
+            17206,
+            17386,
+            17566,
+            17746,
+            17925,
+            18105,
+            18285,
+            18465,
+            18645,
+            18825,
+            19005,
+            19185,
+            19365,
+            19544,
+            19724,
+            19904,
+            20084,
+            20264,
+            20444,
+            20624,
+            20804,
+            20984,
+            21164,
+            21343,
+            21523,
+            21703,
+            21883,
+            22063,
+            22243,
+            22423,
+            22603,
+            22783,
+            22963,
+            23142,
+            23322,
+            23502,
+            23682,
+            23862,
+            24042,
+            24222,
+            24402,
+            24582,
+            24762,
+            24941,
+            25121,
+            25301,
+            25481,
+            25661,
+            25841,
+            26021,
+            26201,
+            26381,
+            26561,
+            26740,
+            26920,
+            27100,
+            27280,
+            27460,
+            27640,
+            27820,
+            28000,
+            28180,
+            28359,
+            28539,
+            28719,
+            28899,
+            29079,
+            29259,
+            29439,
+            29619,
+            29799,
+            29979,
+            30158,
+            30338,
+            30518,
+            30698,
+            30878,
+            31058,
+            31238,
+            31418,
+            31598,
+            31778,
+            31957,
+            32137,
+            32317,
+            32497,
+            32677,
+            32857,
+            33037,
+            33217,
+            33397,
+            33577,
+            33756,
+            33936,
+            34116,
+            34296,
+            34476,
+            34656,
+            34836,
+            35016,
+            35196,
+            35376,
+            35555,
+            35735,
+            35915,
+            36095,
+            36275,
+            36455,
+            36635,
+            36815,
+            36995,
+            37175,
+            37354,
+            37534,
+            37714,
+            37894,
+            38074,
+            38254,
+            38434,
+            38614,
+            38794,
+            38973,
+            39153,
+            39333,
+            39513,
+            39693,
+            39873,
+            40053,
+            40233,
+            40413,
+            40593,
+            40772,
+            40952,
+            41132,
+            41312,
+            41492,
+            41672,
+            41852,
+            42032,
+            42212,
+            42392,
+            42571,
+            42751,
+            42931,
+            43111,
+            43291,
+            43471,
+            43651,
+            43831,
+            44011,
+            44191,
+            44370,
+            44550,
+            44730,
+            44910,
+            45090,
+            45270,
+            45450,
+            45630,
+            45810,
+            45990,
+            46169,
+            46349,
+            46529,
+            46709,
+            46889,
+            47069,
+            47249,
+            47429,
+            47609,
+            47788,
+            47968,
+            48148,
+            48328,
+            48508,
+            48688,
+            48868,
+            49048,
+            49228,
+            49408,
+            49587,
+            49767,
+            49947,
+            50127,
+            50307,
+            50487,
+            50667,
+            50847,
+            51027,
+            51207,
+            51386,
+            51566,
+            51746,
+            51926,
+            52106,
+            52286,
+            52466,
+            52646,
+            52826,
+            53006,
+            53185,
+            53365,
+            53545,
+            53725,
+            53905,
+            54085,
+            54265,
+            54445,
+            54625,
+            54805,
+            54984,
+            55164,
+            55344,
+            55524,
+            55704
+          ],
+          "save": 0,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            30684,
+            30907,
+            31128,
+            31347,
+            31563,
+            31777,
+            31989,
+            32199,
+            32407,
+            32613,
+            32817,
+            33019,
+            33220,
+            33418,
+            33615,
+            33809,
+            34003,
+            34195,
+            34385,
+            34574,
+            34761,
+            34946,
+            35131,
+            35313,
+            35495,
+            35674,
+            35852,
+            36029,
+            36205,
+            36380,
+            36554,
+            36726,
+            36897,
+            37067,
+            37235,
+            37402,
+            37568,
+            37734,
+            37898,
+            38061,
+            38223,
+            38385,
+            38545,
+            38704,
+            38862,
+            39018,
+            39174,
+            39330,
+            39484,
+            39638,
+            39790,
+            39942,
+            40093,
+            40243,
+            40391,
+            40540,
+            40687,
+            40834,
+            40980,
+            41125,
+            41270,
+            41414,
+            41557,
+            41699,
+            41839,
+            41980,
+            42120,
+            42260,
+            42398,
+            42536,
+            42674,
+            42811,
+            42947,
+            43082,
+            43216,
+            43350,
+            43484,
+            43617,
+            43749,
+            43881,
+            44012,
+            44142,
+            44272,
+            44402,
+            44530,
+            44658,
+            44786,
+            44913,
+            45039,
+            45166,
+            45291,
+            45416,
+            45541,
+            45665,
+            45788,
+            45911,
+            46033,
+            46155,
+            46277,
+            46398,
+            46519,
+            46639,
+            46758,
+            46877,
+            46996,
+            47114,
+            47232,
+            47350,
+            47467,
+            47583,
+            47699,
+            47815,
+            47930,
+            48045,
+            48159,
+            48273,
+            48387,
+            48500,
+            48613,
+            48726,
+            48838,
+            48949,
+            49061,
+            49171,
+            49282,
+            49392,
+            49502,
+            49611,
+            49720,
+            49829,
+            49938,
+            50046,
+            50153,
+            50260,
+            50367,
+            50474,
+            50580,
+            50686,
+            50792,
+            50897,
+            51002,
+            51107,
+            51211,
+            51315,
+            51419,
+            51522,
+            51625,
+            51728,
+            51831,
+            51933,
+            52035,
+            52136,
+            52238,
+            52338,
+            52439,
+            52539,
+            52640,
+            52739,
+            52839,
+            52938,
+            53037,
+            53136,
+            53234,
+            53332,
+            53430,
+            53528,
+            53625,
+            53722,
+            53819,
+            53916,
+            54012,
+            54108,
+            54204,
+            54299,
+            54395,
+            54490,
+            54585,
+            54679,
+            54773,
+            54868,
+            54961,
+            55055,
+            55148,
+            55241,
+            55334,
+            55427,
+            55519,
+            55611,
+            55703,
+            55795,
+            55887,
+            55978,
+            56069,
+            56159,
+            56250,
+            56341,
+            56431,
+            56521,
+            56611,
+            56700,
+            56790,
+            56879,
+            56967,
+            57056,
+            57144,
+            57233,
+            57321,
+            57409,
+            57496,
+            57584,
+            57671,
+            57758,
+            57845,
+            57932,
+            58018,
+            58104,
+            58191,
+            58277,
+            58362,
+            58448,
+            58533,
+            58618,
+            58703,
+            58788,
+            58873,
+            58957,
+            59041,
+            59125,
+            59209,
+            59293,
+            59377,
+            59460,
+            59543,
+            59626,
+            59709,
+            59791,
+            59874,
+            59956,
+            60039,
+            60121,
+            60202,
+            60284,
+            60365,
+            60447,
+            60528,
+            60609,
+            60690,
+            60770,
+            60851,
+            60931,
+            61012,
+            61091,
+            61171,
+            61251,
+            61330,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 55,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 64,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1766468506,
+          "timezone": -5,
+          "timezoneId": "America/New_York",
+          "time": "2025-12-23 00:41:45",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1766468718,
+      "lat": 10000
+    },
+    "id": 2560557,
+    "excerpt": {
+      "rendered": "Terminal3961",
+      "raw": "Terminal3961"
+    },
+    "date_gmt": "2025-10-29T03:22:33Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T09:35:41",
+    "executingTasks": [],
+    "author": 4403,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Terminal3964",
+      "raw": "Terminal3964"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "_led_latest_screenshot_time": 1766467504,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1766467533,
+        "programs": [
+          {
+            "name": "Shake Shack",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2682475
+              },
+              {
+                "total": 1389,
+                "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2682475
+              }
+            ],
+            "id": 2682475
+          },
+          {
+            "name": "Dec17th",
+            "files": [
+              {
+                "total": 251177,
+                "name": "F_04B007451BBED1394A233A88C3832063_251177.jpg",
+                "downloaded": 251177,
+                "programId": 2673688
+              },
+              {
+                "total": 1378,
+                "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                "downloaded": 1378,
+                "programId": 2673688
+              }
+            ],
+            "id": 2673688
+          },
+          {
+            "name": "Dec15",
+            "files": [
+              {
+                "total": 6117,
+                "name": "F_F544974673C664823A6474D25F8225AF_6117.jpg",
+                "downloaded": 6117,
+                "programId": 2668050
+              },
+              {
+                "total": 6501,
+                "name": "F_C4FEEB6801DE63298BD743130412EABF_6501.jpg",
+                "downloaded": 6501,
+                "programId": 2668050
+              },
+              {
+                "total": 2575,
+                "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                "downloaded": 2575,
+                "programId": 2668050
+              }
+            ],
+            "id": 2668050
+          },
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "Playlist3020",
+            "files": [
+              {
+                "total": 637220,
+                "name": "F_0FD2B45B66EE05C85CF38782F41835CE_637220.jpeg",
+                "downloaded": 637220,
+                "programId": 2377238
+              },
+              {
+                "total": 20959,
+                "name": "F_69822353FE151964E64F7FE8EE7E082F_20959.png",
+                "downloaded": 20959,
+                "programId": 2377238
+              },
+              {
+                "total": 2612,
+                "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                "downloaded": 2612,
+                "programId": 2377238
+              }
+            ],
+            "id": 2377238
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {},
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 229,
+          "_report_time": 1766467532,
+          "colortemperature": 6500
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "CN",
+          "language": "zh"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "off"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1766467526,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1766467526,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1766467526,
+          "info": {
+            "mem": {
+              "total": 463642624,
+              "free": 235991040
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Download",
+              "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+              "source": "internet"
+            },
+            "up": 150006,
+            "storage": {
+              "total": 4487905280,
+              "free": 4301295616
+            },
+            "vername": "1.83.4.0001",
+            "serialno": "CLCA20003964"
+          }
+        },
+        "rtc": {
+          "_report_time": 1766467526,
+          "timezone": "-05",
+          "isautotimezone": 1,
+          "time": "2025-12-23 00:25:25",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1766467532
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 229,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 229,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1766467526,
+          "name": "Terminal3964",
+          "leddescription": ""
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [
+                {
+                  "ip": "192.168.43.151",
+                  "mac": "be:c7:f9:3f:16:1c"
+                }
+              ],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003964",
+              "enabled": 1,
+              "mac": "26:d7:eb:f6:14:b8",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "static",
+              "carrier": 0,
+              "ssids": [],
+              "operstate": "down",
+              "state": "UNINITIALIZED",
+              "type": "wifi",
+              "enabled": 0,
+              "mac": "24:d7:eb:f6:14:b8",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "74:d5:77:9a:26:06",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "LTE",
+              "carrier": 0,
+              "strength": 2,
+              "type": "4G",
+              "enabled": 1,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 0
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "ntp7.aliyun.com",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 5,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 12,
+          "_report_time": 1766467532
+        },
+        "contentreport": {
+          "content_report_status": 0
+        },
+        "vsns": {
+          "_report_time": 1766467532,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": [
+                {
+                  "size": 6381406,
+                  "name": "160×120.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            },
+            {
+              "unused": 0,
+              "ressize": 945039,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 660791,
+                  "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 15193,
+                  "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 252555,
+                  "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+            "type": "internet"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "simoperatorname": "",
+            "simserial": "89464278206108784679",
+            "hasicc": "true",
+            "imsi": "240422610878467",
+            "networktype": "LTE",
+            "deviceid": "864839042568465",
+            "operator": "310260",
+            "phonetype": "NO_PHONE",
+            "simoperator": "24042",
+            "dataactivity": "NONE",
+            "datastate": "CONNECTED",
+            "simstate": "READY",
+            "operatorname": "T-Mobile Hologram"
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 45,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            9830,
+            10010,
+            10190,
+            10370,
+            10550,
+            10729,
+            10909,
+            11089,
+            11269,
+            11449,
+            11629,
+            11809,
+            11989,
+            12169,
+            12349,
+            12528,
+            12708,
+            12888,
+            13068,
+            13248,
+            13428,
+            13608,
+            13788,
+            13968,
+            14148,
+            14327,
+            14507,
+            14687,
+            14867,
+            15047,
+            15227,
+            15407,
+            15587,
+            15767,
+            15947,
+            16126,
+            16306,
+            16486,
+            16666,
+            16846,
+            17026,
+            17206,
+            17386,
+            17566,
+            17746,
+            17925,
+            18105,
+            18285,
+            18465,
+            18645,
+            18825,
+            19005,
+            19185,
+            19365,
+            19544,
+            19724,
+            19904,
+            20084,
+            20264,
+            20444,
+            20624,
+            20804,
+            20984,
+            21164,
+            21343,
+            21523,
+            21703,
+            21883,
+            22063,
+            22243,
+            22423,
+            22603,
+            22783,
+            22963,
+            23142,
+            23322,
+            23502,
+            23682,
+            23862,
+            24042,
+            24222,
+            24402,
+            24582,
+            24762,
+            24941,
+            25121,
+            25301,
+            25481,
+            25661,
+            25841,
+            26021,
+            26201,
+            26381,
+            26561,
+            26740,
+            26920,
+            27100,
+            27280,
+            27460,
+            27640,
+            27820,
+            28000,
+            28180,
+            28359,
+            28539,
+            28719,
+            28899,
+            29079,
+            29259,
+            29439,
+            29619,
+            29799,
+            29979,
+            30158,
+            30338,
+            30518,
+            30698,
+            30878,
+            31058,
+            31238,
+            31418,
+            31598,
+            31778,
+            31957,
+            32137,
+            32317,
+            32497,
+            32677,
+            32857,
+            33037,
+            33217,
+            33397,
+            33577,
+            33756,
+            33936,
+            34116,
+            34296,
+            34476,
+            34656,
+            34836,
+            35016,
+            35196,
+            35376,
+            35555,
+            35735,
+            35915,
+            36095,
+            36275,
+            36455,
+            36635,
+            36815,
+            36995,
+            37175,
+            37354,
+            37534,
+            37714,
+            37894,
+            38074,
+            38254,
+            38434,
+            38614,
+            38794,
+            38973,
+            39153,
+            39333,
+            39513,
+            39693,
+            39873,
+            40053,
+            40233,
+            40413,
+            40593,
+            40772,
+            40952,
+            41132,
+            41312,
+            41492,
+            41672,
+            41852,
+            42032,
+            42212,
+            42392,
+            42571,
+            42751,
+            42931,
+            43111,
+            43291,
+            43471,
+            43651,
+            43831,
+            44011,
+            44191,
+            44370,
+            44550,
+            44730,
+            44910,
+            45090,
+            45270,
+            45450,
+            45630,
+            45810,
+            45990,
+            46169,
+            46349,
+            46529,
+            46709,
+            46889,
+            47069,
+            47249,
+            47429,
+            47609,
+            47788,
+            47968,
+            48148,
+            48328,
+            48508,
+            48688,
+            48868,
+            49048,
+            49228,
+            49408,
+            49587,
+            49767,
+            49947,
+            50127,
+            50307,
+            50487,
+            50667,
+            50847,
+            51027,
+            51207,
+            51386,
+            51566,
+            51746,
+            51926,
+            52106,
+            52286,
+            52466,
+            52646,
+            52826,
+            53006,
+            53185,
+            53365,
+            53545,
+            53725,
+            53905,
+            54085,
+            54265,
+            54445,
+            54625,
+            54805,
+            54984,
+            55164,
+            55344,
+            55524,
+            55704
+          ],
+          "save": 0,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            30684,
+            30907,
+            31128,
+            31347,
+            31563,
+            31777,
+            31989,
+            32199,
+            32407,
+            32613,
+            32817,
+            33019,
+            33220,
+            33418,
+            33615,
+            33809,
+            34003,
+            34195,
+            34385,
+            34574,
+            34761,
+            34946,
+            35131,
+            35313,
+            35495,
+            35674,
+            35852,
+            36029,
+            36205,
+            36380,
+            36554,
+            36726,
+            36897,
+            37067,
+            37235,
+            37402,
+            37568,
+            37734,
+            37898,
+            38061,
+            38223,
+            38385,
+            38545,
+            38704,
+            38862,
+            39018,
+            39174,
+            39330,
+            39484,
+            39638,
+            39790,
+            39942,
+            40093,
+            40243,
+            40391,
+            40540,
+            40687,
+            40834,
+            40980,
+            41125,
+            41270,
+            41414,
+            41557,
+            41699,
+            41839,
+            41980,
+            42120,
+            42260,
+            42398,
+            42536,
+            42674,
+            42811,
+            42947,
+            43082,
+            43216,
+            43350,
+            43484,
+            43617,
+            43749,
+            43881,
+            44012,
+            44142,
+            44272,
+            44402,
+            44530,
+            44658,
+            44786,
+            44913,
+            45039,
+            45166,
+            45291,
+            45416,
+            45541,
+            45665,
+            45788,
+            45911,
+            46033,
+            46155,
+            46277,
+            46398,
+            46519,
+            46639,
+            46758,
+            46877,
+            46996,
+            47114,
+            47232,
+            47350,
+            47467,
+            47583,
+            47699,
+            47815,
+            47930,
+            48045,
+            48159,
+            48273,
+            48387,
+            48500,
+            48613,
+            48726,
+            48838,
+            48949,
+            49061,
+            49171,
+            49282,
+            49392,
+            49502,
+            49611,
+            49720,
+            49829,
+            49938,
+            50046,
+            50153,
+            50260,
+            50367,
+            50474,
+            50580,
+            50686,
+            50792,
+            50897,
+            51002,
+            51107,
+            51211,
+            51315,
+            51419,
+            51522,
+            51625,
+            51728,
+            51831,
+            51933,
+            52035,
+            52136,
+            52238,
+            52338,
+            52439,
+            52539,
+            52640,
+            52739,
+            52839,
+            52938,
+            53037,
+            53136,
+            53234,
+            53332,
+            53430,
+            53528,
+            53625,
+            53722,
+            53819,
+            53916,
+            54012,
+            54108,
+            54204,
+            54299,
+            54395,
+            54490,
+            54585,
+            54679,
+            54773,
+            54868,
+            54961,
+            55055,
+            55148,
+            55241,
+            55334,
+            55427,
+            55519,
+            55611,
+            55703,
+            55795,
+            55887,
+            55978,
+            56069,
+            56159,
+            56250,
+            56341,
+            56431,
+            56521,
+            56611,
+            56700,
+            56790,
+            56879,
+            56967,
+            57056,
+            57144,
+            57233,
+            57321,
+            57409,
+            57496,
+            57584,
+            57671,
+            57758,
+            57845,
+            57932,
+            58018,
+            58104,
+            58191,
+            58277,
+            58362,
+            58448,
+            58533,
+            58618,
+            58703,
+            58788,
+            58873,
+            58957,
+            59041,
+            59125,
+            59209,
+            59293,
+            59377,
+            59460,
+            59543,
+            59626,
+            59709,
+            59791,
+            59874,
+            59956,
+            60039,
+            60121,
+            60202,
+            60284,
+            60365,
+            60447,
+            60528,
+            60609,
+            60690,
+            60770,
+            60851,
+            60931,
+            61012,
+            61091,
+            61171,
+            61251,
+            61330,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 55,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 64,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1766467526,
+          "timezone": -5,
+          "timezoneId": "America/New_York",
+          "time": "2025-12-23 00:25:25",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1766467738,
+      "lat": 10000
+    },
+    "id": 2552851,
+    "excerpt": {
+      "rendered": "Terminal3964",
+      "raw": "Terminal3964"
+    },
+    "date_gmt": "2025-10-27T09:35:41Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T09:55:56",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3965",
+      "raw": "Terminal3965"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552853,
+    "excerpt": {
+      "rendered": "Terminal3965",
+      "raw": "Terminal3965"
+    },
+    "date_gmt": "2025-10-27T09:55:56Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-28T08:11:41",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3967",
+      "raw": "Terminal3967"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2557341,
+    "excerpt": {
+      "rendered": "Terminal3967",
+      "raw": "Terminal3967"
+    },
+    "date_gmt": "2025-10-28T08:11:41Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T07:32:29",
+    "executingTasks": [],
+    "author": 4403,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Terminal3968",
+      "raw": "Terminal3968"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "_led_latest_screenshot_time": 1766470044,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1766470037,
+        "programs": [
+          {
+            "name": "Shake Shack",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2682475
+              },
+              {
+                "total": 1389,
+                "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2682475
+              }
+            ],
+            "id": 2682475
+          },
+          {
+            "name": "Dec17th",
+            "files": [
+              {
+                "total": 251177,
+                "name": "F_04B007451BBED1394A233A88C3832063_251177.jpg",
+                "downloaded": 251177,
+                "programId": 2673688
+              },
+              {
+                "total": 1378,
+                "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                "downloaded": 1378,
+                "programId": 2673688
+              }
+            ],
+            "id": 2673688
+          },
+          {
+            "name": "Dec15",
+            "files": [
+              {
+                "total": 6117,
+                "name": "F_F544974673C664823A6474D25F8225AF_6117.jpg",
+                "downloaded": 6117,
+                "programId": 2668050
+              },
+              {
+                "total": 6501,
+                "name": "F_C4FEEB6801DE63298BD743130412EABF_6501.jpg",
+                "downloaded": 6501,
+                "programId": 2668050
+              },
+              {
+                "total": 2575,
+                "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                "downloaded": 2575,
+                "programId": 2668050
+              }
+            ],
+            "id": 2668050
+          },
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "Playlist3020",
+            "files": [
+              {
+                "total": 637220,
+                "name": "F_0FD2B45B66EE05C85CF38782F41835CE_637220.jpeg",
+                "downloaded": 637220,
+                "programId": 2377238
+              },
+              {
+                "total": 20959,
+                "name": "F_69822353FE151964E64F7FE8EE7E082F_20959.png",
+                "downloaded": 20959,
+                "programId": 2377238
+              },
+              {
+                "total": 2612,
+                "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                "downloaded": 2612,
+                "programId": 2377238
+              }
+            ],
+            "id": 2377238
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {},
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 229,
+          "_report_time": 1766470037,
+          "colortemperature": 6500
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "CN",
+          "language": "zh"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "off"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1766470030,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1766470030,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1766470030,
+          "info": {
+            "mem": {
+              "total": 463642624,
+              "free": 230805504
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Ftp/program",
+              "name": "160×120.vsn",
+              "source": "lan"
+            },
+            "up": 74854,
+            "storage": {
+              "total": 4487905280,
+              "free": 4279201792
+            },
+            "vername": "1.83.4.0001",
+            "serialno": "CLCA20003968"
+          }
+        },
+        "rtc": {
+          "_report_time": 1766470030,
+          "timezone": "-05",
+          "isautotimezone": 1,
+          "time": "2025-12-23 01:07:10",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1766470037
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 229,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 229,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1766470030,
+          "name": "Terminal3968",
+          "leddescription": ""
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003968",
+              "enabled": 1,
+              "mac": "26:d7:eb:f6:14:aa",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "static",
+              "carrier": 0,
+              "ssids": [],
+              "operstate": "down",
+              "state": "UNINITIALIZED",
+              "type": "wifi",
+              "enabled": 0,
+              "mac": "24:d7:eb:f6:14:aa",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "50:0f:9f:05:96:a1",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "LTE",
+              "carrier": 0,
+              "strength": 2,
+              "type": "4G",
+              "enabled": 1,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 60
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "ntp7.aliyun.com",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 5,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 12,
+          "_report_time": 1766470037
+        },
+        "contentreport": {
+          "content_report_status": 1
+        },
+        "vsns": {
+          "_report_time": 1766470044,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": [
+                {
+                  "size": 28424265,
+                  "name": "160×120.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            },
+            {
+              "unused": 0,
+              "ressize": 945039,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 660791,
+                  "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_b03337008cecd9a4280d4ea5eb8688b6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 15193,
+                  "name": "Dec15_0bb00e4fc044bcfd758bd3d6c58174f0_2575.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 252555,
+                  "name": "Dec17th_2aa2c8f5960f490f936830615a40c20e_1378.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "Shake Shack_55825863fef591a96b380474c4bf06a6_1389.vsn",
+            "type": "internet"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "simoperatorname": "",
+            "simserial": "89464278206108784810",
+            "hasicc": "true",
+            "imsi": "240422610878481",
+            "networktype": "LTE",
+            "deviceid": "864839042560488",
+            "operator": "310260",
+            "phonetype": "NO_PHONE",
+            "simoperator": "24042",
+            "dataactivity": "NONE",
+            "datastate": "CONNECTED",
+            "simstate": "READY",
+            "operatorname": "T-Mobile Hologram"
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 45,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            9830,
+            10010,
+            10190,
+            10370,
+            10550,
+            10729,
+            10909,
+            11089,
+            11269,
+            11449,
+            11629,
+            11809,
+            11989,
+            12169,
+            12349,
+            12528,
+            12708,
+            12888,
+            13068,
+            13248,
+            13428,
+            13608,
+            13788,
+            13968,
+            14148,
+            14327,
+            14507,
+            14687,
+            14867,
+            15047,
+            15227,
+            15407,
+            15587,
+            15767,
+            15947,
+            16126,
+            16306,
+            16486,
+            16666,
+            16846,
+            17026,
+            17206,
+            17386,
+            17566,
+            17746,
+            17925,
+            18105,
+            18285,
+            18465,
+            18645,
+            18825,
+            19005,
+            19185,
+            19365,
+            19544,
+            19724,
+            19904,
+            20084,
+            20264,
+            20444,
+            20624,
+            20804,
+            20984,
+            21164,
+            21343,
+            21523,
+            21703,
+            21883,
+            22063,
+            22243,
+            22423,
+            22603,
+            22783,
+            22963,
+            23142,
+            23322,
+            23502,
+            23682,
+            23862,
+            24042,
+            24222,
+            24402,
+            24582,
+            24762,
+            24941,
+            25121,
+            25301,
+            25481,
+            25661,
+            25841,
+            26021,
+            26201,
+            26381,
+            26561,
+            26740,
+            26920,
+            27100,
+            27280,
+            27460,
+            27640,
+            27820,
+            28000,
+            28180,
+            28359,
+            28539,
+            28719,
+            28899,
+            29079,
+            29259,
+            29439,
+            29619,
+            29799,
+            29979,
+            30158,
+            30338,
+            30518,
+            30698,
+            30878,
+            31058,
+            31238,
+            31418,
+            31598,
+            31778,
+            31957,
+            32137,
+            32317,
+            32497,
+            32677,
+            32857,
+            33037,
+            33217,
+            33397,
+            33577,
+            33756,
+            33936,
+            34116,
+            34296,
+            34476,
+            34656,
+            34836,
+            35016,
+            35196,
+            35376,
+            35555,
+            35735,
+            35915,
+            36095,
+            36275,
+            36455,
+            36635,
+            36815,
+            36995,
+            37175,
+            37354,
+            37534,
+            37714,
+            37894,
+            38074,
+            38254,
+            38434,
+            38614,
+            38794,
+            38973,
+            39153,
+            39333,
+            39513,
+            39693,
+            39873,
+            40053,
+            40233,
+            40413,
+            40593,
+            40772,
+            40952,
+            41132,
+            41312,
+            41492,
+            41672,
+            41852,
+            42032,
+            42212,
+            42392,
+            42571,
+            42751,
+            42931,
+            43111,
+            43291,
+            43471,
+            43651,
+            43831,
+            44011,
+            44191,
+            44370,
+            44550,
+            44730,
+            44910,
+            45090,
+            45270,
+            45450,
+            45630,
+            45810,
+            45990,
+            46169,
+            46349,
+            46529,
+            46709,
+            46889,
+            47069,
+            47249,
+            47429,
+            47609,
+            47788,
+            47968,
+            48148,
+            48328,
+            48508,
+            48688,
+            48868,
+            49048,
+            49228,
+            49408,
+            49587,
+            49767,
+            49947,
+            50127,
+            50307,
+            50487,
+            50667,
+            50847,
+            51027,
+            51207,
+            51386,
+            51566,
+            51746,
+            51926,
+            52106,
+            52286,
+            52466,
+            52646,
+            52826,
+            53006,
+            53185,
+            53365,
+            53545,
+            53725,
+            53905,
+            54085,
+            54265,
+            54445,
+            54625,
+            54805,
+            54984,
+            55164,
+            55344,
+            55524,
+            55704
+          ],
+          "save": 0,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            30684,
+            30907,
+            31128,
+            31347,
+            31563,
+            31777,
+            31989,
+            32199,
+            32407,
+            32613,
+            32817,
+            33019,
+            33220,
+            33418,
+            33615,
+            33809,
+            34003,
+            34195,
+            34385,
+            34574,
+            34761,
+            34946,
+            35131,
+            35313,
+            35495,
+            35674,
+            35852,
+            36029,
+            36205,
+            36380,
+            36554,
+            36726,
+            36897,
+            37067,
+            37235,
+            37402,
+            37568,
+            37734,
+            37898,
+            38061,
+            38223,
+            38385,
+            38545,
+            38704,
+            38862,
+            39018,
+            39174,
+            39330,
+            39484,
+            39638,
+            39790,
+            39942,
+            40093,
+            40243,
+            40391,
+            40540,
+            40687,
+            40834,
+            40980,
+            41125,
+            41270,
+            41414,
+            41557,
+            41699,
+            41839,
+            41980,
+            42120,
+            42260,
+            42398,
+            42536,
+            42674,
+            42811,
+            42947,
+            43082,
+            43216,
+            43350,
+            43484,
+            43617,
+            43749,
+            43881,
+            44012,
+            44142,
+            44272,
+            44402,
+            44530,
+            44658,
+            44786,
+            44913,
+            45039,
+            45166,
+            45291,
+            45416,
+            45541,
+            45665,
+            45788,
+            45911,
+            46033,
+            46155,
+            46277,
+            46398,
+            46519,
+            46639,
+            46758,
+            46877,
+            46996,
+            47114,
+            47232,
+            47350,
+            47467,
+            47583,
+            47699,
+            47815,
+            47930,
+            48045,
+            48159,
+            48273,
+            48387,
+            48500,
+            48613,
+            48726,
+            48838,
+            48949,
+            49061,
+            49171,
+            49282,
+            49392,
+            49502,
+            49611,
+            49720,
+            49829,
+            49938,
+            50046,
+            50153,
+            50260,
+            50367,
+            50474,
+            50580,
+            50686,
+            50792,
+            50897,
+            51002,
+            51107,
+            51211,
+            51315,
+            51419,
+            51522,
+            51625,
+            51728,
+            51831,
+            51933,
+            52035,
+            52136,
+            52238,
+            52338,
+            52439,
+            52539,
+            52640,
+            52739,
+            52839,
+            52938,
+            53037,
+            53136,
+            53234,
+            53332,
+            53430,
+            53528,
+            53625,
+            53722,
+            53819,
+            53916,
+            54012,
+            54108,
+            54204,
+            54299,
+            54395,
+            54490,
+            54585,
+            54679,
+            54773,
+            54868,
+            54961,
+            55055,
+            55148,
+            55241,
+            55334,
+            55427,
+            55519,
+            55611,
+            55703,
+            55795,
+            55887,
+            55978,
+            56069,
+            56159,
+            56250,
+            56341,
+            56431,
+            56521,
+            56611,
+            56700,
+            56790,
+            56879,
+            56967,
+            57056,
+            57144,
+            57233,
+            57321,
+            57409,
+            57496,
+            57584,
+            57671,
+            57758,
+            57845,
+            57932,
+            58018,
+            58104,
+            58191,
+            58277,
+            58362,
+            58448,
+            58533,
+            58618,
+            58703,
+            58788,
+            58873,
+            58957,
+            59041,
+            59125,
+            59209,
+            59293,
+            59377,
+            59460,
+            59543,
+            59626,
+            59709,
+            59791,
+            59874,
+            59956,
+            60039,
+            60121,
+            60202,
+            60284,
+            60365,
+            60447,
+            60528,
+            60609,
+            60690,
+            60770,
+            60851,
+            60931,
+            61012,
+            61091,
+            61171,
+            61251,
+            61330,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 55,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 64,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1766470030,
+          "timezone": -5,
+          "timezoneId": "America/New_York",
+          "time": "2025-12-23 01:07:10",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1766470054,
+      "lat": 10000
+    },
+    "id": 2560629,
+    "excerpt": {
+      "rendered": "Terminal3968",
+      "raw": "Terminal3968"
+    },
+    "date_gmt": "2025-10-29T07:32:29Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-28T07:00:06",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3969",
+      "raw": "Terminal3969"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2557338,
+    "excerpt": {
+      "rendered": "Terminal3969",
+      "raw": "Terminal3969"
+    },
+    "date_gmt": "2025-10-28T07:00:06Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T09:11:51",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3970",
+      "raw": "Terminal3970"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552849,
+    "excerpt": {
+      "rendered": "Terminal3970",
+      "raw": "Terminal3970"
+    },
+    "date_gmt": "2025-10-27T09:11:51Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T08:22:01",
+    "executingTasks": [],
+    "author": 4403,
+    "wifiAp": false,
+    "title": {
+      "rendered": "Terminal3971",
+      "raw": "Terminal3971"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "httpVerificationVersion": false,
+    "httpVerification": false,
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "httpVerificationPwStrength": false,
+    "post_meta": {
+      "_led_latest_screenshot_time": 1764567004,
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {
+        "download_status_time": 1764566955,
+        "programs": [
+          {
+            "name": "CityTest3",
+            "files": [
+              {
+                "total": 23065,
+                "name": "F_D137AA1D3F532CA1D030A7C4BC8DB539_23065.png",
+                "downloaded": 23065,
+                "programId": 2633209
+              },
+              {
+                "total": 1389,
+                "name": "CityTest3_30dcf1132158cc4836b71c62083779b8_1389.vsn",
+                "downloaded": 1389,
+                "programId": 2633209
+              }
+            ],
+            "id": 2633209
+          },
+          {
+            "name": "Playlist3020",
+            "files": [
+              {
+                "total": 637220,
+                "name": "F_0FD2B45B66EE05C85CF38782F41835CE_637220.jpeg",
+                "downloaded": 637220,
+                "programId": 2377238
+              },
+              {
+                "total": 20959,
+                "name": "F_69822353FE151964E64F7FE8EE7E082F_20959.png",
+                "downloaded": 20959,
+                "programId": 2377238
+              },
+              {
+                "total": 2612,
+                "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                "downloaded": 2612,
+                "programId": 2377238
+              }
+            ],
+            "id": 2377238
+          }
+        ]
+      },
+      "_led_status": {
+        "WebSocketStatus": {
+          "status": "1"
+        },
+        "inboundfirewall": {
+          "status": "off"
+        },
+        "cameraconfig": {},
+        "http_verification": {
+          "msg": "200 success",
+          "code": 200,
+          "data": {
+            "http_ftp_verification": "1",
+            "http_ftp_weak_password": false
+          }
+        },
+        "brightnessandcolortemp": {
+          "brightness": 229,
+          "_report_time": 1764566955,
+          "colortemperature": 6500
+        },
+        "x16_preset": {},
+        "locale": {
+          "country": "CN",
+          "language": "zh"
+        },
+        "cmdinterval": {
+          "command_interval": 5000
+        },
+        "reportswitch": {
+          "complete_screen_status_report": "on",
+          "rotate_program_screenshot_report": "off",
+          "log_report": "off",
+          "not_rotate_program_screenshot_report": "on",
+          "auto_info_report": "on",
+          "manual_info_report": "on",
+          "manual_vsns_report": "on",
+          "command_screenshot_report": "on",
+          "auto_vsns_report": "on",
+          "rotate_program_vsns_report": "off"
+        },
+        "screen_orientation": {
+          "orientation": "2"
+        },
+        "powerstatus": {
+          "_report_time": 1764566949,
+          "powerstatus": 1
+        },
+        "dimension": {
+          "dclk": 500000000,
+          "_report_time": 1764566949,
+          "real_width": 160,
+          "fps": 60,
+          "width": 160,
+          "hsync": 8,
+          "real_dclk": 50000000,
+          "real_height": 120,
+          "height": 120
+        },
+        "info": {
+          "_report_time": 1764566949,
+          "info": {
+            "mem": {
+              "total": 463642624,
+              "free": 242106368
+            },
+            "model": "a20",
+            "playing": {
+              "path": "/mnt/sdcard/Android/data/com.color.home/files/Download",
+              "name": "CityTest3_30dcf1132158cc4836b71c62083779b8_1389.vsn",
+              "source": "internet"
+            },
+            "up": 452612,
+            "storage": {
+              "total": 4487905280,
+              "free": 4279336960
+            },
+            "vername": "1.83.4.0001",
+            "serialno": "CLCA20003971"
+          }
+        },
+        "rtc": {
+          "_report_time": 1764566949,
+          "timezone": "+08",
+          "isautotimezone": 1,
+          "time": "2025-12-01 13:29:09",
+          "isautotime": 1
+        },
+        "board_relay": [
+          {
+            "delay": 0,
+            "relay": 1,
+            "status": 0
+          }
+        ],
+        "inputmode": {
+          "_report_time": 1764566955
+        },
+        "allbrightnessinfo": {
+          "sensorBright": -2,
+          "webSource": 0,
+          "savedBrightValue": 229,
+          "sensorSource485": 0,
+          "isHasSensor": false,
+          "briAndClrTAdjustType": 1,
+          "sensorSourceMultifunctionCard": 0,
+          "realTimeBrightValue": 229,
+          "isbShowOn": true
+        },
+        "terminal": {
+          "_report_time": 1764566949,
+          "name": "Terminal3971",
+          "leddescription": ""
+        },
+        "ifstatus": {
+          "types": [
+            {
+              "connected": 1,
+              "carrier": 1,
+              "weakPassword": false,
+              "pass": "*",
+              "peers": [],
+              "operstate": "up",
+              "type": "wifi ap",
+              "ips": {
+                "broadcast": "192.168.43.255",
+                "ip": "192.168.43.1",
+                "mask": "255.255.255.0"
+              },
+              "SSID": "AP-20003971-2.5-蓝",
+              "enabled": 1,
+              "mac": "26:d7:eb:f6:14:ed",
+              "speed": -1
+            },
+            {
+              "connected": 1,
+              "mode": "dhcp",
+              "carrier": 1,
+              "ssids": [
+                {
+                  "pass": "*",
+                  "priority": 0,
+                  "SSID": "HXTECH LED"
+                }
+              ],
+              "currentap": "HXTECH LED",
+              "operstate": "up",
+              "state": "COMPLETED",
+              "type": "wifi",
+              "ips": {
+                "broadcast": "192.168.0.255",
+                "dns2": "192.168.0.1",
+                "ip": "192.168.0.118",
+                "dns1": "192.168.1.1",
+                "gateway": "192.168.0.1",
+                "mask": "255.255.255.0"
+              },
+              "enabled": 1,
+              "mac": "24:d7:eb:f6:14:ed",
+              "speed": 72
+            },
+            {
+              "connected": 0,
+              "mode": "dhcp",
+              "carrier": 0,
+              "operstate": "down",
+              "type": "lan",
+              "ips": {
+                "dns2": "0.0.0.0",
+                "ip": "0.0.0.0",
+                "dns1": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "mask": "0.0.0.0"
+              },
+              "enabled": 0,
+              "mac": "74:47:46:64:7d:7c",
+              "speed": -1
+            },
+            {
+              "connected": 0,
+              "mode": "UNKNOWN",
+              "carrier": 0,
+              "strength": 2,
+              "type": "4G",
+              "enabled": 0,
+              "speed": -1
+            }
+          ]
+        },
+        "reporttime": {
+          "sensor_report_interval": 0,
+          "ber_report_interval": 0,
+          "gps_report_interval": 0
+        },
+        "sync_program_mode": {
+          "sync_program_ntp_server": "ntp7.aliyun.com",
+          "sync_program_lan_enable": 0,
+          "sync_program_ntp_threshold": 5,
+          "sync_program_ntp_interval": 20000,
+          "sync_program_ntp_enable": 1,
+          "sync_program_gps_enable": 0,
+          "sync_program_lan_role": "slave",
+          "sync_program_audio_enable": 0
+        },
+        "brightnessversion": {
+          "isNewBrightness": 1
+        },
+        "volume": {
+          "musicvolume": 12,
+          "_report_time": 1764566955
+        },
+        "contentreport": {
+          "content_report_status": 0
+        },
+        "vsns": {
+          "_report_time": 1764567004,
+          "contents": [
+            {
+              "unused": 0,
+              "ressize": 0,
+              "type": "lan",
+              "content": [
+                {
+                  "size": 28424265,
+                  "name": "160×120.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            },
+            {
+              "unused": 0,
+              "ressize": 681244,
+              "type": "internet",
+              "content": [
+                {
+                  "size": 660791,
+                  "name": "Playlist3020_fb8ec57a2ae94f5cb4886233f08ace59_2612.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                },
+                {
+                  "size": 24454,
+                  "name": "CityTest3_30dcf1132158cc4836b71c62083779b8_1389.vsn",
+                  "publishedmd5": "",
+                  "md5": ""
+                }
+              ]
+            }
+          ],
+          "playing": {
+            "name": "160×120.vsn",
+            "type": "lan"
+          }
+        },
+        "x16_brightness": {},
+        "4ginfo": {
+          "msg": "SIM not exists",
+          "code": 200,
+          "data": {
+            "phonetype": "NO_PHONE",
+            "simoperator": "",
+            "dataactivity": "NONE",
+            "simoperatorname": "",
+            "datastate": "DISCONNECTED",
+            "simstate": "ABSENT",
+            "networktype": "UNKNOWN",
+            "deviceid": "864839042567160",
+            "operator": "",
+            "operatorname": ""
+          }
+        },
+        "brightcurve": {
+          "maxPercent": 85,
+          "midAdjustValue": 45,
+          "maxOriginalValue": 1,
+          "minOriginalValue": 0,
+          "auto": 0,
+          "isNewBrightness": 1,
+          "sensorSource485": 0,
+          "method": 0,
+          "noneReverseGammaValues": [
+            9830,
+            10010,
+            10190,
+            10370,
+            10550,
+            10729,
+            10909,
+            11089,
+            11269,
+            11449,
+            11629,
+            11809,
+            11989,
+            12169,
+            12349,
+            12528,
+            12708,
+            12888,
+            13068,
+            13248,
+            13428,
+            13608,
+            13788,
+            13968,
+            14148,
+            14327,
+            14507,
+            14687,
+            14867,
+            15047,
+            15227,
+            15407,
+            15587,
+            15767,
+            15947,
+            16126,
+            16306,
+            16486,
+            16666,
+            16846,
+            17026,
+            17206,
+            17386,
+            17566,
+            17746,
+            17925,
+            18105,
+            18285,
+            18465,
+            18645,
+            18825,
+            19005,
+            19185,
+            19365,
+            19544,
+            19724,
+            19904,
+            20084,
+            20264,
+            20444,
+            20624,
+            20804,
+            20984,
+            21164,
+            21343,
+            21523,
+            21703,
+            21883,
+            22063,
+            22243,
+            22423,
+            22603,
+            22783,
+            22963,
+            23142,
+            23322,
+            23502,
+            23682,
+            23862,
+            24042,
+            24222,
+            24402,
+            24582,
+            24762,
+            24941,
+            25121,
+            25301,
+            25481,
+            25661,
+            25841,
+            26021,
+            26201,
+            26381,
+            26561,
+            26740,
+            26920,
+            27100,
+            27280,
+            27460,
+            27640,
+            27820,
+            28000,
+            28180,
+            28359,
+            28539,
+            28719,
+            28899,
+            29079,
+            29259,
+            29439,
+            29619,
+            29799,
+            29979,
+            30158,
+            30338,
+            30518,
+            30698,
+            30878,
+            31058,
+            31238,
+            31418,
+            31598,
+            31778,
+            31957,
+            32137,
+            32317,
+            32497,
+            32677,
+            32857,
+            33037,
+            33217,
+            33397,
+            33577,
+            33756,
+            33936,
+            34116,
+            34296,
+            34476,
+            34656,
+            34836,
+            35016,
+            35196,
+            35376,
+            35555,
+            35735,
+            35915,
+            36095,
+            36275,
+            36455,
+            36635,
+            36815,
+            36995,
+            37175,
+            37354,
+            37534,
+            37714,
+            37894,
+            38074,
+            38254,
+            38434,
+            38614,
+            38794,
+            38973,
+            39153,
+            39333,
+            39513,
+            39693,
+            39873,
+            40053,
+            40233,
+            40413,
+            40593,
+            40772,
+            40952,
+            41132,
+            41312,
+            41492,
+            41672,
+            41852,
+            42032,
+            42212,
+            42392,
+            42571,
+            42751,
+            42931,
+            43111,
+            43291,
+            43471,
+            43651,
+            43831,
+            44011,
+            44191,
+            44370,
+            44550,
+            44730,
+            44910,
+            45090,
+            45270,
+            45450,
+            45630,
+            45810,
+            45990,
+            46169,
+            46349,
+            46529,
+            46709,
+            46889,
+            47069,
+            47249,
+            47429,
+            47609,
+            47788,
+            47968,
+            48148,
+            48328,
+            48508,
+            48688,
+            48868,
+            49048,
+            49228,
+            49408,
+            49587,
+            49767,
+            49947,
+            50127,
+            50307,
+            50487,
+            50667,
+            50847,
+            51027,
+            51207,
+            51386,
+            51566,
+            51746,
+            51926,
+            52106,
+            52286,
+            52466,
+            52646,
+            52826,
+            53006,
+            53185,
+            53365,
+            53545,
+            53725,
+            53905,
+            54085,
+            54265,
+            54445,
+            54625,
+            54805,
+            54984,
+            55164,
+            55344,
+            55524,
+            55704
+          ],
+          "save": 0,
+          "minPercent": 0,
+          "reverseGammaValues": [
+            30684,
+            30907,
+            31128,
+            31347,
+            31563,
+            31777,
+            31989,
+            32199,
+            32407,
+            32613,
+            32817,
+            33019,
+            33220,
+            33418,
+            33615,
+            33809,
+            34003,
+            34195,
+            34385,
+            34574,
+            34761,
+            34946,
+            35131,
+            35313,
+            35495,
+            35674,
+            35852,
+            36029,
+            36205,
+            36380,
+            36554,
+            36726,
+            36897,
+            37067,
+            37235,
+            37402,
+            37568,
+            37734,
+            37898,
+            38061,
+            38223,
+            38385,
+            38545,
+            38704,
+            38862,
+            39018,
+            39174,
+            39330,
+            39484,
+            39638,
+            39790,
+            39942,
+            40093,
+            40243,
+            40391,
+            40540,
+            40687,
+            40834,
+            40980,
+            41125,
+            41270,
+            41414,
+            41557,
+            41699,
+            41839,
+            41980,
+            42120,
+            42260,
+            42398,
+            42536,
+            42674,
+            42811,
+            42947,
+            43082,
+            43216,
+            43350,
+            43484,
+            43617,
+            43749,
+            43881,
+            44012,
+            44142,
+            44272,
+            44402,
+            44530,
+            44658,
+            44786,
+            44913,
+            45039,
+            45166,
+            45291,
+            45416,
+            45541,
+            45665,
+            45788,
+            45911,
+            46033,
+            46155,
+            46277,
+            46398,
+            46519,
+            46639,
+            46758,
+            46877,
+            46996,
+            47114,
+            47232,
+            47350,
+            47467,
+            47583,
+            47699,
+            47815,
+            47930,
+            48045,
+            48159,
+            48273,
+            48387,
+            48500,
+            48613,
+            48726,
+            48838,
+            48949,
+            49061,
+            49171,
+            49282,
+            49392,
+            49502,
+            49611,
+            49720,
+            49829,
+            49938,
+            50046,
+            50153,
+            50260,
+            50367,
+            50474,
+            50580,
+            50686,
+            50792,
+            50897,
+            51002,
+            51107,
+            51211,
+            51315,
+            51419,
+            51522,
+            51625,
+            51728,
+            51831,
+            51933,
+            52035,
+            52136,
+            52238,
+            52338,
+            52439,
+            52539,
+            52640,
+            52739,
+            52839,
+            52938,
+            53037,
+            53136,
+            53234,
+            53332,
+            53430,
+            53528,
+            53625,
+            53722,
+            53819,
+            53916,
+            54012,
+            54108,
+            54204,
+            54299,
+            54395,
+            54490,
+            54585,
+            54679,
+            54773,
+            54868,
+            54961,
+            55055,
+            55148,
+            55241,
+            55334,
+            55427,
+            55519,
+            55611,
+            55703,
+            55795,
+            55887,
+            55978,
+            56069,
+            56159,
+            56250,
+            56341,
+            56431,
+            56521,
+            56611,
+            56700,
+            56790,
+            56879,
+            56967,
+            57056,
+            57144,
+            57233,
+            57321,
+            57409,
+            57496,
+            57584,
+            57671,
+            57758,
+            57845,
+            57932,
+            58018,
+            58104,
+            58191,
+            58277,
+            58362,
+            58448,
+            58533,
+            58618,
+            58703,
+            58788,
+            58873,
+            58957,
+            59041,
+            59125,
+            59209,
+            59293,
+            59377,
+            59460,
+            59543,
+            59626,
+            59709,
+            59791,
+            59874,
+            59956,
+            60039,
+            60121,
+            60202,
+            60284,
+            60365,
+            60447,
+            60528,
+            60609,
+            60690,
+            60770,
+            60851,
+            60931,
+            61012,
+            61091,
+            61171,
+            61251,
+            61330,
+            61410
+          ],
+          "sensorSourceMultifunctionCard": 0,
+          "expiredTime": 0,
+          "midPercent": 55,
+          "webSource": 0,
+          "sensorErrorDefaultValue": 64,
+          "minAdjustValue": 0,
+          "sensitivity": 0,
+          "maxAdjustValue": 98,
+          "sensorSourceM2": 0
+        },
+        "contentreportinterval": {
+          "content_report_interval": 0,
+          "content_report_size": 0
+        },
+        "newrtc": {
+          "_report_time": 1764566949,
+          "timezone": 8,
+          "timezoneId": "Asia/Shanghai",
+          "time": "2025-12-01 13:29:09",
+          "isautotime": 1
+        }
+      },
+      "geo_longitude": "",
+      "_led_latest_report_time": 1764567066,
+      "lat": 10000
+    },
+    "id": 2560633,
+    "excerpt": {
+      "rendered": "Terminal3971",
+      "raw": "Terminal3971"
+    },
+    "date_gmt": "2025-10-29T08:22:01Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T03:46:53",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3972",
+      "raw": "Terminal3972"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552842,
+    "excerpt": {
+      "rendered": "Terminal3972",
+      "raw": "Terminal3972"
+    },
+    "date_gmt": "2025-10-27T03:46:53Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T03:43:25",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3973",
+      "raw": "Terminal3973"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560563,
+    "excerpt": {
+      "rendered": "Terminal3973",
+      "raw": "Terminal3973"
+    },
+    "date_gmt": "2025-10-29T03:43:25Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-27T09:23:56",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3974",
+      "raw": "Terminal3974"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2552850,
+    "excerpt": {
+      "rendered": "Terminal3974",
+      "raw": "Terminal3974"
+    },
+    "date_gmt": "2025-10-27T09:23:56Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T03:32:45",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3976",
+      "raw": "Terminal3976"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560558,
+    "excerpt": {
+      "rendered": "Terminal3976",
+      "raw": "Terminal3976"
+    },
+    "date_gmt": "2025-10-29T03:32:45Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T03:11:26",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3979",
+      "raw": "Terminal3979"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560552,
+    "excerpt": {
+      "rendered": "Terminal3979",
+      "raw": "Terminal3979"
+    },
+    "date_gmt": "2025-10-29T03:11:26Z",
+    "slug": "",
+    "status": "publish"
+  },
+  {
+    "date": "2025-10-29T07:20:33",
+    "executingTasks": [],
+    "author": 4403,
+    "title": {
+      "rendered": "Terminal3980",
+      "raw": "Terminal3980"
+    },
+    "type": "led",
+    "comment_status": "open",
+    "terminalgroup": [
+      {
+        "name": "Ali Fares",
+        "id": 6640
+      }
+    ],
+    "cropConfig": {},
+    "extra": {
+      "author_display_name": "HXTECHLED"
+    },
+    "post_meta": {
+      "update_status": {},
+      "lng": 10000,
+      "geo_coordinate": {},
+      "download_status": {},
+      "_led_status": {},
+      "geo_longitude": "",
+      "lat": 10000
+    },
+    "id": 2560603,
+    "excerpt": {
+      "rendered": "Terminal3980",
+      "raw": "Terminal3980"
+    },
+    "date_gmt": "2025-10-29T07:20:33Z",
+    "slug": "",
+    "status": "publish"
+  }
+]

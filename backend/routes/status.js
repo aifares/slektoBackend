@@ -13,10 +13,7 @@ router.get("/terminals", async (req, res) => {
     const includeDrivers = req.query.includeDrivers === "true";
 
     // Get fresh terminal data from ColorLight API
-    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
-      ...AUTH_HEADER,
-      params: { per_page: 100 },
-    });
+    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, AUTH_HEADER);
     const rawTerminals = response.data;
 
     // Get current status for each terminal using fresh API data
