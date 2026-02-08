@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS campaign (
   client_id BIGINT REFERENCES client(id) ON DELETE CASCADE,
   program_id BIGINT REFERENCES programs(id),
   hours_bought NUMERIC NOT NULL,
+  bags_bought INTEGER,                        -- number of bags/placements purchased
   start_at TIMESTAMPTZ NOT NULL,
   end_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL DEFAULT 'planned',     -- planned, active, paused, completed, cancelled
@@ -223,7 +224,20 @@ CREATE TABLE IF NOT EXISTS campaign (
   completed_at TIMESTAMPTZ                    -- when campaign was completed
 );
 
--- 13. Job Locks (for distributed job coordination)
+-- 13. Playlist Schedule (pre-computed playlist transitions)
+CREATE TABLE IF NOT EXISTS playlist_schedule (
+  id BIGSERIAL PRIMARY KEY,
+  program_id BIGINT NOT NULL REFERENCES programs(id),
+  campaign_id BIGINT NOT NULL REFERENCES campaign(id) ON DELETE CASCADE,
+  transition_type TEXT NOT NULL,              -- 'campaign_complete' or 'campaign_cancel'
+  playlist_state JSONB NOT NULL,             -- Pre-built ColorLight payload to PUT
+  remaining_client_ids JSONB NOT NULL,       -- Array of client_ids still active after transition
+  applied BOOLEAN DEFAULT FALSE,
+  applied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. Job Locks (for distributed job coordination)
 CREATE TABLE IF NOT EXISTS job_locks (
   job_name TEXT PRIMARY KEY,
   acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -314,6 +328,11 @@ CREATE INDEX IF NOT EXISTS idx_campaign_client_id ON campaign(client_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_program_id ON campaign(program_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_status ON campaign(status);
 CREATE INDEX IF NOT EXISTS idx_campaign_date_range ON campaign(start_at, end_at);
+
+-- Indexes for playlist_schedule
+CREATE INDEX IF NOT EXISTS idx_playlist_schedule_program_id ON playlist_schedule(program_id);
+CREATE INDEX IF NOT EXISTS idx_playlist_schedule_campaign_id ON playlist_schedule(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_playlist_schedule_applied ON playlist_schedule(applied) WHERE applied = false;
 
 -- Indexes for share_of_voice_snapshots
 CREATE INDEX IF NOT EXISTS idx_sov_program_id ON share_of_voice_snapshots(program_id);

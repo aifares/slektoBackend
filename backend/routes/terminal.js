@@ -19,7 +19,7 @@ async function executeCommandOnTerminals(terminalIds, commandData) {
           post: Number(terminalId),
           ...commandData,
         },
-        AUTH_HEADER
+        AUTH_HEADER,
       );
       results.push({
         terminalId,
@@ -80,13 +80,13 @@ router.get("/", async (req, res) => {
           // Register terminal data
           await databaseService.registerTerminalData(terminalData, true);
           console.log(
-            `✅ Auto-updated terminal ${terminalData.id} in database`
+            `✅ Auto-updated terminal ${terminalData.id} in database`,
           );
 
           // Update terminal status (online/offline tracking)
           const statusChange = await databaseService.updateTerminalStatus(
             terminalData.id,
-            terminalData
+            terminalData,
           );
 
           // Handle playing records based on terminal status
@@ -95,13 +95,13 @@ router.get("/", async (req, res) => {
           } catch (playingError) {
             console.warn(
               `⚠️ Failed to handle playing records for terminal ${terminalData.id}:`,
-              playingError.message
+              playingError.message,
             );
           }
         } catch (error) {
           console.error(
             `❌ Failed to auto-update terminal ${terminalData.id}:`,
-            error.message
+            error.message,
           );
           // Don't fail the main request if database update fails
         }
@@ -116,7 +116,7 @@ router.get("/", async (req, res) => {
       databaseService.syncProgramsFromAPI().catch((programError) => {
         console.warn(
           `⚠️ Failed to sync programs (non-critical):`,
-          programError.message
+          programError.message,
         );
       });
     }
@@ -130,60 +130,60 @@ router.get("/", async (req, res) => {
         if (includeStatus === "true") {
           const { isOnline, reason, indicators } =
             databaseService.determineOnlineStatus(terminal);
-          const currentStatus =
-            await databaseService.getCurrentTerminalStatus(terminal.id);
+          const currentStatus = await databaseService.getCurrentTerminalStatus(
+            terminal.id,
+          );
 
-            enhanced.status_info = {
-              is_online: isOnline,
-              status: isOnline ? "online" : "offline",
-              reason,
-              indicators,
-              last_status_change: currentStatus?.status_changed_at || null,
-              duration_seconds: currentStatus?.duration_seconds || null,
-            };
-          }
+          enhanced.status_info = {
+            is_online: isOnline,
+            status: isOnline ? "online" : "offline",
+            reason,
+            indicators,
+            last_status_change: currentStatus?.status_changed_at || null,
+            duration_seconds: currentStatus?.duration_seconds || null,
+          };
+        }
 
-          // Add driver assignment info
-          if (includeDrivers === "true") {
-            try {
-              const assignment = await driverAssignment.getCurrentAssignment(
-                terminal.id
+        // Add driver assignment info
+        if (includeDrivers === "true") {
+          try {
+            const assignment = await driverAssignment.getCurrentAssignment(
+              terminal.id,
+            );
+            if (assignment) {
+              const assignedDuration = Math.floor(
+                (Date.now() - new Date(assignment.assigned_at).getTime()) /
+                  1000,
               );
-              if (assignment) {
-                const assignedDuration = Math.floor(
-                  (Date.now() - new Date(assignment.assigned_at).getTime()) /
-                    1000
-                );
-                enhanced.driver_assignment = {
-                  driver: assignment.drivers,
-                  assigned_at: assignment.assigned_at,
-                  assigned_duration_seconds: assignedDuration,
-                  assigned_duration_hours:
-                    Math.round((assignedDuration / 3600) * 100) / 100,
-                  notes: assignment.notes,
-                };
-              } else {
-                enhanced.driver_assignment = null;
-              }
-            } catch (driverError) {
-              console.warn(
-                `Failed to fetch driver for terminal ${terminal.id}:`,
-                driverError.message
-              );
+              enhanced.driver_assignment = {
+                driver: assignment.drivers,
+                assigned_at: assignment.assigned_at,
+                assigned_duration_seconds: assignedDuration,
+                assigned_duration_hours:
+                  Math.round((assignedDuration / 3600) * 100) / 100,
+                notes: assignment.notes,
+              };
+            } else {
               enhanced.driver_assignment = null;
             }
+          } catch (driverError) {
+            console.warn(
+              `Failed to fetch driver for terminal ${terminal.id}:`,
+              driverError.message,
+            );
+            enhanced.driver_assignment = null;
           }
+        }
 
-          return enhanced;
-        })
-      );
-    }
+        return enhanced;
+      }),
+    );
 
     res.json(terminals);
   } catch (err) {
     console.error(
       "Error fetching terminals:",
-      err.response?.data || err.message
+      err.response?.data || err.message,
     );
     res.status(500).json({
       error: "Failed to fetch terminals",
@@ -209,7 +209,7 @@ router.post("/sleep", async (req, res) => {
 
     const { results, errors } = await executeCommandOnTerminals(
       targetTerminalIds,
-      commandData
+      commandData,
     );
 
     const summary = {
@@ -252,7 +252,7 @@ router.post("/wake", async (req, res) => {
 
     const { results, errors } = await executeCommandOnTerminals(
       targetTerminalIds,
-      commandData
+      commandData,
     );
 
     const summary = {
@@ -306,7 +306,7 @@ router.post("/brightness", async (req, res) => {
 
     const { results, errors } = await executeCommandOnTerminals(
       targetTerminalIds,
-      commandData
+      commandData,
     );
 
     const summary = {
@@ -367,7 +367,7 @@ router.post("/gps-reporting", async (req, res) => {
 
     const { results, errors } = await executeCommandOnTerminals(
       targetTerminalIds,
-      commandData
+      commandData,
     );
 
     const message =
@@ -415,7 +415,7 @@ router.post("/reboot", async (req, res) => {
 
     const { results, errors } = await executeCommandOnTerminals(
       targetTerminalIds,
-      commandData
+      commandData,
     );
 
     const summary = {
@@ -516,7 +516,7 @@ router.get("/powerstatus", async (req, res) => {
   } catch (err) {
     console.error(
       "Error checking power status:",
-      err.response?.data || err.message
+      err.response?.data || err.message,
     );
     res.status(500).json({
       error: "Failed to check power status",
@@ -548,7 +548,7 @@ router.post("/register", async (req, res) => {
       try {
         const result = await databaseService.registerTerminalData(
           terminalData,
-          forceUpdate
+          forceUpdate,
         );
 
         if (result.skipped) {

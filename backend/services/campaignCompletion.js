@@ -1,6 +1,5 @@
 const { supabase } = require("../config/supabase");
-const { createSnapshotForProgram } = require("./shareOfVoiceSnapshots");
-const { removeClientFilesFromProgram } = require("./colorLightPrograms");
+const { applyTransitionForCampaign } = require("./playlistSchedule");
 
 /**
  * Check for campaigns that have reached 100% completion
@@ -14,7 +13,7 @@ async function checkForCompletedCampaigns() {
     const { data: campaigns, error } = await supabase
       .from("campaign")
       .select(
-        "id, client_id, program_id, start_at, end_at, hours_bought, status"
+        "id, client_id, program_id, start_at, end_at, hours_bought, status",
       )
       .eq("status", "active");
 
@@ -28,7 +27,7 @@ async function checkForCompletedCampaigns() {
     }
 
     console.log(
-      `🔍 Checking ${campaigns.length} active campaigns for completion...`
+      `🔍 Checking ${campaigns.length} active campaigns for completion...`,
     );
 
     const { buildCampaignPlaybackMetrics } = require("./campaignMetrics");
@@ -59,7 +58,7 @@ async function checkForCompletedCampaigns() {
       };
 
       console.log(
-        `\n📊 Checking campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}, Hours bought: ${campaign.hours_bought})...`
+        `\n📊 Checking campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}, Hours bought: ${campaign.hours_bought})...`,
       );
 
       // Calculate metrics for THIS SPECIFIC campaign with its client_id
@@ -68,7 +67,7 @@ async function checkForCompletedCampaigns() {
         [campaignWithStatus], // Single campaign
         [campaign.program_id], // Single program
         terminalIds,
-        campaign.client_id // IMPORTANT: Pass the campaign's client_id for accurate share calculation
+        campaign.client_id, // IMPORTANT: Pass the campaign's client_id for accurate share calculation
       );
 
       // Get campaign-specific metrics
@@ -82,12 +81,12 @@ async function checkForCompletedCampaigns() {
       }
 
       console.log(
-        `   Hours played: ${campaignMetricsData.hours_played_since_campaign_start} / ${campaign.hours_bought} (${campaignMetricsData.campaign_completion_percent}%)`
+        `   Hours played: ${campaignMetricsData.hours_played_since_campaign_start} / ${campaign.hours_bought} (${campaignMetricsData.campaign_completion_percent}%)`,
       );
       console.log(
         `   Share of Voice: ${
           campaignMetricsData.share_of_voice_percent || 100
-        }%`
+        }%`,
       );
 
       if (campaignMetricsData.campaign_completion_percent >= 100) {
@@ -99,17 +98,17 @@ async function checkForCompletedCampaigns() {
         });
 
         console.log(
-          `🎯 Campaign ${campaign.id} is COMPLETE: ${campaignMetricsData.campaign_completion_percent}%`
+          `🎯 Campaign ${campaign.id} is COMPLETE: ${campaignMetricsData.campaign_completion_percent}%`,
         );
       } else {
         console.log(
-          `   Campaign ${campaign.id} is NOT complete yet (${campaignMetricsData.campaign_completion_percent}%)`
+          `   Campaign ${campaign.id} is NOT complete yet (${campaignMetricsData.campaign_completion_percent}%)`,
         );
       }
     }
 
     console.log(
-      `\n✅ Found ${completedCampaigns.length} campaigns ready for completion`
+      `\n✅ Found ${completedCampaigns.length} campaigns ready for completion`,
     );
     return completedCampaigns;
   } catch (error) {
@@ -121,8 +120,8 @@ async function checkForCompletedCampaigns() {
 /**
  * Complete a campaign:
  * 1. Update campaign status to 'completed'
- * 2. Mark client's files as removed (set removed_at timestamp)
- * 3. Create immediate snapshot to capture state change
+ * 2. Apply pre-computed playlist transition (removes files from ColorLight + local DB)
+ * 3. Snapshot is created by applyTransitionForCampaign
  *
  * @param {number} campaignId - Campaign ID to complete
  * @returns {Promise<Object>} Results summary
@@ -132,7 +131,6 @@ async function completeCampaign(campaignId) {
     success: true,
     campaign_id: campaignId,
     campaign_updated: false,
-    colorlight_pages_removed: 0,
     files_removed: 0,
     snapshot_created: false,
     errors: [],
@@ -140,7 +138,7 @@ async function completeCampaign(campaignId) {
 
   try {
     console.log(
-      `🏁 Starting campaign completion for campaign ${campaignId}...`
+      `🏁 Starting campaign completion for campaign ${campaignId}...`,
     );
 
     // Step 1: Get campaign details
@@ -152,7 +150,7 @@ async function completeCampaign(campaignId) {
 
     if (fetchError || !campaign) {
       throw new Error(
-        `Campaign ${campaignId} not found: ${fetchError?.message}`
+        `Campaign ${campaignId} not found: ${fetchError?.message}`,
       );
     }
 
@@ -174,82 +172,28 @@ async function completeCampaign(campaignId) {
 
     if (updateError) {
       throw new Error(
-        `Failed to update campaign status: ${updateError.message}`
+        `Failed to update campaign status: ${updateError.message}`,
       );
     }
 
     results.campaign_updated = true;
     console.log(
-      `✅ Campaign ${campaignId} status updated to 'completed' at ${now}`
+      `✅ Campaign ${campaignId} status updated to 'completed' at ${now}`,
     );
 
-    // Step 3: Remove files from ColorLight program via API
-    console.log(
-      `🌐 Removing client's files from ColorLight program ${campaign.program_id}...`
-    );
-    const colorLightResult = await removeClientFilesFromProgram(
-      campaign.program_id,
-      campaign.client_id
-    );
+    // Step 3: Apply pre-computed playlist transition
+    // This handles: push new playlist state to ColorLight, mark files removed, create snapshot, recompute schedule
+    const transitionResult = await applyTransitionForCampaign(campaignId);
 
-    if (!colorLightResult.success) {
-      console.warn(
-        `⚠️  ColorLight API update had issues:`,
-        colorLightResult.errors
-      );
-      results.errors.push(
-        `ColorLight update failed: ${colorLightResult.errors.join(", ")}`
-      );
-    } else {
-      console.log(
-        `✅ Removed ${colorLightResult.pagesRemoved.length} pages from ColorLight program`
-      );
-      results.colorlight_pages_removed = colorLightResult.pagesRemoved.length;
-    }
+    results.files_removed = transitionResult.files_removed || 0;
+    results.snapshot_created = transitionResult.snapshot_created || false;
 
-    // Step 4: Mark client's files as removed in local database
-    const { data: removedFiles, error: removeError } = await supabase
-      .from("files")
-      .update({ removed_at: now })
-      .eq("program_id", campaign.program_id)
-      .eq("client_id", campaign.client_id)
-      .is("removed_at", null) // Only update files that aren't already removed
-      .select("id, name");
-
-    if (removeError) {
-      throw new Error(`Failed to mark files as removed: ${removeError.message}`);
-    }
-
-    results.files_removed = removedFiles ? removedFiles.length : 0;
-    console.log(
-      `✅ Marked ${results.files_removed} files as removed in database`
-    );
-
-    if (removedFiles && removedFiles.length > 0) {
-      removedFiles.forEach((f) => {
-        console.log(`   - ${f.name}`);
-      });
-    }
-
-    // Step 5: Create immediate snapshot for THIS program to capture the state change
-    // After files are removed, remaining clients will have updated share percentages
-    console.log(
-      `📸 Creating snapshot for program ${campaign.program_id} to capture new share distribution...`
-    );
-    const snapshotResult = await createSnapshotForProgram(campaign.program_id);
-
-    if (snapshotResult && snapshotResult.success) {
-      results.snapshot_created = true;
-      console.log(
-        `✅ Snapshot created: ${snapshotResult.snapshots_created} snapshots for program ${campaign.program_id}`
-      );
-    } else {
-      console.warn("⚠️  Snapshot creation had issues:", snapshotResult?.errors);
-      results.errors.push("Snapshot creation incomplete");
+    if (transitionResult.errors && transitionResult.errors.length > 0) {
+      results.errors.push(...transitionResult.errors);
     }
 
     console.log(
-      `🎉 Campaign ${campaignId} completion workflow finished successfully!`
+      `🎉 Campaign ${campaignId} completion workflow finished successfully!`,
     );
   } catch (error) {
     console.error(`❌ Error completing campaign ${campaignId}:`, error.message);
@@ -288,13 +232,13 @@ async function monitorAndAutoComplete() {
     }
 
     console.log(
-      `🎯 Found ${completedCampaigns.length} campaigns ready for completion`
+      `🎯 Found ${completedCampaigns.length} campaigns ready for completion`,
     );
 
     // Complete each campaign
     for (const campaign of completedCampaigns) {
       console.log(
-        `\n🏁 Completing campaign ${campaign.id} (${campaign.completion_percent}% complete)...`
+        `\n🏁 Completing campaign ${campaign.id} (${campaign.completion_percent}% complete)...`,
       );
 
       const completionResult = await completeCampaign(campaign.id);
@@ -306,16 +250,16 @@ async function monitorAndAutoComplete() {
       } else {
         console.error(
           `❌ Failed to complete campaign ${campaign.id}:`,
-          completionResult.errors
+          completionResult.errors,
         );
         results.errors.push(
-          `Campaign ${campaign.id}: ${completionResult.errors.join(", ")}`
+          `Campaign ${campaign.id}: ${completionResult.errors.join(", ")}`,
         );
       }
     }
 
     console.log(
-      `\n🎉 Auto-completion complete: ${results.campaigns_completed}/${completedCampaigns.length} campaigns processed`
+      `\n🎉 Auto-completion complete: ${results.campaigns_completed}/${completedCampaigns.length} campaigns processed`,
     );
   } catch (error) {
     console.error("❌ Error in campaign monitor:", error.message);

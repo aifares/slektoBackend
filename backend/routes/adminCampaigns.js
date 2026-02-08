@@ -6,6 +6,10 @@ const { monitorAndAutoComplete } = require("../services/campaignCompletion");
 const {
   createShareOfVoiceSnapshot,
 } = require("../services/shareOfVoiceSnapshots");
+const {
+  computeScheduleForProgram,
+  checkBagAvailability,
+} = require("../services/playlistSchedule");
 
 /**
  * Admin Campaign Management Routes
@@ -101,6 +105,21 @@ router.post("/campaigns/create", async (req, res) => {
       });
     }
 
+    // Check bag availability if bags_bought is provided
+    const bags_bought = req.body.bags_bought
+      ? parseInt(req.body.bags_bought, 10)
+      : null;
+    if (bags_bought) {
+      const availability = await checkBagAvailability(startTime, endTime);
+      if (bags_bought > availability.available) {
+        return res.status(409).json({
+          success: false,
+          error: `Only ${availability.available} bags available. Requested: ${bags_bought}.`,
+          available_bags: availability.available,
+        });
+      }
+    }
+
     // Create campaign
     const { data: campaign, error: createError } = await supabase
       .from("campaign")
@@ -108,6 +127,7 @@ router.post("/campaigns/create", async (req, res) => {
         client_id,
         program_id,
         hours_bought,
+        bags_bought,
         start_at: startTime,
         end_at: endTime,
         status: campaignStatus,
@@ -121,6 +141,15 @@ router.post("/campaigns/create", async (req, res) => {
 
     console.log(`✅ Campaign ${campaign.id} created for client ${client_id}`);
 
+    // Compute playlist schedule for this program
+    try {
+      await computeScheduleForProgram(program_id);
+    } catch (scheduleError) {
+      console.warn(
+        `⚠️  Failed to compute playlist schedule: ${scheduleError.message}`,
+      );
+    }
+
     return res.json({
       success: true,
       message: "Campaign created successfully",
@@ -130,6 +159,7 @@ router.post("/campaigns/create", async (req, res) => {
         client_name: client.name,
         program_id: campaign.program_id,
         hours_bought: campaign.hours_bought,
+        bags_bought: campaign.bags_bought,
         minutes_bought: campaign.hours_bought * 60,
         start_at: campaign.start_at,
         end_at: campaign.end_at,
@@ -209,7 +239,7 @@ router.get("/campaigns/status/:campaignId", async (req, res) => {
       [campaignWithStatus],
       [campaign.program_id],
       terminalIds,
-      campaign.client_id
+      campaign.client_id,
     );
 
     const programMetrics = metrics[campaign.program_id] || {};
@@ -355,9 +385,15 @@ router.patch("/campaigns/:campaignId/status", async (req, res) => {
       });
     }
 
+    // Build update payload
+    const updatePayload = { status };
+    if (status === "completed") {
+      updatePayload.completed_at = new Date().toISOString();
+    }
+
     const { data: campaign, error: updateError } = await supabase
       .from("campaign")
-      .update({ status })
+      .update(updatePayload)
       .eq("id", campaignId)
       .select()
       .single();
@@ -367,6 +403,23 @@ router.patch("/campaigns/:campaignId/status", async (req, res) => {
     }
 
     console.log(`✅ Campaign ${campaignId} status updated to '${status}'`);
+
+    // Recompute playlist schedule when campaign is cancelled, paused, or completed
+    if (
+      ["cancelled", "paused", "completed"].includes(status) &&
+      campaign.program_id
+    ) {
+      try {
+        await computeScheduleForProgram(campaign.program_id);
+        console.log(
+          `📅 Playlist schedule recomputed for program ${campaign.program_id}`,
+        );
+      } catch (scheduleError) {
+        console.warn(
+          `⚠️  Failed to recompute playlist schedule: ${scheduleError.message}`,
+        );
+      }
+    }
 
     return res.json({
       success: true,
@@ -431,7 +484,7 @@ router.post("/campaigns/:campaignId/assign-client", async (req, res) => {
     }
 
     console.log(
-      `✅ Campaign ${campaignId} assigned to client ${client_id} (${client.name})`
+      `✅ Campaign ${campaignId} assigned to client ${client_id} (${client.name})`,
     );
 
     return res.json({
@@ -537,7 +590,7 @@ router.post("/snapshots/create", async (req, res) => {
       : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     console.log(
-      `📸 Manual snapshot creation triggered for ${snapshotDate.toISOString()}`
+      `📸 Manual snapshot creation triggered for ${snapshotDate.toISOString()}`,
     );
 
     const result = await createShareOfVoiceSnapshot(snapshotDate);

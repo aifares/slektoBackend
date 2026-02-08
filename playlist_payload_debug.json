@@ -1,0 +1,394 @@
+{
+  "title": "test5",
+  "Terminalgroup": [],
+  "program_info": {
+    "name": "test5",
+    "displayName": "test5",
+    "isCrop": 0,
+    "id": 10,
+    "type": "contents",
+    "version": 4,
+    "selectChild": 0,
+    "addNum": 3,
+    "overStage": false,
+    "info": {
+      "Information": {
+        "Width": 160,
+        "Height": 120,
+        "Scale": 1
+      },
+      "Pages": []
+    },
+    "children": [
+      {
+        "name": "Page2",
+        "id": 13,
+        "index": 2,
+        "type": "page",
+        "selectChild": 0,
+        "addNum": 1,
+        "info": {
+          "AppointDuration": 3600000,
+          "Opacity": 1,
+          "LoopType": 1,
+          "BgColor": "0xFF000000",
+          "Regions": []
+        },
+        "children": [
+          {
+            "name": "File Window",
+            "id": 14,
+            "index": 1,
+            "type": "fileWindow",
+            "vsnType": 3,
+            "Rect": {
+              "X": 0,
+              "Y": 0,
+              "Width": 160,
+              "Height": 120,
+              "BorderWidth": 0,
+              "BorderColor": "#ffff00"
+            },
+            "IsScheduleRegion": 0,
+            "selectChild": null,
+            "children": [
+              {
+                "id": 0.8463823325292275,
+                "file_type": "jpg",
+                "author": "8251",
+                "date": "2026-02-03 03:23:26",
+                "modified_gmt": "2026-02-03T03:23:26",
+                "date_gmt": "2026-02-03T03:23:26",
+                "GMTDate": "2026-02-03T03:23:26",
+                "name": "anseldark",
+                "type": "image",
+                "src": "https://us33.colorlightcloud.com:443/wp-content/upload/2025/9/F_A65E980D6F11FDB8B0A6539E18A16EC9_18813-200x200.jpg",
+                "format_size": "0 KB",
+                "attachment_program": [],
+                "attachment_program_detail": [],
+                "source_url": "https://us33.colorlightcloud.com:443/wp-content/Tus/uploads/8dc1f295-0990-4138-a1bf-810cdcf6b30a/F_A65E980D6F11FDB8B0A6539E18A16EC9_18813.jpg",
+                "disdelete": false,
+                "thumbnailSize": {
+                  "width": 200,
+                  "height": 156
+                },
+                "fullSize": {
+                  "width": 404,
+                  "height": 316
+                },
+                "videoSize": {
+                  "width": null,
+                  "height": null
+                },
+                "length": null,
+                "durationInSecond": null,
+                "playLength": null,
+                "mshare": [],
+                "mfolder": null,
+                "duration": null,
+                "aws": {},
+                "IsSchedule": 0,
+                "Schedule": {
+                  "IsLimitTime": 0,
+                  "StartTime": "00:00:00",
+                  "EndTime": "23:59:59",
+                  "IsLimitDate": 0,
+                  "StartDay": "2026/2/2",
+                  "StartDayTime": "00:00:00",
+                  "EndDay": "2026/2/2",
+                  "EndDayTime": "23:59:59",
+                  "IsLimitWeek": 0,
+                  "LimitWeek": [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "shareWithMe": false,
+                "Trigger": {
+                  "Type": "lightStrip",
+                  "Value": "0"
+                },
+                "customTags": [],
+                "source": "MEDIA.WEB",
+                "hover": true,
+                "fileID": 2751983,
+                "Duration": 8000,
+                "isShowAspectBtn": false,
+                "ReserveAS": 0,
+                "playTime": 8,
+                "PlayTimes": "1",
+                "inEffect": {
+                  "Name": "No Effect",
+                  "Type": 0,
+                  "Time": 1500,
+                  "webTime": 1.5
+                }
+              }
+            ],
+            "badge": "73647",
+            "icon": "perm_media",
+            "pagesTextShot": true
+          }
+        ],
+        "imgDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "ifShowPageConfig": false
+      },
+      {
+        "name": "Page3",
+        "id": 14,
+        "index": 3,
+        "type": "page",
+        "selectChild": 0,
+        "addNum": 1,
+        "info": {
+          "AppointDuration": 3600000,
+          "Opacity": 1,
+          "LoopType": 1,
+          "BgColor": "0xFF000000",
+          "Regions": []
+        },
+        "children": [
+          {
+            "name": "File Window",
+            "id": 15,
+            "index": 1,
+            "type": "fileWindow",
+            "vsnType": 3,
+            "Rect": {
+              "X": 0,
+              "Y": 0,
+              "Width": 160,
+              "Height": 120,
+              "BorderWidth": 0,
+              "BorderColor": "#ffff00"
+            },
+            "IsScheduleRegion": 0,
+            "selectChild": null,
+            "children": [
+              {
+                "id": 0.9937250929654347,
+                "file_type": "jpg",
+                "author": "8251",
+                "date": "2026-02-03 03:23:28",
+                "modified_gmt": "2026-02-03T03:23:28",
+                "date_gmt": "2026-02-03T03:23:28",
+                "GMTDate": "2026-02-03T03:23:28",
+                "name": "anseldark",
+                "type": "image",
+                "src": "https://us33.colorlightcloud.com:443/wp-content/upload/2025/9/F_A65E980D6F11FDB8B0A6539E18A16EC9_18813-200x200.jpg",
+                "format_size": "0 KB",
+                "attachment_program": [],
+                "attachment_program_detail": [],
+                "source_url": "https://us33.colorlightcloud.com:443/wp-content/Tus/uploads/8dc1f295-0990-4138-a1bf-810cdcf6b30a/F_A65E980D6F11FDB8B0A6539E18A16EC9_18813.jpg",
+                "disdelete": false,
+                "thumbnailSize": {
+                  "width": 200,
+                  "height": 156
+                },
+                "fullSize": {
+                  "width": 404,
+                  "height": 316
+                },
+                "videoSize": {
+                  "width": null,
+                  "height": null
+                },
+                "length": null,
+                "durationInSecond": null,
+                "playLength": null,
+                "mshare": [],
+                "mfolder": null,
+                "duration": null,
+                "aws": {},
+                "IsSchedule": 0,
+                "Schedule": {
+                  "IsLimitTime": 0,
+                  "StartTime": "00:00:00",
+                  "EndTime": "23:59:59",
+                  "IsLimitDate": 0,
+                  "StartDay": "2026/2/2",
+                  "StartDayTime": "00:00:00",
+                  "EndDay": "2026/2/2",
+                  "EndDayTime": "23:59:59",
+                  "IsLimitWeek": 0,
+                  "LimitWeek": [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "shareWithMe": false,
+                "Trigger": {
+                  "Type": "lightStrip",
+                  "Value": "0"
+                },
+                "customTags": [],
+                "source": "MEDIA.WEB",
+                "hover": true,
+                "fileID": 2751984,
+                "Duration": 8000,
+                "isShowAspectBtn": false,
+                "ReserveAS": 0,
+                "playTime": 8,
+                "PlayTimes": "1",
+                "inEffect": {
+                  "Name": "No Effect",
+                  "Type": 0,
+                  "Time": 1500,
+                  "webTime": 1.5
+                }
+              }
+            ],
+            "badge": "73647",
+            "icon": "perm_media",
+            "pagesTextShot": true
+          }
+        ],
+        "imgDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "ifShowPageConfig": false
+      }
+    ],
+    "nodeIdjia": 14,
+    "previewDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "duration": 0
+  },
+  "Programs": {
+    "Program": {
+      "Information": {
+        "Width": 160,
+        "Height": 120,
+        "Scale": 1
+      },
+      "Pages": [
+        {
+          "AppointDuration": 3600000,
+          "Opacity": 1,
+          "LoopType": 1,
+          "BgColor": "0xFF000000",
+          "Regions": [
+            {
+              "type": 3,
+              "Layer": 1,
+              "Rect": {
+                "X": 0,
+                "Y": 0,
+                "Width": 160,
+                "Height": 120,
+                "BorderWidth": 0,
+                "BorderColor": "#ffff00"
+              },
+              "Name": "File_Window",
+              "IsScheduleRegion": 0,
+              "Items": [
+                {
+                  "Type": 2,
+                  "Alhpa": "1.000000",
+                  "Duration": 8000,
+                  "PlayTimes": "1",
+                  "inEffect": {
+                    "Name": "No Effect",
+                    "Type": 0,
+                    "Time": 1500,
+                    "webTime": 1.5
+                  },
+                  "Schedule": {
+                    "IsLimitTime": 0,
+                    "StartTime": "00:00:00",
+                    "EndTime": "23:59:59",
+                    "IsLimitDate": 0,
+                    "StartDay": "2026/2/2",
+                    "StartDayTime": "00:00:00",
+                    "EndDay": "2026/2/2",
+                    "EndDayTime": "23:59:59",
+                    "IsLimitWeek": 0,
+                    "LimitWeek": "1,1,1,1,1,1,1"
+                  },
+                  "Trigger": {
+                    "Type": "lightStrip",
+                    "Value": "0"
+                  },
+                  "FileSource": {
+                    "IsRelative": 1,
+                    "FilePath": "",
+                    "Resource_ID": 2751983,
+                    "OriginName": "anseldark"
+                  },
+                  "ReserveAS": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "AppointDuration": 3600000,
+          "Opacity": 1,
+          "LoopType": 1,
+          "BgColor": "0xFF000000",
+          "Regions": [
+            {
+              "type": 3,
+              "Layer": 1,
+              "Rect": {
+                "X": 0,
+                "Y": 0,
+                "Width": 160,
+                "Height": 120,
+                "BorderWidth": 0,
+                "BorderColor": "#ffff00"
+              },
+              "Name": "File_Window",
+              "IsScheduleRegion": 0,
+              "Items": [
+                {
+                  "Type": 2,
+                  "Alhpa": "1.000000",
+                  "Duration": 8000,
+                  "PlayTimes": "1",
+                  "inEffect": {
+                    "Name": "No Effect",
+                    "Type": 0,
+                    "Time": 1500,
+                    "webTime": 1.5
+                  },
+                  "Schedule": {
+                    "IsLimitTime": 0,
+                    "StartTime": "00:00:00",
+                    "EndTime": "23:59:59",
+                    "IsLimitDate": 0,
+                    "StartDay": "2026/2/2",
+                    "StartDayTime": "00:00:00",
+                    "EndDay": "2026/2/2",
+                    "EndDayTime": "23:59:59",
+                    "IsLimitWeek": 0,
+                    "LimitWeek": "1,1,1,1,1,1,1"
+                  },
+                  "Trigger": {
+                    "Type": "lightStrip",
+                    "Value": "0"
+                  },
+                  "FileSource": {
+                    "IsRelative": 1,
+                    "FilePath": "",
+                    "Resource_ID": 2751984,
+                    "OriginName": "anseldark"
+                  },
+                  "ReserveAS": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "status": "publish"
+}
