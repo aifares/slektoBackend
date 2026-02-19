@@ -74,6 +74,122 @@ Returns `{ "access_token": "eyJ...", ... }`. Use this as the Bearer token.
 
 ## Third-Party Agency API
 
+### `GET /api/v1/campaigns`
+
+List all campaigns created by the authenticated agency.
+
+**Auth:** Bearer token (Supabase JWT)
+
+#### Query Params
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `status` | string | ❌ | Filter by status: `planned`, `active`, `completed`, `paused`, `cancelled` |
+
+#### Example
+
+```bash
+# All campaigns
+curl http://localhost:3000/api/v1/campaigns \
+  -H "Authorization: Bearer $TOKEN"
+
+# Only active campaigns
+curl "http://localhost:3000/api/v1/campaigns?status=active" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### Success Response (200)
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "campaigns": [
+    {
+      "id": 74,
+      "company_name": "Company C",
+      "program_id": 2762810,
+      "status": "active",
+      "start_at": "2026-03-01T00:00:00+00:00",
+      "end_at": "2026-03-31T00:00:00+00:00",
+      "hours_bought": 20,
+      "bags_bought": 3,
+      "completed_at": null,
+      "created_at": "2026-02-19T10:00:00+00:00"
+    },
+    {
+      "id": 61,
+      "company_name": "Company B",
+      "program_id": 2762705,
+      "status": "completed",
+      "start_at": "2026-02-01T00:00:00+00:00",
+      "end_at": "2026-02-28T00:00:00+00:00",
+      "hours_bought": 10,
+      "bags_bought": 5,
+      "completed_at": "2026-02-25T14:32:00+00:00",
+      "created_at": "2026-01-15T09:00:00+00:00"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/campaigns/:id`
+
+Get analytics for a specific campaign. The campaign must belong to the authenticated agency.
+
+**Auth:** Bearer token (Supabase JWT)
+
+#### Example
+
+```bash
+curl http://localhost:3000/api/v1/campaigns/61 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### Success Response (200)
+
+```json
+{
+  "success": true,
+  "campaign": {
+    "id": 61,
+    "company_name": "Company B",
+    "program_id": 2762705,
+    "program_name": "Company B - 2026-02-01",
+    "status": "completed",
+    "start_at": "2026-02-01T00:00:00+00:00",
+    "end_at": "2026-02-28T00:00:00+00:00",
+    "completed_at": "2026-02-25T14:32:00+00:00",
+    "hours_bought": 10,
+    "bags_bought": 5
+  },
+  "analytics": {
+    "hours_played": 10.0,
+    "minutes_played": 600,
+    "hours_bought": 10,
+    "completion_percent": 100,
+    "share_of_voice_percent": 33.3,
+    "media_urls": ["https://...ad1.jpg", "https://...ad2.jpg"]
+  },
+  "files": {
+    "active": 0,
+    "removed": 2,
+    "total": 2
+  }
+}
+```
+
+#### Error Responses
+
+| Status | Description |
+|---|---|
+| 400 | Invalid campaign ID |
+| 404 | Campaign not found or belongs to a different agency |
+
+---
+
 ### `POST /api/v1/campaigns`
 
 Create a new campaign. This is the primary endpoint for third-party agencies.

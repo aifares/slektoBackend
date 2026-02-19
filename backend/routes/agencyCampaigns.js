@@ -10,6 +10,9 @@ const {
   checkBagAvailability,
   computeScheduleForProgram,
 } = require("../services/playlistSchedule");
+const {
+  buildCampaignPlaybackMetrics,
+} = require("../services/campaignMetrics");
 
 // Configure multer for memory storage (buffers, not disk files)
 const upload = multer({
@@ -314,6 +317,198 @@ router.post("/campaigns", upload.array("images", 20), async (req, res) => {
     return res.status(500).json({
       success: false,
       error: "Failed to create campaign",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/v1/campaigns
+ * List all campaigns created by the authenticated agency.
+ *
+ * Auth: Bearer token (Supabase JWT)
+ *
+ * Query params:
+ *   status  (optional) — filter by status: planned, active, completed, paused, cancelled
+ */
+router.get("/campaigns", async (req, res) => {
+  try {
+    const client = req.client;
+    const { status } = req.query;
+
+    let query = supabase
+      .from("campaign")
+      .select("id, program_id, status, start_at, end_at, hours_bought, bags_bought, completed_at, created_at")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false });
+
+    if (status) {
+      query = query.eq("status", status);
+    }
+
+    const { data: campaigns, error } = await query;
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to fetch campaigns",
+        details: error.message,
+      });
+    }
+
+    if (!campaigns || campaigns.length === 0) {
+      return res.json({ success: true, campaigns: [], count: 0 });
+    }
+
+    // Fetch program names so we can surface the company name per campaign
+    const programIds = [...new Set(campaigns.map((c) => c.program_id))];
+    const { data: programs } = await supabase
+      .from("programs")
+      .select("id, name")
+      .in("id", programIds);
+
+    const programNameById = Object.fromEntries(
+      (programs || []).map((p) => [p.id, p.name])
+    );
+
+    const result = campaigns.map((c) => {
+      const programName = programNameById[c.program_id] || null;
+      // Program name format is "<company_name> - <date>", extract company name
+      const company_name = programName
+        ? programName.replace(/\s*-\s*\d{4}-\d{2}-\d{2}$/, "").trim()
+        : null;
+
+      return {
+        id: c.id,
+        company_name,
+        program_id: c.program_id,
+        status: c.status,
+        start_at: c.start_at,
+        end_at: c.end_at,
+        hours_bought: c.hours_bought,
+        bags_bought: c.bags_bought,
+        completed_at: c.completed_at || null,
+        created_at: c.created_at,
+      };
+    });
+
+    return res.json({ success: true, campaigns: result, count: result.length });
+  } catch (error) {
+    console.error("❌ Error listing agency campaigns:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to list campaigns",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/v1/campaigns/:id
+ * Get analytics for a specific campaign.
+ * The campaign must belong to the authenticated agency.
+ *
+ * Auth: Bearer token (Supabase JWT)
+ */
+router.get("/campaigns/:id", async (req, res) => {
+  try {
+    const client = req.client;
+    const campaignId = parseInt(req.params.id, 10);
+
+    if (isNaN(campaignId)) {
+      return res.status(400).json({ success: false, error: "Invalid campaign ID" });
+    }
+
+    // Fetch campaign and enforce ownership
+    const { data: campaign, error: campaignError } = await supabase
+      .from("campaign")
+      .select("*")
+      .eq("id", campaignId)
+      .eq("client_id", client.id) // agency can only see their own campaigns
+      .single();
+
+    if (campaignError || !campaign) {
+      return res.status(404).json({
+        success: false,
+        error: "Campaign not found",
+      });
+    }
+
+    // Get program name (contains company name)
+    const { data: program } = await supabase
+      .from("programs")
+      .select("name")
+      .eq("id", campaign.program_id)
+      .single();
+
+    const programName = program?.name || null;
+    const company_name = programName
+      ? programName.replace(/\s*-\s*\d{4}-\d{2}-\d{2}$/, "").trim()
+      : null;
+
+    // Get terminal IDs that have played this program
+    const { data: sessions } = await supabase
+      .from("playing")
+      .select("terminal_id")
+      .eq("program_id", campaign.program_id);
+
+    const terminalIds = sessions
+      ? [...new Set(sessions.map((s) => s.terminal_id))]
+      : [];
+
+    // Build playback metrics (hours played, completion %, share of voice)
+    const metrics = await buildCampaignPlaybackMetrics(
+      [campaign],
+      [campaign.program_id],
+      terminalIds.length > 0 ? terminalIds : null,
+      client.id
+    );
+
+    const campaignMetrics = metrics._byCampaign?.[campaign.id] || metrics[campaign.program_id] || {};
+
+    // Count active vs removed files for this campaign
+    const { data: files } = await supabase
+      .from("files")
+      .select("id, name, source_url, removed_at")
+      .eq("program_id", campaign.program_id)
+      .eq("client_id", client.id);
+
+    const activeFiles = (files || []).filter((f) => f.removed_at === null);
+    const removedFiles = (files || []).filter((f) => f.removed_at !== null);
+
+    return res.json({
+      success: true,
+      campaign: {
+        id: campaign.id,
+        company_name,
+        program_id: campaign.program_id,
+        program_name: programName,
+        status: campaign.status,
+        start_at: campaign.start_at,
+        end_at: campaign.end_at,
+        completed_at: campaign.completed_at || null,
+        hours_bought: campaign.hours_bought,
+        bags_bought: campaign.bags_bought,
+      },
+      analytics: {
+        hours_played: campaignMetrics.hours_played_since_campaign_start || 0,
+        minutes_played: campaignMetrics.minutes_played_since_campaign_start || 0,
+        hours_bought: campaign.hours_bought,
+        completion_percent: campaignMetrics.campaign_completion_percent || 0,
+        share_of_voice_percent: campaignMetrics.share_of_voice_percent || null,
+        media_urls: campaignMetrics.media_urls || [],
+      },
+      files: {
+        active: activeFiles.length,
+        removed: removedFiles.length,
+        total: (files || []).length,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching campaign analytics:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch campaign analytics",
       details: error.message,
     });
   }

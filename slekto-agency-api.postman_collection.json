@@ -1,0 +1,440 @@
+{
+  "info": {
+    "name": "Slekto Agency API",
+    "description": "Third-party agency integration for creating and monitoring campaigns on the Slekto LED display network.\n\n**Quick start:**\n1. Run \"1. Get Token\" first — it saves the token automatically\n2. Run \"Create Campaign\" and note the `campaign.id` in the response\n3. Paste that ID into the `campaignId` collection variable\n4. Run \"Get Campaign Analytics\" to see live metrics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://slekto-backend.fly.dev",
+      "description": "Base URL of the Slekto API server"
+    },
+    {
+      "key": "supabaseUrl",
+      "value": "https://jwvywdvpnaachfmkjpji.supabase.co",
+      "description": "Supabase project URL for authentication"
+    },
+    {
+      "key": "supabaseAnonKey",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3dnl3ZHZwbmFhY2hmbWtqcGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzNDIyMTAsImV4cCI6MjA3MzkxODIxMH0.thX8PBQ07SM8ZsFZiEC2jhaM8xUJvX5BiNjH00HNAoI",
+      "description": "Supabase anonymous/public key"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "Bearer token — set automatically when you run '1. Get Token'"
+    },
+    {
+      "key": "campaignId",
+      "value": "",
+      "description": "Campaign ID to query analytics for — set this after creating a campaign"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Get Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.access_token) {",
+                  "    pm.collectionVariables.set('token', response.access_token);",
+                  "    console.log('✅ Token saved to collection variable {{token}}');",
+                  "    console.log('Expires in:', response.expires_in, 'seconds');",
+                  "} else {",
+                  "    console.error('❌ No access_token in response:', JSON.stringify(response));",
+                  "}",
+                  "",
+                  "pm.test('Authentication successful', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(response).to.have.property('access_token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{supabaseAnonKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sample@slekto.com\",\n  \"password\": \"ZnfDDYyytiRA7g8K\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/auth/v1/token?grant_type=password",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["auth", "v1", "token"],
+              "query": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "description": "Authenticates with Supabase and saves the access token to the `{{token}}` collection variable automatically.\n\nTokens expire after **1 hour**. Re-run this request to refresh."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "apikey", "value": "{{supabaseAnonKey}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"sample@slekto.com\",\n  \"password\": \"ZnfDDYyytiRA7g8K\"\n}"
+                },
+                "url": {
+                  "raw": "{{supabaseUrl}}/auth/v1/token?grant_type=password",
+                  "host": ["{{supabaseUrl}}"],
+                  "path": ["auth", "v1", "token"],
+                  "query": [{ "key": "grant_type", "value": "password" }]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"access_token\": \"eyJ...\",\n  \"token_type\": \"bearer\",\n  \"expires_in\": 3600,\n  \"refresh_token\": \"...\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Campaigns",
+      "item": [
+        {
+          "name": "Create Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.success && response.campaign?.id) {",
+                  "    pm.collectionVariables.set('campaignId', response.campaign.id);",
+                  "    console.log('✅ Campaign created! ID saved to {{campaignId}}:', response.campaign.id);",
+                  "    console.log('Company:', response.campaign.company_name);",
+                  "    console.log('Status:', response.campaign.status);",
+                  "    console.log('Bags remaining:', response.campaign.available_bags_after);",
+                  "} else {",
+                  "    console.error('❌ Campaign creation failed:', JSON.stringify(response));",
+                  "}",
+                  "",
+                  "pm.test('Campaign created successfully', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.campaign).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "company_name",
+                  "value": "Acme Corp",
+                  "description": "Name of the client company being advertised",
+                  "type": "text"
+                },
+                {
+                  "key": "start_at",
+                  "value": "2026-03-01T00:00:00Z",
+                  "description": "Campaign start date (ISO 8601)",
+                  "type": "text"
+                },
+                {
+                  "key": "end_at",
+                  "value": "2026-03-31T00:00:00Z",
+                  "description": "Campaign end date (ISO 8601)",
+                  "type": "text"
+                },
+                {
+                  "key": "hours_bought",
+                  "value": "10",
+                  "description": "Total playback hours purchased",
+                  "type": "text"
+                },
+                {
+                  "key": "bags_bought",
+                  "value": "3",
+                  "description": "Number of ad placements (max 25 total across all active campaigns)",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "description": "Upload 1–20 ad image files (JPEG, PNG, GIF, BMP, WebP — max 10MB each). Click 'Select Files' to attach.",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "campaigns"]
+            },
+            "description": "Creates a new campaign and uploads ad images to the display network.\n\n**After running this request**, the `{{campaignId}}` variable is automatically set to the new campaign's ID, ready to use in the analytics request.\n\n**Required fields:**\n- `company_name` — the client you are creating the campaign for\n- `start_at` / `end_at` — campaign date range (ISO 8601)\n- `hours_bought` — total playback hours\n- `bags_bought` — number of ad placements (1–25)\n- `images` — attach one or more image files\n\n**Note:** Change `company_name` for each client. You can create multiple campaigns from the same agency account."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "company_name", "value": "Acme Corp", "type": "text" },
+                    { "key": "start_at", "value": "2026-03-01T00:00:00Z", "type": "text" },
+                    { "key": "end_at", "value": "2026-03-31T00:00:00Z", "type": "text" },
+                    { "key": "hours_bought", "value": "10", "type": "text" },
+                    { "key": "bags_bought", "value": "3", "type": "text" }
+                  ]
+                },
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns" }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Campaign created successfully\",\n  \"campaign\": {\n    \"id\": 65,\n    \"client_id\": 11,\n    \"company_name\": \"Acme Corp\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01\",\n    \"hours_bought\": 10,\n    \"bags_bought\": 3,\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"status\": \"planned\",\n    \"files_uploaded\": 2,\n    \"available_bags_after\": 22\n  }\n}"
+            },
+            {
+              "name": "409 Insufficient Bags",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns" }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"INSUFFICIENT_BAGS\",\n  \"message\": \"Only 5 bags available. Requested: 10.\",\n  \"available_bags\": 5,\n  \"peak_used\": 20\n}"
+            },
+            {
+              "name": "403 Not Authorized",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns" }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Not authorized to create campaigns\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List All Campaigns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test('List returned successfully', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(response.success).to.be.true;",
+                  "});",
+                  "",
+                  "if (response.campaigns?.length > 0) {",
+                  "    console.log(`Found ${response.count} campaigns:`);",
+                  "    response.campaigns.forEach(c => {",
+                  "        console.log(`  [${c.id}] ${c.company_name} — ${c.status} (${c.start_at?.split('T')[0]} to ${c.end_at?.split('T')[0]})`);",
+                  "    });",
+                  "} else {",
+                  "    console.log('No campaigns found.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "campaigns"]
+            },
+            "description": "Returns all campaigns created by this agency account, newest first.\n\nUse this to look up a campaign ID if you did not store it at creation time."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns" }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"count\": 2,\n  \"campaigns\": [\n    {\n      \"id\": 66,\n      \"company_name\": \"Company C\",\n      \"program_id\": 2786872,\n      \"status\": \"active\",\n      \"start_at\": \"2026-03-01T00:00:00+00:00\",\n      \"end_at\": \"2026-03-31T00:00:00+00:00\",\n      \"hours_bought\": 20,\n      \"bags_bought\": 3,\n      \"completed_at\": null,\n      \"created_at\": \"2026-02-19T21:05:59+00:00\"\n    },\n    {\n      \"id\": 65,\n      \"company_name\": \"Acme Corp\",\n      \"program_id\": 2786867,\n      \"status\": \"completed\",\n      \"start_at\": \"2026-02-01T00:00:00+00:00\",\n      \"end_at\": \"2026-02-28T00:00:00+00:00\",\n      \"hours_bought\": 10,\n      \"bags_bought\": 3,\n      \"completed_at\": \"2026-02-25T14:32:00+00:00\",\n      \"created_at\": \"2026-01-15T09:00:00+00:00\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Active Campaigns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test('List returned successfully', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(response.success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log(`Active campaigns: ${response.count}`);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campaigns?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "campaigns"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Other values: planned, paused, completed, cancelled"
+                }
+              ]
+            },
+            "description": "Returns only active campaigns. Change `status` to filter by:\n- `planned` — not yet started\n- `active` — currently running\n- `paused` — temporarily paused\n- `completed` — all hours delivered\n- `cancelled` — cancelled"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Analytics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "pm.test('Analytics returned successfully', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(response.success).to.be.true;",
+                  "});",
+                  "",
+                  "if (response.analytics) {",
+                  "    const a = response.analytics;",
+                  "    console.log('📊 Campaign Analytics:');",
+                  "    console.log(`  Company:          ${response.campaign?.company_name}`);",
+                  "    console.log(`  Status:           ${response.campaign?.status}`);",
+                  "    console.log(`  Hours played:     ${a.hours_played} / ${a.hours_bought}`);",
+                  "    console.log(`  Completion:       ${a.completion_percent}%`);",
+                  "    console.log(`  Share of voice:   ${a.share_of_voice_percent}%`);",
+                  "    console.log(`  Active files:     ${response.files?.active}`);",
+                  "    console.log(`  Media URLs:       ${a.media_urls?.length} image(s)`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "campaigns", "{{campaignId}}"]
+            },
+            "description": "Returns real-time analytics for a specific campaign.\n\n**Before running:** Set the `{{campaignId}}` collection variable to the campaign ID you want to query. This is done automatically when you run 'Create Campaign'.\n\n**Analytics fields:**\n- `hours_played` — hours delivered so far\n- `completion_percent` — percentage of purchased hours delivered\n- `share_of_voice_percent` — this client's share of display time (e.g. 33.3% if 3 advertisers share a screen)\n- `media_urls` — direct links to the uploaded ad images\n\n**Security:** You can only access campaigns your agency created. Attempting to access another agency's campaign ID returns `404`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns/{{campaignId}}" }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"campaign\": {\n    \"id\": 65,\n    \"company_name\": \"Acme Corp\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01\",\n    \"status\": \"active\",\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"completed_at\": null,\n    \"hours_bought\": 10,\n    \"bags_bought\": 3\n  },\n  \"analytics\": {\n    \"hours_played\": 4.5,\n    \"minutes_played\": 270,\n    \"hours_bought\": 10,\n    \"completion_percent\": 45,\n    \"share_of_voice_percent\": 33.3,\n    \"media_urls\": [\n      \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/ad1.jpg\",\n      \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/ad2.jpg\"\n    ]\n  },\n  \"files\": {\n    \"active\": 2,\n    \"removed\": 0,\n    \"total\": 2\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns/99999" }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Campaign not found\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
