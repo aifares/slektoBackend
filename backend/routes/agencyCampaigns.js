@@ -13,6 +13,8 @@ const {
 const {
   buildCampaignPlaybackMetrics,
 } = require("../services/campaignMetrics");
+const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
+const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
 
 // Configure multer for memory storage (buffers, not disk files)
 const upload = multer({
@@ -405,7 +407,7 @@ router.get("/campaigns", async (req, res) => {
 
 /**
  * GET /api/v1/campaigns/:id
- * Get analytics for a specific campaign.
+ * Get full analytics for a specific campaign (same shape as GET /analytics).
  * The campaign must belong to the authenticated agency.
  *
  * Auth: Bearer token (Supabase JWT)
@@ -414,6 +416,10 @@ router.get("/campaigns/:id", async (req, res) => {
   try {
     const client = req.client;
     const campaignId = parseInt(req.params.id, 10);
+    const zoneLimit = Math.max(
+      1,
+      Math.min(50, parseInt(req.query.zoneLimit, 10) || 50)
+    );
 
     if (isNaN(campaignId)) {
       return res.status(400).json({ success: false, error: "Invalid campaign ID" });
@@ -434,81 +440,186 @@ router.get("/campaigns/:id", async (req, res) => {
       });
     }
 
-    // Get program name (contains company name)
-    const { data: program } = await supabase
-      .from("programs")
-      .select("name")
-      .eq("id", campaign.program_id)
-      .single();
+    const programId = campaign.program_id;
+    const nowIso = new Date().toISOString();
+    const isActive =
+      campaign.start_at <= nowIso &&
+      campaign.end_at >= nowIso &&
+      campaign.status === "active" &&
+      campaign.completed_at === null;
+    const activeProgramIds = isActive ? [programId] : [];
 
-    const programName = program?.name || null;
-    const company_name = programName
-      ? programName.replace(/\s*-\s*\d{4}-\d{2}-\d{2}$/, "").trim()
-      : null;
-
-    // Get terminal IDs that have played this program
-    const { data: sessions } = await supabase
+    // Fetch playing sessions for this program (same fields as full analytics)
+    const { data: allPlayingSessions, error: allPlayingError } = await supabase
       .from("playing")
-      .select("terminal_id")
-      .eq("program_id", campaign.program_id);
+      .select(
+        "terminal_id, program_id, program_name, file_name, source, started_at, ended_at, status"
+      )
+      .eq("program_id", programId);
 
-    const terminalIds = sessions
-      ? [...new Set(sessions.map((s) => s.terminal_id))]
-      : [];
+    if (allPlayingError) {
+      return res.status(500).json({
+        error: "Failed to fetch playing sessions",
+        details: allPlayingError.message,
+      });
+    }
 
-    // Build playback metrics (hours played, completion %, share of voice)
-    const metrics = await buildCampaignPlaybackMetrics(
-      [campaign],
-      [campaign.program_id],
+    const terminalIds = Array.from(
+      new Set((allPlayingSessions || []).map((s) => s.terminal_id))
+    );
+
+    // Campaign playback metrics
+    const campaignWithActive = { ...campaign, isActive };
+    const playbackMetricsByProgram = await buildCampaignPlaybackMetrics(
+      [campaignWithActive],
+      [programId],
       terminalIds.length > 0 ? terminalIds : null,
       client.id
     );
+    if (playbackMetricsByProgram[programId]) {
+      playbackMetricsByProgram[programId].isActive = isActive;
+    }
 
-    const campaignMetrics = metrics._byCampaign?.[campaign.id] || metrics[campaign.program_id] || {};
+    // Historical terminals
+    let allHistoricalTerminals = [];
+    try {
+      allHistoricalTerminals = await fetchHistoricalTerminals([programId]);
+    } catch (err) {
+      console.warn("Failed to fetch historical terminals:", err.message);
+    }
 
-    // Count active vs removed files for this campaign
-    const { data: files } = await supabase
-      .from("files")
-      .select("id, name, source_url, removed_at")
-      .eq("program_id", campaign.program_id)
-      .eq("client_id", client.id);
+    const terminalIdsForCoverage =
+      terminalIds.length > 0
+        ? terminalIds
+        : Array.from(
+            new Set((allHistoricalTerminals || []).map((t) => t.terminal_id))
+          );
 
-    const activeFiles = (files || []).filter((f) => f.removed_at === null);
-    const removedFiles = (files || []).filter((f) => f.removed_at !== null);
+    // Currently playing rows
+    const currentlyPlayingRows = (allPlayingSessions || []).filter(
+      (p) => p.status === "current"
+    );
 
-    return res.json({
-      success: true,
-      campaign: {
-        id: campaign.id,
-        company_name,
-        program_id: campaign.program_id,
-        program_name: programName,
-        status: campaign.status,
-        start_at: campaign.start_at,
-        end_at: campaign.end_at,
-        completed_at: campaign.completed_at || null,
-        hours_bought: campaign.hours_bought,
-        bags_bought: campaign.bags_bought,
+    // Terminal metadata and status (only if we have terminals)
+    let terminalsOut = [];
+    let terminalsPlayingCount = 0;
+    let offlineCount = 0;
+
+    if (terminalIds.length > 0) {
+      const { data: terminalRows, error: terminalsError } = await supabase
+        .from("terminals")
+        .select("terminalid, name, group_name, last_report_time, power_status")
+        .in("terminalid", terminalIds);
+
+      if (terminalsError) {
+        return res.status(500).json({
+          error: "Failed to fetch terminal metadata",
+          details: terminalsError.message,
+        });
+      }
+
+      const { data: terminalStatusRows, error: statusError } = await supabase.rpc(
+        "get_latest_terminal_status",
+        { p_terminal_ids: terminalIds }
+      );
+      const latestStatusByTerminal = {};
+      if (!statusError && terminalStatusRows) {
+        for (const row of terminalStatusRows) {
+          latestStatusByTerminal[row.terminal_id] = row.status;
+        }
+      }
+
+      const playingByTerminalId = Object.fromEntries(
+        currentlyPlayingRows.map((p) => [p.terminal_id, p])
+      );
+      const currentlyPlayingTerminalIds = currentlyPlayingRows.map((p) => p.terminal_id);
+      const terminalsForDisplay = (terminalRows || []).filter((t) =>
+        currentlyPlayingTerminalIds.includes(t.terminalid)
+      );
+
+      terminalsOut = terminalsForDisplay.map((terminal) => {
+        const playing = playingByTerminalId[terminal.terminalid] || null;
+        const isOnline = latestStatusByTerminal[terminal.terminalid] === "online";
+        return {
+          terminalId: terminal.terminalid,
+          name: terminal.name || null,
+          group_name: terminal.group_name || null,
+          last_report_time: terminal.last_report_time || null,
+          power_status: terminal.power_status || null,
+          isOnline,
+          playing: playing
+            ? {
+                program_id: playing.program_id,
+                program_name: playing.program_name,
+                file_name: playing.file_name,
+                source: playing.source,
+                started_at: playing.started_at,
+              }
+            : null,
+        };
+      });
+
+      terminalsPlayingCount = currentlyPlayingRows.length;
+      offlineCount = (terminalRows || []).filter(
+        (t) => t.power_status === "off"
+      ).length;
+    }
+
+    // Zone coverage date range (campaign window)
+    let zoneStartDateFinal = campaign.start_at;
+    let zoneEndDateFinal = nowIso;
+    const endAt = new Date(campaign.end_at);
+    const now = new Date(nowIso);
+    if (endAt < now) {
+      zoneEndDateFinal = campaign.end_at;
+    } else {
+      zoneEndDateFinal = nowIso;
+    }
+
+    let zoneCoverage = {};
+    if (terminalIdsForCoverage.length > 0) {
+      try {
+        zoneCoverage = await buildZoneCoverageMetrics(
+          [programId],
+          terminalIdsForCoverage,
+          zoneStartDateFinal,
+          zoneEndDateFinal,
+          zoneLimit,
+          client.id
+        );
+        for (const [pid, coverage] of Object.entries(zoneCoverage)) {
+          coverage.isActive = isActive;
+        }
+      } catch (err) {
+        console.warn("Failed to build zone coverage metrics:", err.message);
+      }
+    }
+
+    const { _byCampaign, ...campaignMetricsForClient } = playbackMetricsByProgram;
+
+    const response = {
+      client: {
+        id: client.id,
+        name: client.name,
+        activePrograms: activeProgramIds,
       },
-      analytics: {
-        hours_played: campaignMetrics.hours_played_since_campaign_start || 0,
-        minutes_played: campaignMetrics.minutes_played_since_campaign_start || 0,
-        hours_bought: campaign.hours_bought,
-        completion_percent: campaignMetrics.campaign_completion_percent || 0,
-        share_of_voice_percent: campaignMetrics.share_of_voice_percent || null,
-        media_urls: campaignMetrics.media_urls || [],
+      terminals: terminalsOut,
+      summary: {
+        total_terminals: terminalsOut.length,
+        terminals_playing: terminalsPlayingCount,
+        terminals_offline: offlineCount,
+        historical_terminals_count: allHistoricalTerminals.length,
       },
-      files: {
-        active: activeFiles.length,
-        removed: removedFiles.length,
-        total: (files || []).length,
-      },
-    });
+      historical_terminals: allHistoricalTerminals,
+      campaign_metrics: campaignMetricsForClient,
+      zone_coverage: zoneCoverage,
+    };
+
+    return res.json(response);
   } catch (error) {
     console.error("❌ Error fetching campaign analytics:", error.message);
     return res.status(500).json({
-      success: false,
-      error: "Failed to fetch campaign analytics",
+      error: "Failed to build analytics data",
       details: error.message,
     });
   }
