@@ -19,6 +19,9 @@ const driversRoutes = require("./routes/drivers");
 const adminRoutes = require("./routes/admin");
 const adminCampaignsRoutes = require("./routes/adminCampaigns");
 const agencyCampaignsRoutes = require("./routes/agencyCampaigns");
+const driverAuthRoutes = require("./routes/driverAuth");
+const driverPortalRoutes = require("./routes/driverPortal");
+const adminDriversRoutes = require("./routes/adminDrivers");
 const { authMiddleware } = require("./middleware/auth");
 
 const app = express();
@@ -29,6 +32,12 @@ const PORT = 3000;
 
 // Public routes (no auth)
 app.use("/public", publicRoutes);
+
+// Driver auth routes (OTP login — no auth required)
+app.use("/auth/driver", driverAuthRoutes);
+
+// Driver portal routes (driverAuthMiddleware applied inside the router)
+app.use("/driver-portal", driverPortalRoutes);
 
 // Public driver registration (no auth required)
 const { registerDriver } = require("./services/driverRegistration");
@@ -73,6 +82,7 @@ app.use("/client/gps", clientGpsRoutes);
 app.use("/poller", pollerRoutes);
 app.use("/admin", adminRoutes);
 app.use("/admin", adminCampaignsRoutes); // Campaign management endpoints
+app.use("/admin/drivers", adminDriversRoutes); // Driver notifications, events, pay
 app.use("/api/v1", agencyCampaignsRoutes); // Third-party agency API
 
 const server = app.listen(PORT, () => {
