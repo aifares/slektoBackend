@@ -1,7 +1,19 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
 const { supabase } = require("../config/supabase");
 const { supabaseAdmin, usernameToEmail } = require("../config/supabaseAdmin");
+const { uploadImagesToColorLight, createProgram } = require("../services/colorLight");
+const { checkBagAvailability, computeScheduleForProgram } = require("../services/playlistSchedule");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 20 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp"];
+    allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error(`Invalid file type: ${file.mimetype}`));
+  },
+});
 
 function requireAdmin(req, res, next) {
   if (req.client?.role !== "admin") {
@@ -323,6 +335,243 @@ router.patch("/:id", async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
+});
+
+/**
+ * POST /admin/clients/onboard
+ *
+ * All-in-one: upload media to ColorLight, create campaign, create company client account.
+ * Content-Type: multipart/form-data
+ *
+ * Fields:
+ *   company_name  (string, required)
+ *   username      (string, required)
+ *   password      (string, required, min 8 chars)
+ *   start_at      (ISO 8601, required)
+ *   end_at        (ISO 8601, required)
+ *   hours_bought  (number, required)
+ *   bags_bought   (integer, required)
+ *   images        (file[], required, 1-20 files)
+ */
+router.post("/onboard", upload.array("images", 20), async (req, res) => {
+  try {
+    const { company_name, username, password, start_at, end_at, hours_bought, bags_bought } = req.body;
+
+    // ── Validate ──
+    const errors = [];
+    if (!company_name?.trim()) errors.push("company_name is required");
+    if (!username?.trim()) errors.push("username is required");
+    if (!password || password.length < 8) errors.push("password must be at least 8 characters");
+    if (!/^[a-zA-Z0-9_]+$/.test((username || "").trim())) errors.push("username may only contain letters, numbers, and underscores");
+    if (!start_at) errors.push("start_at is required");
+    if (!end_at) errors.push("end_at is required");
+    if (!hours_bought || Number(hours_bought) <= 0) errors.push("hours_bought must be a positive number");
+    if (!bags_bought || Number(bags_bought) <= 0) errors.push("bags_bought must be a positive integer");
+    if (!req.files || req.files.length === 0) errors.push("At least one image is required");
+    if (errors.length > 0) return res.status(400).json({ success: false, error: "Validation failed", details: errors });
+
+    const startAt = new Date(start_at);
+    const endAt = new Date(end_at);
+    if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) {
+      return res.status(400).json({ success: false, error: "Invalid date format. Use ISO 8601" });
+    }
+    if (startAt >= endAt) {
+      return res.status(400).json({ success: false, error: "start_at must be before end_at" });
+    }
+
+    const hoursBought = Number(hours_bought);
+    const bagsBought = parseInt(bags_bought, 10);
+    const cleanUsername = username.trim().toLowerCase();
+
+    // ── Check username uniqueness ──
+    const { data: existingUser } = await supabase
+      .from("client")
+      .select("id")
+      .eq("username", cleanUsername)
+      .maybeSingle();
+    if (existingUser) {
+      return res.status(409).json({ success: false, error: `Username '${cleanUsername}' is already taken` });
+    }
+
+    // ── Check bag availability ──
+    const availability = await checkBagAvailability(startAt.toISOString(), endAt.toISOString());
+    if (bagsBought > availability.available) {
+      return res.status(409).json({
+        success: false,
+        error: "INSUFFICIENT_BAGS",
+        message: `Only ${availability.available} bags available. Requested: ${bagsBought}.`,
+        available_bags: availability.available,
+        peak_used: availability.peakUsed,
+        conflict_date: availability.conflictDate,
+      });
+    }
+
+    // ── Upload images to ColorLight ──
+    console.log(`📤 Uploading ${req.files.length} images to ColorLight...`);
+    const filesToUpload = req.files.map((f) => ({ buffer: f.buffer, filename: f.originalname, mimetype: f.mimetype }));
+    let uploadedImages;
+    try {
+      uploadedImages = await uploadImagesToColorLight(filesToUpload);
+    } catch (uploadError) {
+      return res.status(502).json({ success: false, error: "Failed to upload images to display network", details: uploadError.message });
+    }
+
+    // ── Create program (playlist) ──
+    const programName = `${company_name.trim()} - ${startAt.toISOString().split("T")[0]}`;
+    console.log(`📋 Creating program: ${programName}...`);
+    let programResponse;
+    try {
+      programResponse = await createProgram(programName, uploadedImages);
+    } catch (programError) {
+      return res.status(502).json({ success: false, error: "Failed to create playlist on display network", details: programError.message });
+    }
+    const programId = programResponse.id;
+
+    // ── Insert program row ──
+    const firstImage = uploadedImages[0]?.data || uploadedImages[0];
+    const thumbnailUrl =
+      firstImage?.media_details?.sizes?.thumbnail?.source_url ||
+      firstImage?.source_url ||
+      firstImage?.guid?.rendered ||
+      null;
+
+    await supabase.from("programs").upsert(
+      { id: programId, name: programName, thumbnail_url: thumbnailUrl, status: "active", created: new Date().toISOString(), modified: new Date().toISOString() },
+      { onConflict: "id" }
+    );
+
+    // ── Insert file records ──
+    // We need a placeholder client_id — we'll patch after client is created
+    const fileRecords = uploadedImages.map((img) => {
+      const data = img.data || img;
+      return {
+        program_id: programId,
+        client_id: null,
+        media_id: data.id,
+        name: data.title?.rendered || data.name || data.slug || "unknown",
+        source_url: data.source_url || data.guid?.rendered,
+        mime_type: data.mime_type || null,
+        file_size_bytes: data.attachment_filesize || null,
+        media_width: data.media_details?.width || null,
+        media_height: data.media_details?.height || null,
+        custom_tags: [`${company_name.trim()}`],
+        title: company_name.trim(),
+        type: data.file_type || data.mime_type?.split("/")[1] || "image",
+        last_synced_at: new Date().toISOString(),
+      };
+    });
+
+    const { data: insertedFiles } = await supabase.from("files").insert(fileRecords).select("id");
+
+    // ── Create campaign ──
+    const { data: campaign, error: campaignError } = await supabase
+      .from("campaign")
+      .insert({
+        program_id: programId,
+        hours_bought: hoursBought,
+        bags_bought: bagsBought,
+        start_at: startAt.toISOString(),
+        end_at: endAt.toISOString(),
+        status: "planned",
+      })
+      .select()
+      .single();
+    if (campaignError) throw new Error(`Failed to create campaign: ${campaignError.message}`);
+
+    // ── Create Supabase auth user ──
+    const authEmail = usernameToEmail(cleanUsername);
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: authEmail,
+      password,
+      email_confirm: true,
+    });
+    if (authError) {
+      // Roll back campaign
+      await supabase.from("campaign").delete().eq("id", campaign.id);
+      return res.status(500).json({ success: false, error: "Failed to create auth user", details: authError.message });
+    }
+    const authUser = authData.user;
+
+    // ── Create client row ──
+    const { data: clientRow, error: clientError } = await supabase
+      .from("client")
+      .insert({
+        name: company_name.trim(),
+        user_id: authUser.id,
+        email: authEmail,
+        email_verified: true,
+        client_type: "company",
+        username: cleanUsername,
+        role: "user",
+        permissions: {},
+        account_status: "active",
+        created_by: req.user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (clientError) {
+      await supabaseAdmin.auth.admin.deleteUser(authUser.id);
+      await supabase.from("campaign").delete().eq("id", campaign.id);
+      return res.status(500).json({ success: false, error: "Failed to create client record", details: clientError.message });
+    }
+
+    // ── Link client to campaign ──
+    await supabase.from("campaign").update({ client_id: clientRow.id }).eq("id", campaign.id);
+
+    // ── Patch file records with correct client_id ──
+    if (insertedFiles && insertedFiles.length > 0) {
+      const fileIds = insertedFiles.map((f) => f.id);
+      await supabase.from("files").update({ client_id: clientRow.id }).in("id", fileIds);
+    }
+
+    // ── Compute playlist schedule (non-fatal) ──
+    try { await computeScheduleForProgram(programId); } catch (_) {}
+
+    console.log(`✅ Onboarded company '${company_name.trim()}' — client ${clientRow.id}, campaign ${campaign.id}`);
+
+    return res.status(201).json({
+      success: true,
+      message: "Client onboarded successfully",
+      client: {
+        id: clientRow.id,
+        name: clientRow.name,
+        client_type: "company",
+        username: cleanUsername,
+        account_status: "active",
+      },
+      campaign: {
+        id: campaign.id,
+        program_id: programId,
+        program_name: programName,
+        hours_bought: hoursBought,
+        bags_bought: bagsBought,
+        start_at: campaign.start_at,
+        end_at: campaign.end_at,
+        status: campaign.status,
+        files_uploaded: uploadedImages.length,
+      },
+      login: {
+        username: cleanUsername,
+        note: "Share these credentials with the client. They can log in at POST /auth/client/login",
+      },
+    });
+  } catch (err) {
+    console.error("❌ Unexpected error in client onboarding:", err);
+    return res.status(500).json({ success: false, error: "Internal server error", details: err.message });
+  }
+});
+
+// Multer error handler for onboard route
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ success: false, error: "File too large. Maximum 10MB per file." });
+    if (err.code === "LIMIT_FILE_COUNT") return res.status(400).json({ success: false, error: "Too many files. Maximum 20 images." });
+    return res.status(400).json({ success: false, error: `Upload error: ${err.message}` });
+  }
+  if (err.message?.includes("Invalid file type")) return res.status(400).json({ success: false, error: err.message });
+  next(err);
 });
 
 module.exports = router;

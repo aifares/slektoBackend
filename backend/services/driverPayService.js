@@ -28,7 +28,7 @@ function dateKey(dateStr) {
  * Each period contains daily breakdowns with hours per shift.
  */
 async function getDriverPay(driverId) {
-  const [{ data: assignments, error }, { data: activeShifts }] = await Promise.all([
+  const [{ data: assignments, error }, { data: activeShifts }, { data: paidPeriods }] = await Promise.all([
     supabase
       .from("terminal_driver_assignments")
       .select("id, terminal_id, assigned_at, unassigned_at, notes, terminals(name)")
@@ -42,9 +42,19 @@ async function getDriverPay(driverId) {
       .is("unassigned_at", null)
       .order("assigned_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("driver_pay_periods")
+      .select("period, paid_at, paid_by, notes, total_hours, total_pay")
+      .eq("driver_id", driverId),
   ]);
 
   if (error) throw new Error(`Failed to fetch assignments: ${error.message}`);
+
+  // Index paid periods by "YYYY-MM" key
+  const paidByPeriod = {};
+  for (const p of paidPeriods || []) {
+    paidByPeriod[p.period] = { paid_at: p.paid_at, paid_by: p.paid_by, notes: p.notes };
+  }
 
   // Build per-period → per-day → shifts structure
   const periods = {};
@@ -83,13 +93,20 @@ async function getDriverPay(driverId) {
   // Flatten days map to sorted array within each period
   const pay_periods = Object.values(periods)
     .sort((a, b) => b.period.localeCompare(a.period))
-    .map((p) => ({
-      period: p.period,
-      label: p.label,
-      total_hours: p.total_hours,
-      total_pay: p.total_pay,
-      days: Object.values(p.days).sort((a, b) => b.date.localeCompare(a.date)),
-    }));
+    .map((p) => {
+      const paid = paidByPeriod[p.period] || null;
+      return {
+        period: p.period,
+        label: p.label,
+        total_hours: p.total_hours,
+        total_pay: p.total_pay,
+        paid: !!paid,
+        paid_at: paid?.paid_at || null,
+        paid_by: paid?.paid_by || null,
+        payment_notes: paid?.notes || null,
+        days: Object.values(p.days).sort((a, b) => b.date.localeCompare(a.date)),
+      };
+    });
 
   const total_hours = parseFloat(pay_periods.reduce((s, p) => s + p.total_hours, 0).toFixed(2));
   const total_pay = parseFloat((total_hours * HOURLY_RATE).toFixed(2));
