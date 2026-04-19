@@ -30,7 +30,7 @@ const app = express();
 app.use(compression());
 app.use(bodyParser.json());
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Public routes (no auth)
 app.use("/public", publicRoutes);

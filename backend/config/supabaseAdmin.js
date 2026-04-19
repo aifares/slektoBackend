@@ -8,10 +8,23 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
   console.warn("⚠️  SUPABASE_SERVICE_ROLE_KEY not set — admin client creation will fail");
 }
 
-// Service role client — bypasses RLS and can create/delete auth users.
-// Never expose this key to the frontend.
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || "", {
-  auth: { autoRefreshToken: false, persistSession: false },
+// Lazy singleton — only instantiated on first use so a missing key doesn't crash startup.
+let _client = null;
+function getAdminClient() {
+  if (!_client) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set. Add it to your .env or Fly secrets.");
+    }
+    _client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+  }
+  return _client;
+}
+
+// Proxy so callers use supabaseAdmin.auth.admin.createUser() as normal
+const supabaseAdmin = new Proxy({}, {
+  get(_, prop) { return getAdminClient()[prop]; },
 });
 
 // Synthetic email domain for company clients (they log in with username, not email)
