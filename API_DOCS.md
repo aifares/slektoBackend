@@ -1,6 +1,7 @@
 # Slekto API Documentation
 
-**Base URL:** `http://localhost:3000` (dev) — replace with production URL when deployed
+**Base URL (dev):** `http://localhost:3001`
+**Base URL (prod):** `https://slekto-backend.fly.dev`
 
 **Authentication:** All protected routes require a Bearer token in the Authorization header.
 ```
@@ -432,7 +433,7 @@ Returns upcoming events visible to this driver (events targeted to them + all-dr
 ```
 GET /driver-portal/pay
 ```
-Returns total hours worked and earnings at $3/hr, calculated from shift history. Also shows if there's a currently active (open) shift.
+Returns all-time totals plus a full breakdown by monthly pay period → day → individual shifts.
 
 **Response 200**
 ```json
@@ -446,24 +447,41 @@ Returns total hours worked and earnings at $3/hr, calculated from shift history.
     "id": 99,
     "terminal_id": "SN-001",
     "terminal_name": "Terminal A",
-    "assigned_at": "2026-04-18T09:00:00Z",
+    "start": "2026-04-18T09:00:00Z",
     "hours_so_far": 3.25
   },
-  "shifts": [
+  "pay_periods": [
     {
-      "id": 88,
-      "terminal_id": "SN-001",
-      "terminal_name": "Terminal A",
-      "assigned_at": "2026-04-17T08:00:00Z",
-      "unassigned_at": "2026-04-17T18:00:00Z",
-      "hours": 10.0,
-      "pay": 30.00,
-      "notes": null
+      "period": "2026-04",
+      "label": "April 2026",
+      "total_hours": 82.5,
+      "total_pay": 247.50,
+      "days": [
+        {
+          "date": "2026-04-18",
+          "day_hours": 10.0,
+          "day_pay": 30.00,
+          "shifts": [
+            {
+              "id": 88,
+              "terminal_id": "SN-001",
+              "terminal_name": "Terminal A",
+              "start": "2026-04-18T08:00:00Z",
+              "end": "2026-04-18T18:00:00Z",
+              "hours": 10.0,
+              "pay": 30.00,
+              "notes": null
+            }
+          ]
+        }
+      ]
     }
   ]
 }
 ```
-`active_shift` is `null` if no shift is currently open. Only completed shifts (with `unassigned_at`) count toward `total_hours` and `total_pay`.
+- `active_shift` is `null` if no shift is currently open
+- `pay_periods` sorted newest first; `days` within each period also sorted newest first
+- Only completed shifts (with `end` timestamp) count toward totals
 
 ---
 
@@ -620,7 +638,7 @@ DELETE /admin/drivers/events/:id
 ```
 GET /admin/drivers/pay
 ```
-Returns hours and earnings for every driver.
+Returns all-time totals and monthly pay period breakdown for every driver.
 
 **Response 200**
 ```json
@@ -633,9 +651,23 @@ Returns hours and earnings for every driver.
       "name": "John Smith",
       "phone": "9174702290",
       "status": "approved",
+      "hourly_rate": 3.00,
       "total_hours": 142.5,
       "total_pay": 427.50,
-      "hourly_rate": 3.00
+      "pay_periods": [
+        {
+          "period": "2026-04",
+          "label": "April 2026",
+          "total_hours": 82.5,
+          "total_pay": 247.50
+        },
+        {
+          "period": "2026-03",
+          "label": "March 2026",
+          "total_hours": 60.0,
+          "total_pay": 180.00
+        }
+      ]
     }
   ]
 }
