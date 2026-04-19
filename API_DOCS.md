@@ -13,14 +13,199 @@ There are two separate auth flows — one for **admin/client users** (Supabase e
 
 ## Table of Contents
 
+- [Client Auth](#client-auth) — Login for agency + company clients
 - [Driver Auth](#driver-auth) — OTP login for drivers
 - [Driver Portal](#driver-portal) — Driver-facing endpoints
+- [Admin — Clients](#admin--clients) — Create client accounts, link to campaigns (admin only)
 - [Admin — Drivers](#admin--drivers) — Notifications, events, pay (admin only)
 - [Admin — Campaigns](#admin--campaigns) — Campaign management (admin only)
 - [Admin — Media & System](#admin--media--system) — Sync, snapshots (admin only)
-- [Clients](#clients) — Client account management
+- [Clients](#clients) — Client campaign management
 - [Drivers (Admin)](#drivers-admin) — Driver records management
 - [Terminals](#terminals) — Terminal management
+
+---
+
+## Client Auth
+
+> No authentication required. Used by both agency and company clients to log in to the client dashboard.
+
+### Login
+```
+POST /auth/client/login
+```
+
+**Company client (username + password):**
+```json
+{
+  "username": "acme_corp",
+  "password": "SecurePass123!"
+}
+```
+
+**Agency client (email + password):**
+```json
+{
+  "email": "contact@bigagency.com",
+  "password": "SecurePass123!"
+}
+```
+
+**Response 200**
+```json
+{
+  "success": true,
+  "access_token": "eyJ...",
+  "refresh_token": "eyJ...",
+  "expires_in": 3600,
+  "client": {
+    "id": 5,
+    "name": "Acme Corp",
+    "client_type": "company",
+    "username": "acme_corp",
+    "role": "user"
+  }
+}
+```
+
+**Error responses**
+| Status | Meaning |
+|--------|---------|
+| 400 | Missing username/email or password |
+| 401 | Invalid credentials |
+| 403 | Account suspended or deleted |
+
+---
+
+### Refresh Session
+```
+POST /auth/client/refresh
+```
+**Body:** `{ "refresh_token": "eyJ..." }`
+
+---
+
+## Admin — Clients
+
+> Requires admin Bearer token. User must have `role: "admin"`.
+
+### Create Client + Link to Campaign
+```
+POST /admin/clients/create
+```
+Creates a login account for a client and immediately links it to an existing campaign. A `campaign_id` is always required.
+
+**Company account** (admin sets credentials):
+```json
+{
+  "client_type": "company",
+  "name": "Acme Corp",
+  "username": "acme_corp",
+  "password": "SecurePass123!",
+  "campaign_id": 12
+}
+```
+
+**Agency account** (client sets their own password via email):
+```json
+{
+  "client_type": "agency",
+  "name": "Big Agency LLC",
+  "email": "contact@bigagency.com",
+  "campaign_id": 12
+}
+```
+
+| Field | Required for | Rules |
+|-------|-------------|-------|
+| `client_type` | both | `"agency"` or `"company"` |
+| `name` | both | Display name |
+| `campaign_id` | both | Must exist and not already have a client |
+| `username` | company | Letters, numbers, underscores only. Used to log in. |
+| `password` | company | Min 8 characters |
+| `email` | agency | Real email — receives password setup link |
+
+**Response 201**
+```json
+{
+  "success": true,
+  "client": {
+    "id": 7,
+    "name": "Acme Corp",
+    "client_type": "company",
+    "username": "acme_corp",
+    "account_status": "active"
+  },
+  "campaign": {
+    "id": 12,
+    "status": "planned",
+    "hours_bought": 10,
+    "start_at": "2026-05-01T00:00:00Z",
+    "end_at": "2026-06-01T00:00:00Z"
+  },
+  "login": {
+    "username": "acme_corp",
+    "note": "Share these credentials with the client"
+  }
+}
+```
+For agency accounts, `login.note` will say `"Password reset email sent to contact@bigagency.com"`.
+
+**Error responses**
+| Status | Meaning |
+|--------|---------|
+| 400 | Missing fields or invalid username/password format |
+| 404 | Campaign not found |
+| 409 | Campaign already has a client, or username/email taken |
+
+---
+
+### List All Clients
+```
+GET /admin/clients?client_type=company
+```
+Optional `client_type` filter: `agency` or `company`.
+
+**Response 200**
+```json
+{
+  "success": true,
+  "count": 10,
+  "clients": [
+    {
+      "id": 7,
+      "name": "Acme Corp",
+      "client_type": "company",
+      "username": "acme_corp",
+      "email": null,
+      "account_status": "active",
+      "role": "user",
+      "campaigns": [{ "id": 12, "status": "planned" }],
+      "campaign_count": 1,
+      "created_at": "2026-04-18T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### Update Client
+```
+PATCH /admin/clients/:id
+```
+Update name, status, or reset password (company only).
+
+**Body** (all optional):
+```json
+{
+  "name": "Acme Corp Updated",
+  "account_status": "suspended",
+  "password": "NewPassword123!"
+}
+```
+`account_status` values: `active` `suspended` `deleted`
+`password` is only allowed for `company` type clients.
 
 ---
 
@@ -746,6 +931,8 @@ Common status codes:
 ```
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=   # required for admin client creation
+CLIENT_EMAIL_DOMAIN=clients.slekto.com
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
