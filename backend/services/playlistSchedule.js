@@ -18,10 +18,12 @@ const TOTAL_BAGS = 25;
  * @returns {Promise<{available: number, peakUsed: number, conflictDate: string|null}>}
  */
 async function checkBagAvailability(startAt, endAt, excludeCampaignId = null) {
-  // Get all overlapping active/planned campaigns
+  // Get all overlapping active/planned campaigns with their per-playlist bag assignments
   const { data: campaigns, error } = await supabase
     .from("campaign")
-    .select("id, bags_bought, start_at, end_at")
+    .select(
+      "id, start_at, end_at, campaign_playlists(bags_assigned)"
+    )
     .in("status", ["active", "planned"])
     .lte("start_at", endAt)
     .gte("end_at", startAt);
@@ -30,10 +32,17 @@ async function checkBagAvailability(startAt, endAt, excludeCampaignId = null) {
     throw new Error(`Failed to check bag availability: ${error.message}`);
   }
 
-  // Filter out the excluded campaign (for updates)
-  const relevantCampaigns = (campaigns || []).filter(
-    (c) => c.id !== excludeCampaignId
-  );
+  // Filter out the excluded campaign (for updates) and sum bags across playlists
+  const relevantCampaigns = (campaigns || [])
+    .filter((c) => c.id !== excludeCampaignId)
+    .map((c) => ({
+      start_at: c.start_at,
+      end_at: c.end_at,
+      bags_total: (c.campaign_playlists || []).reduce(
+        (sum, p) => sum + (p.bags_assigned || 0),
+        0
+      ),
+    }));
 
   if (relevantCampaigns.length === 0) {
     return { available: TOTAL_BAGS, peakUsed: 0, conflictDate: null };
@@ -54,7 +63,7 @@ async function checkBagAvailability(startAt, endAt, excludeCampaignId = null) {
       const cEnd = new Date(c.end_at).toISOString().split("T")[0];
 
       if (dayStr >= cStart && dayStr <= cEnd) {
-        dailyBags += c.bags_bought || 0;
+        dailyBags += c.bags_total;
       }
     }
 
@@ -213,16 +222,25 @@ async function computeScheduleForProgram(programId) {
 }
 
 /**
- * Apply a scheduled transition when a campaign completes
- * Pushes the pre-built playlist state to ColorLight and marks it applied
+ * Apply a scheduled transition for a (campaign, program) pair.
  *
- * @param {number} campaignId - The completed campaign ID
+ * Pushes the pre-built playlist state to ColorLight, marks that playlist's
+ * files as removed locally, and records the transition as applied.
+ *
+ * For rotation campaigns the caller passes campaign.program_id.
+ * For split campaigns the caller iterates over each campaign_playlists row
+ * and calls this once per program.
+ *
+ * @param {number} campaignId
+ * @param {number} [programId] - optional; falls back to campaign.program_id
+ *   (the rollup). Required callers for split-mode playlists.
  * @returns {Promise<Object>} Result summary
  */
-async function applyTransitionForCampaign(campaignId) {
+async function applyTransitionForCampaign(campaignId, programId = null) {
   const result = {
     success: true,
     campaign_id: campaignId,
+    program_id: programId,
     transition_applied: false,
     files_removed: 0,
     snapshot_created: false,
@@ -230,23 +248,7 @@ async function applyTransitionForCampaign(campaignId) {
   };
 
   try {
-    // Find the transition for this campaign
-    const { data: transition, error: fetchError } = await supabase
-      .from("playlist_schedule")
-      .select("*")
-      .eq("campaign_id", campaignId)
-      .eq("applied", false)
-      .single();
-
-    if (fetchError || !transition) {
-      console.warn(
-        `⚠️  No pending transition for campaign ${campaignId} - may need recompute`
-      );
-      result.errors.push("No pending transition found");
-      return result;
-    }
-
-    // Get campaign details for file cleanup
+    // Get campaign details (for client_id + rollup program_id fallback)
     const { data: campaign, error: campaignError } = await supabase
       .from("campaign")
       .select("id, client_id, program_id")
@@ -257,19 +259,40 @@ async function applyTransitionForCampaign(campaignId) {
       throw new Error(`Campaign ${campaignId} not found`);
     }
 
+    const effectiveProgramId = programId || campaign.program_id;
+    result.program_id = effectiveProgramId;
+
+    // Find the transition for this (campaign, program) pair
+    const { data: transition, error: fetchError } = await supabase
+      .from("playlist_schedule")
+      .select("*")
+      .eq("campaign_id", campaignId)
+      .eq("program_id", effectiveProgramId)
+      .eq("applied", false)
+      .maybeSingle();
+
+    if (fetchError || !transition) {
+      console.warn(
+        `⚠️  No pending transition for campaign ${campaignId} / program ${effectiveProgramId} - may need recompute`
+      );
+      result.errors.push("No pending transition found");
+      return result;
+    }
+
     // Step 1: Push the pre-built playlist state to ColorLight
     console.log(
-      `🚀 Applying transition for campaign ${campaignId} on program ${transition.program_id}...`
+      `🚀 Applying transition for campaign ${campaignId} on program ${effectiveProgramId}...`
     );
-    await updateProgram(transition.program_id, transition.playlist_state);
+    await updateProgram(effectiveProgramId, transition.playlist_state);
     result.transition_applied = true;
 
-    // Step 2: Mark client's files as removed in local DB
+    // Step 2: Mark this playlist's files as removed in local DB
+    //         (scoped to program + client, so split-mode playlists stay isolated)
     const now = new Date().toISOString();
     const { data: removedFiles, error: removeError } = await supabase
       .from("files")
       .update({ removed_at: now })
-      .eq("program_id", campaign.program_id)
+      .eq("program_id", effectiveProgramId)
       .eq("client_id", campaign.client_id)
       .is("removed_at", null)
       .select("id, name");
@@ -294,7 +317,7 @@ async function applyTransitionForCampaign(campaignId) {
     // Step 4: Create SOV snapshot to capture new share distribution
     try {
       const snapshotResult = await createSnapshotForProgram(
-        transition.program_id
+        effectiveProgramId
       );
       if (snapshotResult && snapshotResult.success) {
         result.snapshot_created = true;
@@ -304,10 +327,10 @@ async function applyTransitionForCampaign(campaignId) {
     }
 
     // Step 5: Recompute schedule for remaining campaigns on this program
-    await computeScheduleForProgram(transition.program_id);
+    await computeScheduleForProgram(effectiveProgramId);
 
     console.log(
-      `🎉 Transition applied for campaign ${campaignId}`
+      `🎉 Transition applied for campaign ${campaignId} / program ${effectiveProgramId}`
     );
   } catch (error) {
     console.error(

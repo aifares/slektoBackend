@@ -120,7 +120,9 @@ router.post("/campaigns/create", async (req, res) => {
       }
     }
 
-    // Create campaign
+    // Create campaign (rotation mode — this admin endpoint binds a pre-existing
+    // program to a campaign; split-mode creation goes through /admin/clients/onboard
+    // or the agency endpoint.)
     const { data: campaign, error: createError } = await supabase
       .from("campaign")
       .insert({
@@ -128,6 +130,7 @@ router.post("/campaigns/create", async (req, res) => {
         program_id,
         hours_bought,
         bags_bought,
+        mode: "rotation",
         start_at: startTime,
         end_at: endTime,
         status: campaignStatus,
@@ -137,6 +140,23 @@ router.post("/campaigns/create", async (req, res) => {
 
     if (createError) {
       throw new Error(`Failed to create campaign: ${createError.message}`);
+    }
+
+    // Insert the matching campaign_playlists child row so the new data model
+    // stays consistent (bag-availability math + analytics read from children).
+    const { error: playlistInsertError } = await supabase
+      .from("campaign_playlists")
+      .insert({
+        campaign_id: campaign.id,
+        program_id,
+        label: null,
+        bags_assigned: bags_bought || 0,
+        hours_bought,
+      });
+    if (playlistInsertError) {
+      console.warn(
+        `⚠️  Failed to insert campaign_playlists row: ${playlistInsertError.message}`,
+      );
     }
 
     console.log(`✅ Campaign ${campaign.id} created for client ${client_id}`);
@@ -404,20 +424,33 @@ router.patch("/campaigns/:campaignId/status", async (req, res) => {
 
     console.log(`✅ Campaign ${campaignId} status updated to '${status}'`);
 
-    // Recompute playlist schedule when campaign is cancelled, paused, or completed
-    if (
-      ["cancelled", "paused", "completed"].includes(status) &&
-      campaign.program_id
-    ) {
-      try {
-        await computeScheduleForProgram(campaign.program_id);
-        console.log(
-          `📅 Playlist schedule recomputed for program ${campaign.program_id}`,
-        );
-      } catch (scheduleError) {
-        console.warn(
-          `⚠️  Failed to recompute playlist schedule: ${scheduleError.message}`,
-        );
+    // Recompute playlist schedule for every program bound to this campaign
+    // (rotation has one, split has many) when status changes in a way that
+    // affects the pre-computed transitions.
+    if (["cancelled", "paused", "completed"].includes(status)) {
+      const { data: playlists } = await supabase
+        .from("campaign_playlists")
+        .select("program_id")
+        .eq("campaign_id", campaignId);
+
+      const programIds = [
+        ...new Set(
+          (playlists || [])
+            .map((p) => p.program_id)
+            .concat(campaign.program_id ? [campaign.program_id] : [])
+            .filter(Boolean),
+        ),
+      ];
+
+      for (const pid of programIds) {
+        try {
+          await computeScheduleForProgram(pid);
+          console.log(`📅 Playlist schedule recomputed for program ${pid}`);
+        } catch (scheduleError) {
+          console.warn(
+            `⚠️  Failed to recompute playlist schedule for ${pid}: ${scheduleError.message}`,
+          );
+        }
       }
     }
 
@@ -558,7 +591,8 @@ router.post("/campaigns/check-completions", async (req, res) => {
       success: true,
       message: "Completion check finished",
       results: {
-        campaigns_checked: result.campaigns_checked,
+        playlists_checked: result.playlists_checked,
+        playlists_completed: result.playlists_completed,
         campaigns_completed: result.campaigns_completed,
         completion_results: result.completion_results,
       },

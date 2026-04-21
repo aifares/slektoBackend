@@ -1,135 +1,145 @@
 const { supabase } = require("../config/supabase");
 const { applyTransitionForCampaign } = require("./playlistSchedule");
+const { getPlaylistsByCampaignIds } = require("./campaignPlaylists");
 
 /**
- * Check for campaigns that have reached 100% completion
- * Each campaign is checked individually with its own client_id to ensure
- * share of voice is applied correctly per campaign
- * @returns {Promise<Array>} List of completed campaigns
+ * Find campaign_playlists rows that have reached 100% of their own
+ * hours_bought and are not already marked completed.
+ *
+ * Each playlist is evaluated independently against its own program_id +
+ * hours_bought. In rotation mode there's one playlist per campaign
+ * (preserves old behavior). In split mode playlists complete on their own
+ * schedules; the parent campaign is only marked complete when ALL of its
+ * playlists have completed.
+ *
+ * @returns {Promise<Array>} Completed playlists with campaign + metrics context
  */
-async function checkForCompletedCampaigns() {
+async function checkForCompletedPlaylists() {
   try {
-    // Get all active campaigns
     const { data: campaigns, error } = await supabase
       .from("campaign")
-      .select(
-        "id, client_id, program_id, start_at, end_at, hours_bought, status",
-      )
+      .select("id, client_id, start_at, end_at, status")
       .eq("status", "active");
 
     if (error) {
       console.error("Error fetching campaigns:", error.message);
       return [];
     }
-
-    if (!campaigns || campaigns.length === 0) {
-      return [];
-    }
+    if (!campaigns || campaigns.length === 0) return [];
 
     console.log(
-      `🔍 Checking ${campaigns.length} active campaigns for completion...`,
+      `🔍 Checking ${campaigns.length} active campaigns (per-playlist)...`
     );
 
     const { buildCampaignPlaybackMetrics } = require("./campaignMetrics");
 
-    const programIds = [...new Set(campaigns.map((c) => c.program_id))];
+    const playlistsByCampaign = await getPlaylistsByCampaignIds(
+      campaigns.map((c) => c.id)
+    );
 
-    // Get all terminal IDs for these programs
+    const allProgramIds = [
+      ...new Set(
+        Object.values(playlistsByCampaign)
+          .flat()
+          .map((p) => p.program_id)
+          .filter(Boolean)
+      ),
+    ];
+
     const { data: sessions } = await supabase
       .from("playing")
       .select("terminal_id")
-      .in("program_id", programIds);
+      .in("program_id", allProgramIds.length ? allProgramIds : [-1]);
 
     const terminalIds = sessions
       ? [...new Set(sessions.map((s) => s.terminal_id))]
       : null;
 
-    // Find campaigns at 100%+
-    const completedCampaigns = [];
+    const completedPlaylists = [];
 
-    // Process each campaign INDIVIDUALLY to ensure correct share of voice per campaign
     for (const campaign of campaigns) {
-      const now = new Date();
-      const campaignWithStatus = {
-        ...campaign,
-        isActive:
-          new Date(campaign.start_at) <= now &&
-          new Date(campaign.end_at) >= now,
-      };
-
-      console.log(
-        `\n📊 Checking campaign ${campaign.id} (Client ${campaign.client_id}, Program ${campaign.program_id}, Hours bought: ${campaign.hours_bought})...`,
-      );
-
-      // Calculate metrics for THIS SPECIFIC campaign with its client_id
-      // This ensures share of voice is calculated for THIS client only
-      const metrics = await buildCampaignPlaybackMetrics(
-        [campaignWithStatus], // Single campaign
-        [campaign.program_id], // Single program
-        terminalIds,
-        campaign.client_id, // IMPORTANT: Pass the campaign's client_id for accurate share calculation
-      );
-
-      // Get campaign-specific metrics
-      const campaignMetrics = metrics._byCampaign || {};
-      const campaignMetricsData =
-        campaignMetrics[campaign.id] || metrics[campaign.program_id];
-
-      if (!campaignMetricsData) {
-        console.warn(`⚠️  No metrics found for campaign ${campaign.id}`);
+      const playlists = playlistsByCampaign[campaign.id] || [];
+      if (playlists.length === 0) {
+        console.warn(
+          `⚠️  Campaign ${campaign.id} has no playlists — skipping`
+        );
         continue;
       }
 
-      console.log(
-        `   Hours played: ${campaignMetricsData.hours_played_since_campaign_start} / ${campaign.hours_bought} (${campaignMetricsData.campaign_completion_percent}%)`,
-      );
-      console.log(
-        `   Share of Voice: ${
-          campaignMetricsData.share_of_voice_percent || 100
-        }%`,
-      );
+      for (const playlist of playlists) {
+        if (playlist.completed_at) continue; // already done
 
-      if (campaignMetricsData.campaign_completion_percent >= 100) {
-        completedCampaigns.push({
+        const metricsInput = {
           ...campaign,
-          completion_percent: campaignMetricsData.campaign_completion_percent,
-          hours_played: campaignMetricsData.hours_played_since_campaign_start,
-          share_of_voice: campaignMetricsData.share_of_voice_percent,
-        });
+          program_id: playlist.program_id,
+          hours_bought: playlist.hours_bought,
+        };
+
+        const metrics = await buildCampaignPlaybackMetrics(
+          [metricsInput],
+          [playlist.program_id],
+          terminalIds,
+          campaign.client_id
+        );
+
+        const m =
+          metrics._byCampaign?.[campaign.id] ||
+          metrics[playlist.program_id] ||
+          null;
+
+        if (!m) {
+          console.warn(
+            `⚠️  No metrics for playlist ${playlist.id} (campaign ${campaign.id})`
+          );
+          continue;
+        }
 
         console.log(
-          `🎯 Campaign ${campaign.id} is COMPLETE: ${campaignMetricsData.campaign_completion_percent}%`,
+          `   [C${campaign.id} P${playlist.id}] ${m.hours_played_since_campaign_start}/${playlist.hours_bought}h (${m.campaign_completion_percent}%)`
         );
-      } else {
-        console.log(
-          `   Campaign ${campaign.id} is NOT complete yet (${campaignMetricsData.campaign_completion_percent}%)`,
-        );
+
+        if (m.campaign_completion_percent >= 100) {
+          completedPlaylists.push({
+            campaign_id: campaign.id,
+            playlist_id: playlist.id,
+            program_id: playlist.program_id,
+            client_id: campaign.client_id,
+            completion_percent: m.campaign_completion_percent,
+            hours_played: m.hours_played_since_campaign_start,
+          });
+          console.log(
+            `🎯 Playlist ${playlist.id} (campaign ${campaign.id}) COMPLETE`
+          );
+        }
       }
     }
 
     console.log(
-      `\n✅ Found ${completedCampaigns.length} campaigns ready for completion`,
+      `✅ ${completedPlaylists.length} playlists ready for completion`
     );
-    return completedCampaigns;
-  } catch (error) {
-    console.error("Error checking for completed campaigns:", error.message);
+    return completedPlaylists;
+  } catch (err) {
+    console.error("Error checking for completed playlists:", err.message);
     return [];
   }
 }
 
 /**
- * Complete a campaign:
- * 1. Update campaign status to 'completed'
- * 2. Apply pre-computed playlist transition (removes files from ColorLight + local DB)
- * 3. Snapshot is created by applyTransitionForCampaign
+ * Complete a single playlist:
+ *   1. Mark campaign_playlists.completed_at
+ *   2. Apply scheduled transition (ColorLight update + file removal + snapshot)
+ *   3. If all of the parent campaign's playlists are now complete,
+ *      mark campaign.status='completed' and campaign.completed_at.
  *
- * @param {number} campaignId - Campaign ID to complete
- * @returns {Promise<Object>} Results summary
+ * @param {Object} completed - { campaign_id, playlist_id, program_id, ... }
  */
-async function completeCampaign(campaignId) {
+async function completePlaylist(completed) {
   const results = {
     success: true,
-    campaign_id: campaignId,
+    campaign_id: completed.campaign_id,
+    playlist_id: completed.playlist_id,
+    program_id: completed.program_id,
+    playlist_updated: false,
     campaign_updated: false,
     files_removed: 0,
     snapshot_created: false,
@@ -138,140 +148,197 @@ async function completeCampaign(campaignId) {
 
   try {
     console.log(
-      `🏁 Starting campaign completion for campaign ${campaignId}...`,
+      `🏁 Completing playlist ${completed.playlist_id} (campaign ${completed.campaign_id})...`
     );
 
-    // Step 1: Get campaign details
-    const { data: campaign, error: fetchError } = await supabase
-      .from("campaign")
-      .select("id, client_id, program_id, status")
-      .eq("id", campaignId)
-      .single();
-
-    if (fetchError || !campaign) {
-      throw new Error(
-        `Campaign ${campaignId} not found: ${fetchError?.message}`,
-      );
-    }
-
-    if (campaign.status === "completed") {
-      console.log(`ℹ️  Campaign ${campaignId} is already completed - skipping`);
-      results.campaign_updated = true;
-      return results;
-    }
-
-    // Step 2: Update campaign status to 'completed' and set completed_at timestamp
     const now = new Date().toISOString();
-    const { error: updateError } = await supabase
-      .from("campaign")
-      .update({
-        status: "completed",
-        completed_at: now,
-      })
-      .eq("id", campaignId);
 
-    if (updateError) {
+    // Step 1: Mark the playlist completed
+    const { error: playlistUpdateError } = await supabase
+      .from("campaign_playlists")
+      .update({ completed_at: now })
+      .eq("id", completed.playlist_id)
+      .is("completed_at", null);
+
+    if (playlistUpdateError) {
       throw new Error(
-        `Failed to update campaign status: ${updateError.message}`,
+        `Failed to mark playlist complete: ${playlistUpdateError.message}`
       );
     }
+    results.playlist_updated = true;
 
-    results.campaign_updated = true;
-    console.log(
-      `✅ Campaign ${campaignId} status updated to 'completed' at ${now}`,
+    // Step 2: Apply the scheduled transition for this (campaign, program)
+    const transitionResult = await applyTransitionForCampaign(
+      completed.campaign_id,
+      completed.program_id
     );
-
-    // Step 3: Apply pre-computed playlist transition
-    // This handles: push new playlist state to ColorLight, mark files removed, create snapshot, recompute schedule
-    const transitionResult = await applyTransitionForCampaign(campaignId);
-
     results.files_removed = transitionResult.files_removed || 0;
     results.snapshot_created = transitionResult.snapshot_created || false;
-
-    if (transitionResult.errors && transitionResult.errors.length > 0) {
+    if (transitionResult.errors?.length) {
       results.errors.push(...transitionResult.errors);
     }
 
-    console.log(
-      `🎉 Campaign ${campaignId} completion workflow finished successfully!`,
+    // Step 3: If every playlist for this campaign is complete, finish the campaign
+    const { data: remaining, error: remainingError } = await supabase
+      .from("campaign_playlists")
+      .select("id")
+      .eq("campaign_id", completed.campaign_id)
+      .is("completed_at", null);
+
+    if (remainingError) {
+      results.errors.push(
+        `Failed to check remaining playlists: ${remainingError.message}`
+      );
+    } else if (!remaining || remaining.length === 0) {
+      const { error: campaignUpdateError } = await supabase
+        .from("campaign")
+        .update({ status: "completed", completed_at: now })
+        .eq("id", completed.campaign_id)
+        .neq("status", "completed");
+
+      if (campaignUpdateError) {
+        results.errors.push(
+          `Failed to mark campaign complete: ${campaignUpdateError.message}`
+        );
+      } else {
+        results.campaign_updated = true;
+        console.log(
+          `🏁 Campaign ${completed.campaign_id} — all playlists complete`
+        );
+      }
+    } else {
+      console.log(
+        `⏳ Campaign ${completed.campaign_id}: ${remaining.length} playlist(s) still running`
+      );
+    }
+
+    console.log(`🎉 Playlist ${completed.playlist_id} completion finished`);
+  } catch (err) {
+    console.error(
+      `❌ Error completing playlist ${completed.playlist_id}:`,
+      err.message
     );
-  } catch (error) {
-    console.error(`❌ Error completing campaign ${campaignId}:`, error.message);
     results.success = false;
-    results.errors.push(error.message);
+    results.errors.push(err.message);
   }
 
   return results;
 }
 
 /**
- * Monitor and auto-complete campaigns that have reached 100%
- * This function checks all active campaigns and completes any that are at 100%+
+ * Mark an entire campaign complete by completing every unfinished playlist.
+ * Retained for callers that act at the campaign level (admin cancel,
+ * manual-complete endpoints).
  *
- * @returns {Promise<Object>} Results summary
+ * @param {number} campaignId
+ */
+async function completeCampaign(campaignId) {
+  const results = {
+    success: true,
+    campaign_id: campaignId,
+    playlists_completed: 0,
+    files_removed: 0,
+    errors: [],
+  };
+
+  try {
+    const { data: campaign } = await supabase
+      .from("campaign")
+      .select("id, client_id, status")
+      .eq("id", campaignId)
+      .single();
+
+    if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
+
+    if (campaign.status === "completed") {
+      console.log(`ℹ️  Campaign ${campaignId} already completed`);
+      return results;
+    }
+
+    const playlistsByCampaign = await getPlaylistsByCampaignIds([campaignId]);
+    const playlists = playlistsByCampaign[campaignId] || [];
+
+    for (const p of playlists) {
+      if (p.completed_at) continue;
+      const r = await completePlaylist({
+        campaign_id: campaignId,
+        playlist_id: p.id,
+        program_id: p.program_id,
+        client_id: campaign.client_id,
+      });
+      if (r.success) {
+        results.playlists_completed++;
+        results.files_removed += r.files_removed;
+      } else {
+        results.errors.push(...r.errors);
+      }
+    }
+  } catch (err) {
+    console.error(`❌ Error completing campaign ${campaignId}:`, err.message);
+    results.success = false;
+    results.errors.push(err.message);
+  }
+
+  return results;
+}
+
+/**
+ * Monitor job entry point. Finds playlists at 100% and completes them one by
+ * one. The parent campaign is marked completed only when all its playlists
+ * have finished.
  */
 async function monitorAndAutoComplete() {
   const results = {
     success: true,
     checked_at: new Date().toISOString(),
-    campaigns_checked: 0,
+    playlists_checked: 0,
+    playlists_completed: 0,
     campaigns_completed: 0,
     completion_results: [],
     errors: [],
   };
 
   try {
-    console.log("🔍 Checking for campaigns at 100% completion...");
+    console.log("🔍 Checking for playlists at 100% completion...");
 
-    const completedCampaigns = await checkForCompletedCampaigns();
-    results.campaigns_checked = completedCampaigns.length;
+    const completed = await checkForCompletedPlaylists();
+    results.playlists_checked = completed.length;
 
-    if (completedCampaigns.length === 0) {
-      console.log("ℹ️  No campaigns ready for completion");
+    if (completed.length === 0) {
+      console.log("ℹ️  No playlists ready for completion");
       return results;
     }
 
-    console.log(
-      `🎯 Found ${completedCampaigns.length} campaigns ready for completion`,
-    );
-
-    // Complete each campaign
-    for (const campaign of completedCampaigns) {
-      console.log(
-        `\n🏁 Completing campaign ${campaign.id} (${campaign.completion_percent}% complete)...`,
-      );
-
-      const completionResult = await completeCampaign(campaign.id);
-      results.completion_results.push(completionResult);
-
-      if (completionResult.success) {
-        results.campaigns_completed++;
-        console.log(`✅ Campaign ${campaign.id} completed successfully`);
+    for (const item of completed) {
+      const r = await completePlaylist(item);
+      results.completion_results.push(r);
+      if (r.success) {
+        results.playlists_completed++;
+        if (r.campaign_updated) results.campaigns_completed++;
       } else {
-        console.error(
-          `❌ Failed to complete campaign ${campaign.id}:`,
-          completionResult.errors,
-        );
         results.errors.push(
-          `Campaign ${campaign.id}: ${completionResult.errors.join(", ")}`,
+          `Playlist ${item.playlist_id} (C${item.campaign_id}): ${r.errors.join(", ")}`
         );
       }
     }
 
     console.log(
-      `\n🎉 Auto-completion complete: ${results.campaigns_completed}/${completedCampaigns.length} campaigns processed`,
+      `🎉 Auto-completion: ${results.playlists_completed}/${completed.length} playlists, ${results.campaigns_completed} campaigns finished`
     );
-  } catch (error) {
-    console.error("❌ Error in campaign monitor:", error.message);
+  } catch (err) {
+    console.error("❌ Error in auto-completion monitor:", err.message);
     results.success = false;
-    results.errors.push(error.message);
+    results.errors.push(err.message);
   }
 
   return results;
 }
 
 module.exports = {
-  checkForCompletedCampaigns,
+  checkForCompletedPlaylists,
+  completePlaylist,
   completeCampaign,
   monitorAndAutoComplete,
+  // legacy exports kept for any callers referencing the old names
+  checkForCompletedCampaigns: checkForCompletedPlaylists,
 };

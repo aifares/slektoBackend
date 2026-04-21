@@ -211,17 +211,33 @@ CREATE TABLE IF NOT EXISTS client (
 );
 
 -- 12. Campaigns (each row represents a single campaign)
+--     Rollup fields (program_id, hours_bought, bags_bought) are kept for
+--     backwards compatibility; campaign_playlists is the source of truth.
 CREATE TABLE IF NOT EXISTS campaign (
   id BIGSERIAL PRIMARY KEY,
   client_id BIGINT REFERENCES client(id) ON DELETE CASCADE,
-  program_id BIGINT REFERENCES programs(id),
-  hours_bought NUMERIC NOT NULL,
-  bags_bought INTEGER,                        -- number of bags/placements purchased
+  program_id BIGINT REFERENCES programs(id), -- rollup: first playlist's program
+  hours_bought NUMERIC NOT NULL,              -- rollup: SUM of playlists' hours_bought
+  bags_bought INTEGER,                        -- rollup: SUM of playlists' bags_assigned
+  mode TEXT NOT NULL DEFAULT 'rotation'
+    CHECK (mode IN ('rotation', 'split')),
   start_at TIMESTAMPTZ NOT NULL,
   end_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL DEFAULT 'planned',     -- planned, active, paused, completed, cancelled
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  completed_at TIMESTAMPTZ                    -- when campaign was completed
+  completed_at TIMESTAMPTZ                    -- set when ALL playlists under this campaign complete
+);
+
+-- 12a. Campaign Playlists (one row per playlist under a campaign)
+CREATE TABLE IF NOT EXISTS campaign_playlists (
+  id BIGSERIAL PRIMARY KEY,
+  campaign_id BIGINT NOT NULL REFERENCES campaign(id) ON DELETE CASCADE,
+  program_id BIGINT NOT NULL REFERENCES programs(id),
+  label TEXT,                                 -- optional human label ("Brand", "Promo")
+  bags_assigned INTEGER NOT NULL,
+  hours_bought NUMERIC NOT NULL,
+  completed_at TIMESTAMPTZ,                   -- per-playlist completion timestamp
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 13. Playlist Schedule (pre-computed playlist transitions)
@@ -328,6 +344,11 @@ CREATE INDEX IF NOT EXISTS idx_campaign_client_id ON campaign(client_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_program_id ON campaign(program_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_status ON campaign(status);
 CREATE INDEX IF NOT EXISTS idx_campaign_date_range ON campaign(start_at, end_at);
+
+-- Indexes for campaign_playlists
+CREATE INDEX IF NOT EXISTS idx_campaign_playlists_campaign_id ON campaign_playlists(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_playlists_program_id ON campaign_playlists(program_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_playlists_active ON campaign_playlists(campaign_id) WHERE completed_at IS NULL;
 
 -- Indexes for playlist_schedule
 CREATE INDEX IF NOT EXISTS idx_playlist_schedule_program_id ON playlist_schedule(program_id);

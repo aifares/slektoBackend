@@ -90,6 +90,85 @@ POST /auth/client/refresh
 
 > Requires admin Bearer token. User must have `role: "admin"`.
 
+### Onboard Client (account + campaign in one call)
+```
+POST /admin/clients/onboard
+```
+One-shot endpoint: uploads creatives, creates a ColorLight program, creates a campaign, creates a Supabase auth user, and creates the `client` row — all atomically. Used to stand up a new company from a single admin UI form.
+
+**Content-Type:** `multipart/form-data`
+
+**Form fields (shared)**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `company_name` | string | ✅ | Display name of the client company |
+| `username` | string | ✅ | Login username (letters, numbers, underscores) |
+| `password` | string | ✅ | Min 8 characters |
+| `start_at` | ISO 8601 | ✅ | Campaign start date/time |
+| `end_at` | ISO 8601 | ✅ | Campaign end date/time |
+| `mode` | string | ❌ | `rotation` (default) or `split` |
+| `images` | file[] | ✅ | Up to 40 images (JPEG, PNG, GIF, BMP, WebP; 10MB each) |
+
+**Rotation mode (default):** add `hours_bought` + `bags_bought`.
+
+**Split mode:** add `playlists` as a JSON array of `≥ 2` entries:
+```json
+[
+  { "label": "Creative A", "bags": 12, "hours": 20, "image_count": 2 },
+  { "label": "Creative B", "bags": 5,  "hours": 10, "image_count": 1 },
+  { "label": "Creative C", "bags": 5,  "hours": 10, "image_count": 1 }
+]
+```
+Images are consumed from `images[]` in upload order by each playlist's `image_count`, and the sum must equal the number of attached files. See [AGENCY_INTEGRATION_GUIDE.md](AGENCY_INTEGRATION_GUIDE.md) for the full split-mode explainer — the shape here is identical.
+
+**Response 201**
+```json
+{
+  "success": true,
+  "message": "Client onboarded successfully",
+  "client": {
+    "id": 7,
+    "name": "Acme Corp",
+    "client_type": "company",
+    "username": "acme_corp",
+    "account_status": "active"
+  },
+  "campaign": {
+    "id": 12,
+    "mode": "split",
+    "program_id": 2786867,
+    "program_name": "Acme Corp - 2026-05-01 [Creative A]",
+    "hours_bought": 40,
+    "bags_bought": 22,
+    "start_at": "2026-05-01T00:00:00Z",
+    "end_at": "2026-06-01T00:00:00Z",
+    "status": "planned",
+    "files_uploaded": 4
+  },
+  "playlists": [
+    { "program_id": 2786867, "label": "Creative A", "bags_assigned": 12, "hours_bought": 20, "files_uploaded": 2 },
+    { "program_id": 2786868, "label": "Creative B", "bags_assigned": 5,  "hours_bought": 10, "files_uploaded": 1 },
+    { "program_id": 2786869, "label": "Creative C", "bags_assigned": 5,  "hours_bought": 10, "files_uploaded": 1 }
+  ],
+  "login": {
+    "username": "acme_corp",
+    "note": "Share these credentials with the client. They can log in at POST /auth/client/login"
+  }
+}
+```
+
+Rotation-mode responses use `mode: "rotation"` and return a single-entry `playlists` array.
+
+**Error responses**
+| Status | Meaning |
+|--------|---------|
+| 400 | Validation failed (missing fields, invalid date range, bad `playlists` JSON, `image_count` sum mismatch) |
+| 409 | Username already taken, or `INSUFFICIENT_BAGS` — not enough bag capacity on the requested date range |
+| 502 | ColorLight upload or program creation failed |
+
+---
+
 ### Create Client + Link to Campaign
 ```
 POST /admin/clients/create
@@ -683,6 +762,7 @@ Returns all-time totals and monthly pay period breakdown for every driver.
 ```
 POST /admin/campaigns/create
 ```
+Creates a rotation-mode campaign against an **existing** ColorLight program — used when the program has already been created out-of-band. For multi-playlist / split-mode campaigns, or for creating the program from uploaded images in one call, use [`POST /api/v1/campaigns`](AGENCY_INTEGRATION_GUIDE.md) (agency) or [`POST /admin/clients/onboard`](#onboard-client-account--campaign-in-one-call) (admin).
 
 **Body**
 ```json
@@ -697,6 +777,8 @@ POST /admin/campaigns/create
 }
 ```
 `start_at` defaults to now. `end_at` defaults to 1 year from start. `bags_bought` is optional.
+
+The campaign is always created with `mode: "rotation"` and a single companion `campaign_playlists` row mirroring `program_id`, `hours_bought`, and `bags_bought`.
 
 ---
 
@@ -784,6 +866,34 @@ POST /admin/campaigns/:campaignId/assign-client
 POST /admin/campaigns/check-completions
 ```
 Manually triggers the completion check (normally runs every 5 minutes via cron).
+
+Each playlist under a campaign completes independently once its own `hours_bought` has been delivered — its creatives are removed from ColorLight and a Share-of-Voice snapshot is taken. The parent campaign's status flips to `completed` only after **every** playlist has completed.
+
+**Response 200**
+```json
+{
+  "success": true,
+  "checked_at": "2026-04-20T00:00:00Z",
+  "playlists_checked": 4,
+  "playlists_completed": 2,
+  "campaigns_completed": 1,
+  "completion_results": [
+    {
+      "success": true,
+      "campaign_id": 12,
+      "playlist_id": 101,
+      "program_id": 2786867,
+      "playlist_updated": true,
+      "campaign_updated": false,
+      "files_removed": 2,
+      "snapshot_created": true,
+      "errors": []
+    }
+  ],
+  "errors": []
+}
+```
+`campaign_updated: true` means this playlist's completion was the last one holding the campaign open, and the parent campaign was marked completed on the same pass.
 
 ---
 

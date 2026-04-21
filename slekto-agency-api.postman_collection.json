@@ -128,7 +128,7 @@
       "name": "2. Campaigns",
       "item": [
         {
-          "name": "Create Campaign",
+          "name": "Create Campaign (Rotation)",
           "event": [
             {
               "listen": "test",
@@ -140,6 +140,7 @@
                   "    pm.collectionVariables.set('campaignId', response.campaign.id);",
                   "    console.log('✅ Campaign created! ID saved to {{campaignId}}:', response.campaign.id);",
                   "    console.log('Company:', response.campaign.company_name);",
+                  "    console.log('Mode:', response.campaign.mode);",
                   "    console.log('Status:', response.campaign.status);",
                   "    console.log('Bags remaining:', response.campaign.available_bags_after);",
                   "} else {",
@@ -210,7 +211,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "campaigns"]
             },
-            "description": "Creates a new campaign and uploads ad images to the display network.\n\n**After running this request**, the `{{campaignId}}` variable is automatically set to the new campaign's ID, ready to use in the analytics request.\n\n**Required fields:**\n- `company_name` — the client you are creating the campaign for\n- `start_at` / `end_at` — campaign date range (ISO 8601)\n- `hours_bought` — total playback hours\n- `bags_bought` — number of ad placements (1–25)\n- `images` — attach one or more image files\n\n**Note:** Change `company_name` for each client. You can create multiple campaigns from the same agency account."
+            "description": "Creates a single-playlist **rotation** campaign. All uploaded images cycle together on every assigned bag.\n\n**After running this request**, the `{{campaignId}}` variable is automatically set to the new campaign's ID, ready to use in the analytics request.\n\n**Required fields:**\n- `company_name` — the client you are creating the campaign for\n- `start_at` / `end_at` — campaign date range (ISO 8601)\n- `hours_bought` — total playback hours\n- `bags_bought` — number of ad placements (1–25)\n- `images` — attach one or more image files\n\n**For multiple playlists under one campaign** (e.g. 12/5/5 bag splits across different creatives) use the **Create Campaign (Split / Multi-Playlist)** request below."
           },
           "response": [
             {
@@ -233,7 +234,7 @@
               "status": "Created",
               "code": 201,
               "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Campaign created successfully\",\n  \"campaign\": {\n    \"id\": 65,\n    \"client_id\": 11,\n    \"company_name\": \"Acme Corp\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01\",\n    \"hours_bought\": 10,\n    \"bags_bought\": 3,\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"status\": \"planned\",\n    \"files_uploaded\": 2,\n    \"available_bags_after\": 22\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Campaign created successfully\",\n  \"campaign\": {\n    \"id\": 65,\n    \"client_id\": 11,\n    \"company_name\": \"Acme Corp\",\n    \"mode\": \"rotation\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01\",\n    \"hours_bought\": 10,\n    \"bags_bought\": 3,\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"status\": \"planned\",\n    \"files_uploaded\": 2,\n    \"available_bags_after\": 22\n  },\n  \"playlists\": [\n    {\n      \"program_id\": 2786867,\n      \"program_name\": \"Acme Corp - 2026-03-01\",\n      \"label\": null,\n      \"bags_assigned\": 3,\n      \"hours_bought\": 10,\n      \"files_uploaded\": 2\n    }\n  ]\n}"
             },
             {
               "name": "409 Insufficient Bags",
@@ -258,6 +259,132 @@
               "code": 403,
               "header": [{ "key": "Content-Type", "value": "application/json" }],
               "body": "{\n  \"success\": false,\n  \"error\": \"Not authorized to create campaigns\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Campaign (Split / Multi-Playlist)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.success && response.campaign?.id) {",
+                  "    pm.collectionVariables.set('campaignId', response.campaign.id);",
+                  "    console.log('✅ Split campaign created! ID saved to {{campaignId}}:', response.campaign.id);",
+                  "    console.log('Mode:', response.campaign.mode);",
+                  "    console.log('Playlists:', response.playlists?.length);",
+                  "    response.playlists?.forEach(p => {",
+                  "        console.log(`  [${p.program_id}] ${p.label || '(no label)'} — ${p.bags_assigned} bags, ${p.hours_bought}h, ${p.files_uploaded} image(s)`);",
+                  "    });",
+                  "    console.log('Bags remaining:', response.campaign.available_bags_after);",
+                  "} else {",
+                  "    console.error('❌ Campaign creation failed:', JSON.stringify(response));",
+                  "}",
+                  "",
+                  "pm.test('Split campaign created successfully', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.campaign?.mode).to.eql('split');",
+                  "    pm.expect(response.playlists?.length).to.be.at.least(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "company_name",
+                  "value": "Acme Corp",
+                  "description": "Name of the client company being advertised",
+                  "type": "text"
+                },
+                {
+                  "key": "start_at",
+                  "value": "2026-03-01T00:00:00Z",
+                  "description": "Campaign start date (ISO 8601)",
+                  "type": "text"
+                },
+                {
+                  "key": "end_at",
+                  "value": "2026-03-31T00:00:00Z",
+                  "description": "Campaign end date (ISO 8601)",
+                  "type": "text"
+                },
+                {
+                  "key": "mode",
+                  "value": "split",
+                  "description": "Use 'split' for multiple playlists under one campaign",
+                  "type": "text"
+                },
+                {
+                  "key": "playlists",
+                  "value": "[{\"label\":\"Creative A\",\"bags\":12,\"hours\":20,\"image_count\":2},{\"label\":\"Creative B\",\"bags\":5,\"hours\":10,\"image_count\":1},{\"label\":\"Creative C\",\"bags\":5,\"hours\":10,\"image_count\":1}]",
+                  "description": "JSON array (≥ 2 entries). Each entry: {label, bags, hours, image_count}. The sum of image_count values must equal the number of files you attach in 'images'. Images are consumed in upload order: first image_count → playlist 0, next → playlist 1, etc.",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "description": "Attach ALL images for ALL playlists here, in order. With the default playlists value (2+1+1=4), attach 4 files: first 2 belong to Creative A, next 1 to Creative B, last 1 to Creative C.",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "campaigns"]
+            },
+            "description": "Creates a **split-mode** campaign with multiple playlists sharing one campaign record. Use this when a client wants dedicated bag/image allocations per creative — e.g. 12 bags for Creative A, 5 for Creative B, 5 for Creative C.\n\n**How images map to playlists:**\nImages are consumed from the `images` field in upload order. Each playlist's `image_count` decides how many of the next unclaimed images it owns. The sum of all `image_count` values must equal the number of files you attach.\n\n**Defaults in this request** declare 3 playlists with `image_count` 2/1/1 = 4 images total. Attach 4 image files in that order.\n\n**Response shape** includes the same top-level `campaign` object as rotation mode plus a `playlists[]` array with per-playlist `program_id`, `label`, `bags_assigned`, `hours_bought`, and `files_uploaded`.\n\n**Completion semantics:** each playlist completes independently when its own `hours_bought` is delivered; the parent campaign only flips to `completed` after ALL playlists finish.\n\nAfter running, `{{campaignId}}` is set and the **Get Campaign Analytics** request will return per-playlist metrics."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "company_name", "value": "Acme Corp", "type": "text" },
+                    { "key": "start_at", "value": "2026-03-01T00:00:00Z", "type": "text" },
+                    { "key": "end_at", "value": "2026-03-31T00:00:00Z", "type": "text" },
+                    { "key": "mode", "value": "split", "type": "text" },
+                    { "key": "playlists", "value": "[{\"label\":\"Creative A\",\"bags\":12,\"hours\":20,\"image_count\":2},{\"label\":\"Creative B\",\"bags\":5,\"hours\":10,\"image_count\":1},{\"label\":\"Creative C\",\"bags\":5,\"hours\":10,\"image_count\":1}]", "type": "text" }
+                  ]
+                },
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns" }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Campaign created successfully\",\n  \"campaign\": {\n    \"id\": 67,\n    \"client_id\": 11,\n    \"company_name\": \"Acme Corp\",\n    \"mode\": \"split\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01 [Creative A]\",\n    \"hours_bought\": 40,\n    \"bags_bought\": 22,\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"status\": \"planned\",\n    \"files_uploaded\": 4,\n    \"available_bags_after\": 3\n  },\n  \"playlists\": [\n    {\n      \"program_id\": 2786867,\n      \"program_name\": \"Acme Corp - 2026-03-01 [Creative A]\",\n      \"label\": \"Creative A\",\n      \"bags_assigned\": 12,\n      \"hours_bought\": 20,\n      \"files_uploaded\": 2\n    },\n    {\n      \"program_id\": 2786868,\n      \"program_name\": \"Acme Corp - 2026-03-01 [Creative B]\",\n      \"label\": \"Creative B\",\n      \"bags_assigned\": 5,\n      \"hours_bought\": 10,\n      \"files_uploaded\": 1\n    },\n    {\n      \"program_id\": 2786869,\n      \"program_name\": \"Acme Corp - 2026-03-01 [Creative C]\",\n      \"label\": \"Creative C\",\n      \"bags_assigned\": 5,\n      \"hours_bought\": 10,\n      \"files_uploaded\": 1\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 image_count Mismatch",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/api/v1/campaigns" }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"details\": [\n    \"Image count mismatch: 3 files uploaded, 4 accounted for\"\n  ]\n}"
             }
           ]
         },
@@ -314,7 +441,7 @@
               "status": "OK",
               "code": 200,
               "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": true,\n  \"count\": 2,\n  \"campaigns\": [\n    {\n      \"id\": 66,\n      \"company_name\": \"Company C\",\n      \"program_id\": 2786872,\n      \"status\": \"active\",\n      \"start_at\": \"2026-03-01T00:00:00+00:00\",\n      \"end_at\": \"2026-03-31T00:00:00+00:00\",\n      \"hours_bought\": 20,\n      \"bags_bought\": 3,\n      \"completed_at\": null,\n      \"created_at\": \"2026-02-19T21:05:59+00:00\"\n    },\n    {\n      \"id\": 65,\n      \"company_name\": \"Acme Corp\",\n      \"program_id\": 2786867,\n      \"status\": \"completed\",\n      \"start_at\": \"2026-02-01T00:00:00+00:00\",\n      \"end_at\": \"2026-02-28T00:00:00+00:00\",\n      \"hours_bought\": 10,\n      \"bags_bought\": 3,\n      \"completed_at\": \"2026-02-25T14:32:00+00:00\",\n      \"created_at\": \"2026-01-15T09:00:00+00:00\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": true,\n  \"count\": 2,\n  \"campaigns\": [\n    {\n      \"id\": 66,\n      \"company_name\": \"Company C\",\n      \"mode\": \"rotation\",\n      \"program_id\": 2786872,\n      \"status\": \"active\",\n      \"start_at\": \"2026-03-01T00:00:00+00:00\",\n      \"end_at\": \"2026-03-31T00:00:00+00:00\",\n      \"hours_bought\": 20,\n      \"bags_bought\": 3,\n      \"playlist_count\": 1,\n      \"completed_at\": null,\n      \"created_at\": \"2026-02-19T21:05:59+00:00\"\n    },\n    {\n      \"id\": 65,\n      \"company_name\": \"Acme Corp\",\n      \"mode\": \"split\",\n      \"program_id\": 2786867,\n      \"status\": \"completed\",\n      \"start_at\": \"2026-02-01T00:00:00+00:00\",\n      \"end_at\": \"2026-02-28T00:00:00+00:00\",\n      \"hours_bought\": 40,\n      \"bags_bought\": 22,\n      \"playlist_count\": 3,\n      \"completed_at\": \"2026-02-25T14:32:00+00:00\",\n      \"created_at\": \"2026-01-15T09:00:00+00:00\"\n    }\n  ]\n}"
             }
           ]
         },
@@ -380,12 +507,15 @@
                   "    const a = response.analytics;",
                   "    console.log('📊 Campaign Analytics:');",
                   "    console.log(`  Company:          ${response.campaign?.company_name}`);",
+                  "    console.log(`  Mode:             ${response.campaign?.mode}`);",
                   "    console.log(`  Status:           ${response.campaign?.status}`);",
                   "    console.log(`  Hours played:     ${a.hours_played} / ${a.hours_bought}`);",
                   "    console.log(`  Completion:       ${a.completion_percent}%`);",
-                  "    console.log(`  Share of voice:   ${a.share_of_voice_percent}%`);",
-                  "    console.log(`  Active files:     ${response.files?.active}`);",
-                  "    console.log(`  Media URLs:       ${a.media_urls?.length} image(s)`);",
+                  "    console.log(`  Playlists:        ${response.playlists?.length}`);",
+                  "    response.playlists?.forEach(p => {",
+                  "        const label = p.label ? `'${p.label}'` : '(no label)';",
+                  "        console.log(`    • ${label}: ${p.hours_played}/${p.hours_bought}h (${p.completion_percent}%) — ${p.bags_assigned} bags, SoV ${p.share_of_voice_percent}%, ${p.files?.active} active file(s)`);",
+                  "    });",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -405,7 +535,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "campaigns", "{{campaignId}}"]
             },
-            "description": "Returns real-time analytics for a specific campaign.\n\n**Before running:** Set the `{{campaignId}}` collection variable to the campaign ID you want to query. This is done automatically when you run 'Create Campaign'.\n\n**Analytics fields:**\n- `hours_played` — hours delivered so far\n- `completion_percent` — percentage of purchased hours delivered\n- `share_of_voice_percent` — this client's share of display time (e.g. 33.3% if 3 advertisers share a screen)\n- `media_urls` — direct links to the uploaded ad images\n\n**Security:** You can only access campaigns your agency created. Attempting to access another agency's campaign ID returns `404`."
+            "description": "Returns real-time analytics for a specific campaign.\n\n**Before running:** Set the `{{campaignId}}` collection variable to the campaign ID you want to query. This is done automatically when you run Create Campaign (Rotation) or Create Campaign (Split).\n\n**Response shape:**\n- `analytics` — campaign-level roll-ups across every playlist (`hours_played`, `hours_bought`, `completion_percent`)\n- `playlists[]` — per-playlist breakdown: `label`, `bags_assigned`, `hours_bought`, `hours_played`, `completion_percent`, `share_of_voice_percent`, `media_urls`, `completed_at`, per-playlist `files` counts\n\nRotation-mode campaigns return a single-entry `playlists` array; split-mode campaigns return one entry per playlist. Each playlist completes (and its creatives are removed) independently once its own `hours_bought` is delivered — the parent campaign status flips to `completed` only after all playlists finish.\n\n**Security:** You can only access campaigns your agency created. Attempting to access another agency's campaign ID returns `404`."
           },
           "response": [
             {
@@ -418,7 +548,7 @@
               "status": "OK",
               "code": 200,
               "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": true,\n  \"campaign\": {\n    \"id\": 65,\n    \"company_name\": \"Acme Corp\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01\",\n    \"status\": \"active\",\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"completed_at\": null,\n    \"hours_bought\": 10,\n    \"bags_bought\": 3\n  },\n  \"analytics\": {\n    \"hours_played\": 4.5,\n    \"minutes_played\": 270,\n    \"hours_bought\": 10,\n    \"completion_percent\": 45,\n    \"share_of_voice_percent\": 33.3,\n    \"media_urls\": [\n      \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/ad1.jpg\",\n      \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/ad2.jpg\"\n    ]\n  },\n  \"files\": {\n    \"active\": 2,\n    \"removed\": 0,\n    \"total\": 2\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"campaign\": {\n    \"id\": 65,\n    \"company_name\": \"Acme Corp\",\n    \"mode\": \"split\",\n    \"program_id\": 2786867,\n    \"program_name\": \"Acme Corp - 2026-03-01 [Creative A]\",\n    \"status\": \"active\",\n    \"start_at\": \"2026-03-01T00:00:00+00:00\",\n    \"end_at\": \"2026-03-31T00:00:00+00:00\",\n    \"completed_at\": null,\n    \"hours_bought\": 40,\n    \"bags_bought\": 22\n  },\n  \"analytics\": {\n    \"hours_played\": 12.3,\n    \"minutes_played\": 738,\n    \"hours_bought\": 40,\n    \"completion_percent\": 31\n  },\n  \"playlists\": [\n    {\n      \"id\": 101,\n      \"program_id\": 2786867,\n      \"program_name\": \"Acme Corp - 2026-03-01 [Creative A]\",\n      \"label\": \"Creative A\",\n      \"bags_assigned\": 12,\n      \"hours_bought\": 20,\n      \"hours_played\": 8.0,\n      \"minutes_played\": 480,\n      \"completion_percent\": 40,\n      \"share_of_voice_percent\": 48.0,\n      \"media_urls\": [\n        \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/creativeA_1.jpg\",\n        \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/creativeA_2.jpg\"\n      ],\n      \"completed_at\": null,\n      \"files\": { \"active\": 2, \"removed\": 0, \"total\": 2 }\n    },\n    {\n      \"id\": 102,\n      \"program_id\": 2786868,\n      \"program_name\": \"Acme Corp - 2026-03-01 [Creative B]\",\n      \"label\": \"Creative B\",\n      \"bags_assigned\": 5,\n      \"hours_bought\": 10,\n      \"hours_played\": 2.1,\n      \"minutes_played\": 126,\n      \"completion_percent\": 21,\n      \"share_of_voice_percent\": 20.0,\n      \"media_urls\": [\n        \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/creativeB.jpg\"\n      ],\n      \"completed_at\": null,\n      \"files\": { \"active\": 1, \"removed\": 0, \"total\": 1 }\n    },\n    {\n      \"id\": 103,\n      \"program_id\": 2786869,\n      \"program_name\": \"Acme Corp - 2026-03-01 [Creative C]\",\n      \"label\": \"Creative C\",\n      \"bags_assigned\": 5,\n      \"hours_bought\": 10,\n      \"hours_played\": 2.2,\n      \"minutes_played\": 132,\n      \"completion_percent\": 22,\n      \"share_of_voice_percent\": 20.0,\n      \"media_urls\": [\n        \"https://us33.colorlightcloud.com:443/wp-content/upload/2026/2/creativeC.jpg\"\n      ],\n      \"completed_at\": null,\n      \"files\": { \"active\": 1, \"removed\": 0, \"total\": 1 }\n    }\n  ]\n}"
             },
             {
               "name": "404 Not Found",

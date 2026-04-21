@@ -5,10 +5,11 @@ const { supabase } = require("../config/supabase");
 const { supabaseAdmin, usernameToEmail } = require("../config/supabaseAdmin");
 const { uploadImagesToColorLight, createProgram } = require("../services/colorLight");
 const { checkBagAvailability, computeScheduleForProgram } = require("../services/playlistSchedule");
+const { parseCampaignPayload } = require("../services/campaignPlaylists");
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024, files: 20 },
+  limits: { fileSize: 10 * 1024 * 1024, files: 40 },
   fileFilter: (req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp"];
     allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error(`Invalid file type: ${file.mimetype}`));
@@ -340,24 +341,30 @@ router.patch("/:id", async (req, res) => {
 /**
  * POST /admin/clients/onboard
  *
- * All-in-one: upload media to ColorLight, create campaign, create company client account.
+ * All-in-one: upload media to ColorLight, create campaign (rotation or split),
+ * create company client account.
  * Content-Type: multipart/form-data
  *
- * Fields:
+ * Common fields:
  *   company_name  (string, required)
  *   username      (string, required)
  *   password      (string, required, min 8 chars)
  *   start_at      (ISO 8601, required)
  *   end_at        (ISO 8601, required)
- *   hours_bought  (number, required)
- *   bags_bought   (integer, required)
- *   images        (file[], required, 1-20 files)
+ *   mode          ("rotation" | "split"; default "rotation")
+ *
+ * Rotation mode (default, legacy):
+ *   hours_bought, bags_bought, images[]
+ *
+ * Split mode:
+ *   playlists (JSON array: [{ label, bags, hours, image_count }, ...])
+ *   images[]  (consumed in order)
  */
-router.post("/onboard", upload.array("images", 20), async (req, res) => {
+router.post("/onboard", upload.array("images", 40), async (req, res) => {
   try {
-    const { company_name, username, password, start_at, end_at, hours_bought, bags_bought } = req.body;
+    const { company_name, username, password, start_at, end_at } = req.body;
 
-    // ── Validate ──
+    // ── Validate common fields ──
     const errors = [];
     if (!company_name?.trim()) errors.push("company_name is required");
     if (!username?.trim()) errors.push("username is required");
@@ -365,9 +372,6 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
     if (!/^[a-zA-Z0-9_]+$/.test((username || "").trim())) errors.push("username may only contain letters, numbers, and underscores");
     if (!start_at) errors.push("start_at is required");
     if (!end_at) errors.push("end_at is required");
-    if (!hours_bought || Number(hours_bought) <= 0) errors.push("hours_bought must be a positive number");
-    if (!bags_bought || Number(bags_bought) <= 0) errors.push("bags_bought must be a positive integer");
-    if (!req.files || req.files.length === 0) errors.push("At least one image is required");
     if (errors.length > 0) return res.status(400).json({ success: false, error: "Validation failed", details: errors });
 
     const startAt = new Date(start_at);
@@ -379,8 +383,16 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
       return res.status(400).json({ success: false, error: "start_at must be before end_at" });
     }
 
-    const hoursBought = Number(hours_bought);
-    const bagsBought = parseInt(bags_bought, 10);
+    // ── Parse mode + playlists ──
+    let payload;
+    try {
+      payload = parseCampaignPayload(req.body, req.files);
+    } catch (err) {
+      return res.status(400).json({ success: false, error: "Validation failed", details: [err.message] });
+    }
+
+    const totalBags = payload.playlists.reduce((sum, p) => sum + p.bags, 0);
+    const totalHours = payload.playlists.reduce((sum, p) => sum + p.hours, 0);
     const cleanUsername = username.trim().toLowerCase();
 
     // ── Check username uniqueness ──
@@ -395,81 +407,101 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
 
     // ── Check bag availability ──
     const availability = await checkBagAvailability(startAt.toISOString(), endAt.toISOString());
-    if (bagsBought > availability.available) {
+    if (totalBags > availability.available) {
       return res.status(409).json({
         success: false,
         error: "INSUFFICIENT_BAGS",
-        message: `Only ${availability.available} bags available. Requested: ${bagsBought}.`,
+        message: `Only ${availability.available} bags available. Requested: ${totalBags}.`,
         available_bags: availability.available,
         peak_used: availability.peakUsed,
         conflict_date: availability.conflictDate,
       });
     }
 
-    // ── Upload images to ColorLight ──
-    console.log(`📤 Uploading ${req.files.length} images to ColorLight...`);
-    const filesToUpload = req.files.map((f) => ({ buffer: f.buffer, filename: f.originalname, mimetype: f.mimetype }));
-    let uploadedImages;
-    try {
-      uploadedImages = await uploadImagesToColorLight(filesToUpload);
-    } catch (uploadError) {
-      return res.status(502).json({ success: false, error: "Failed to upload images to display network", details: uploadError.message });
-    }
+    // ── For each playlist: upload images + create ColorLight program ──
+    // client_id is patched in after the client row is created below.
+    const createdPlaylists = []; // { program_id, program_name, label, bags, hours, fileRecordIds, files_uploaded }
+    const allInsertedFileIds = [];
 
-    // ── Create program (playlist) ──
-    const programName = `${company_name.trim()} - ${startAt.toISOString().split("T")[0]}`;
-    console.log(`📋 Creating program: ${programName}...`);
-    let programResponse;
-    try {
-      programResponse = await createProgram(programName, uploadedImages);
-    } catch (programError) {
-      return res.status(502).json({ success: false, error: "Failed to create playlist on display network", details: programError.message });
-    }
-    const programId = programResponse.id;
+    for (let i = 0; i < payload.playlists.length; i++) {
+      const p = payload.playlists[i];
+      const playlistSuffix =
+        payload.mode === "split" ? ` [${p.label || `Playlist ${i + 1}`}]` : "";
+      const programName = `${company_name.trim()} - ${startAt.toISOString().split("T")[0]}${playlistSuffix}`;
 
-    // ── Insert program row ──
-    const firstImage = uploadedImages[0]?.data || uploadedImages[0];
-    const thumbnailUrl =
-      firstImage?.media_details?.sizes?.thumbnail?.source_url ||
-      firstImage?.source_url ||
-      firstImage?.guid?.rendered ||
-      null;
+      console.log(`📤 [${programName}] Uploading ${p.files.length} images to ColorLight...`);
+      let uploadedImages;
+      try {
+        uploadedImages = await uploadImagesToColorLight(p.files);
+      } catch (uploadError) {
+        return res.status(502).json({ success: false, error: "Failed to upload images to display network", details: uploadError.message });
+      }
 
-    await supabase.from("programs").upsert(
-      { id: programId, name: programName, thumbnail_url: thumbnailUrl, status: "active", created: new Date().toISOString(), modified: new Date().toISOString() },
-      { onConflict: "id" }
-    );
+      console.log(`📋 [${programName}] Creating program...`);
+      let programResponse;
+      try {
+        programResponse = await createProgram(programName, uploadedImages);
+      } catch (programError) {
+        return res.status(502).json({ success: false, error: "Failed to create playlist on display network", details: programError.message });
+      }
+      const programId = programResponse.id;
 
-    // ── Insert file records ──
-    // We need a placeholder client_id — we'll patch after client is created
-    const fileRecords = uploadedImages.map((img) => {
-      const data = img.data || img;
-      return {
+      // programs row
+      const firstImage = uploadedImages[0]?.data || uploadedImages[0];
+      const thumbnailUrl =
+        firstImage?.media_details?.sizes?.thumbnail?.source_url ||
+        firstImage?.source_url ||
+        firstImage?.guid?.rendered ||
+        null;
+
+      await supabase.from("programs").upsert(
+        { id: programId, name: programName, thumbnail_url: thumbnailUrl, status: "active", created: new Date().toISOString(), modified: new Date().toISOString() },
+        { onConflict: "id" }
+      );
+
+      // files rows (client_id null; patched later)
+      const fileRecords = uploadedImages.map((img) => {
+        const data = img.data || img;
+        return {
+          program_id: programId,
+          client_id: null,
+          media_id: data.id,
+          name: data.title?.rendered || data.name || data.slug || "unknown",
+          source_url: data.source_url || data.guid?.rendered,
+          mime_type: data.mime_type || null,
+          file_size_bytes: data.attachment_filesize || null,
+          media_width: data.media_details?.width || null,
+          media_height: data.media_details?.height || null,
+          custom_tags: [`${company_name.trim()}`],
+          title: company_name.trim(),
+          type: data.file_type || data.mime_type?.split("/")[1] || "image",
+          last_synced_at: new Date().toISOString(),
+        };
+      });
+
+      const { data: insertedFiles } = await supabase.from("files").insert(fileRecords).select("id");
+      if (insertedFiles) {
+        for (const f of insertedFiles) allInsertedFileIds.push(f.id);
+      }
+
+      createdPlaylists.push({
         program_id: programId,
-        client_id: null,
-        media_id: data.id,
-        name: data.title?.rendered || data.name || data.slug || "unknown",
-        source_url: data.source_url || data.guid?.rendered,
-        mime_type: data.mime_type || null,
-        file_size_bytes: data.attachment_filesize || null,
-        media_width: data.media_details?.width || null,
-        media_height: data.media_details?.height || null,
-        custom_tags: [`${company_name.trim()}`],
-        title: company_name.trim(),
-        type: data.file_type || data.mime_type?.split("/")[1] || "image",
-        last_synced_at: new Date().toISOString(),
-      };
-    });
+        program_name: programName,
+        label: p.label,
+        bags: p.bags,
+        hours: p.hours,
+        files_uploaded: uploadedImages.length,
+      });
+    }
 
-    const { data: insertedFiles } = await supabase.from("files").insert(fileRecords).select("id");
-
-    // ── Create campaign ──
+    // ── Create campaign (rollups point at first playlist) ──
     const { data: campaign, error: campaignError } = await supabase
       .from("campaign")
       .insert({
-        program_id: programId,
-        hours_bought: hoursBought,
-        bags_bought: bagsBought,
+        program_id: createdPlaylists[0].program_id,
+        hours_bought: totalHours,
+        bags_bought: totalBags,
+        mode: payload.mode,
         start_at: startAt.toISOString(),
         end_at: endAt.toISOString(),
         status: "planned",
@@ -477,6 +509,17 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
       .select()
       .single();
     if (campaignError) throw new Error(`Failed to create campaign: ${campaignError.message}`);
+
+    // ── Insert campaign_playlists rows ──
+    const playlistRows = createdPlaylists.map((p) => ({
+      campaign_id: campaign.id,
+      program_id: p.program_id,
+      label: p.label,
+      bags_assigned: p.bags,
+      hours_bought: p.hours,
+    }));
+    const { error: playlistsError } = await supabase.from("campaign_playlists").insert(playlistRows);
+    if (playlistsError) throw new Error(`Failed to insert campaign_playlists: ${playlistsError.message}`);
 
     // ── Create Supabase auth user ──
     const authEmail = usernameToEmail(cleanUsername);
@@ -486,7 +529,7 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
       email_confirm: true,
     });
     if (authError) {
-      // Roll back campaign
+      // Roll back campaign (cascades campaign_playlists)
       await supabase.from("campaign").delete().eq("id", campaign.id);
       return res.status(500).json({ success: false, error: "Failed to create auth user", details: authError.message });
     }
@@ -520,16 +563,17 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
     // ── Link client to campaign ──
     await supabase.from("campaign").update({ client_id: clientRow.id }).eq("id", campaign.id);
 
-    // ── Patch file records with correct client_id ──
-    if (insertedFiles && insertedFiles.length > 0) {
-      const fileIds = insertedFiles.map((f) => f.id);
-      await supabase.from("files").update({ client_id: clientRow.id }).in("id", fileIds);
+    // ── Patch all inserted files with the new client_id ──
+    if (allInsertedFileIds.length > 0) {
+      await supabase.from("files").update({ client_id: clientRow.id }).in("id", allInsertedFileIds);
     }
 
-    // ── Compute playlist schedule (non-fatal) ──
-    try { await computeScheduleForProgram(programId); } catch (_) {}
+    // ── Compute playlist schedule per program (non-fatal) ──
+    for (const p of createdPlaylists) {
+      try { await computeScheduleForProgram(p.program_id); } catch (_) {}
+    }
 
-    console.log(`✅ Onboarded company '${company_name.trim()}' — client ${clientRow.id}, campaign ${campaign.id}`);
+    console.log(`✅ Onboarded company '${company_name.trim()}' — client ${clientRow.id}, campaign ${campaign.id} (mode=${payload.mode})`);
 
     return res.status(201).json({
       success: true,
@@ -543,15 +587,24 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
       },
       campaign: {
         id: campaign.id,
-        program_id: programId,
-        program_name: programName,
-        hours_bought: hoursBought,
-        bags_bought: bagsBought,
+        mode: payload.mode,
+        program_id: createdPlaylists[0].program_id,
+        program_name: createdPlaylists[0].program_name,
+        hours_bought: totalHours,
+        bags_bought: totalBags,
         start_at: campaign.start_at,
         end_at: campaign.end_at,
         status: campaign.status,
-        files_uploaded: uploadedImages.length,
+        files_uploaded: createdPlaylists.reduce((sum, p) => sum + p.files_uploaded, 0),
       },
+      playlists: createdPlaylists.map((p) => ({
+        program_id: p.program_id,
+        program_name: p.program_name,
+        label: p.label,
+        bags_assigned: p.bags,
+        hours_bought: p.hours,
+        files_uploaded: p.files_uploaded,
+      })),
       login: {
         username: cleanUsername,
         note: "Share these credentials with the client. They can log in at POST /auth/client/login",
@@ -567,7 +620,7 @@ router.post("/onboard", upload.array("images", 20), async (req, res) => {
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ success: false, error: "File too large. Maximum 10MB per file." });
-    if (err.code === "LIMIT_FILE_COUNT") return res.status(400).json({ success: false, error: "Too many files. Maximum 20 images." });
+    if (err.code === "LIMIT_FILE_COUNT") return res.status(400).json({ success: false, error: "Too many files. Maximum 40 images." });
     return res.status(400).json({ success: false, error: `Upload error: ${err.message}` });
   }
   if (err.message?.includes("Invalid file type")) return res.status(400).json({ success: false, error: err.message });
