@@ -248,10 +248,17 @@ router.get("/", async (req, res) => {
     }
 
     if (programIds.length === 0) {
+      const { data: eventsData } = await supabase
+        .from("driver_events")
+        .select("id, title, description, event_date, location")
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true });
+
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
-        programs: [], // No active programs
+        programs: [],
         terminals: [],
+        upcoming_events: eventsData || [],
         summary: {
           total_terminals: 0,
           terminals_playing: 0,
@@ -474,6 +481,12 @@ router.get("/", async (req, res) => {
         return { ...p, ...metrics };
       });
 
+      const { data: eventsDataEarly } = await supabase
+        .from("driver_events")
+        .select("id, title, description, event_date, location")
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true });
+
       return res.json({
         client: {
           id: client.id,
@@ -481,7 +494,8 @@ router.get("/", async (req, res) => {
           activePrograms: programIds,
         },
         programs: programsOut,
-        terminals: [], // No terminals currently playing
+        terminals: [],
+        upcoming_events: eventsDataEarly || [],
         summary: {
           total_terminals: 0,
           terminals_playing: 0,
@@ -706,11 +720,25 @@ router.get("/", async (req, res) => {
       return { ...p, ...metrics };
     });
 
+    // 6) Upcoming events
+    let upcomingEvents = [];
+    try {
+      const { data: eventsData } = await supabase
+        .from("driver_events")
+        .select("id, title, description, event_date, location")
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true });
+      upcomingEvents = eventsData || [];
+    } catch (eventsErr) {
+      console.warn("Failed to fetch upcoming events:", eventsErr.message);
+    }
+
     const response = {
       client: { id: client.id, name: client.name, activePrograms: programIds },
       programs: programsOut,
       terminals: terminalsOut,
       historical_terminals: allHistoricalTerminals,
+      upcoming_events: upcomingEvents,
       summary: {
         total_terminals: terminalsOut.length,
         terminals_playing: terminalsPlayingCount,
