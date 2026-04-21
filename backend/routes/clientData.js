@@ -9,6 +9,60 @@ const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 
 // moved to services/heatmap.js
 
+/**
+ * Groups upcoming planned campaigns by start_at+end_at window (to merge split playlists),
+ * fetches all media URLs across all programs in each group, and returns a unified event shape.
+ */
+async function buildUpcomingEvents(rawCampaigns, clientId) {
+  if (!rawCampaigns || rawCampaigns.length === 0) return [];
+
+  // Group campaigns that share the same start+end window (split playlists)
+  const groups = {};
+  for (const c of rawCampaigns) {
+    const key = `${c.start_at}|${c.end_at}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(c);
+  }
+
+  return Promise.all(
+    Object.values(groups).map(async (group) => {
+      const primary = group[0];
+      const allProgramIds = group.map((g) => g.program_id);
+
+      // Fetch media from all programs in the group in parallel
+      const allMedia = await Promise.all(
+        allProgramIds.map((pid) => fetchMediaUrlsByProgramAndClient(pid, clientId))
+      );
+      const mediaUrls = [...new Set(allMedia.flat())];
+
+      // Strip playlist-specific label from name to get a clean campaign name
+      const baseName = (primary.programs?.name || null)?.replace(/\s*[-\[].*(Image|Playlist|label).*$/i, "").trim() || primary.programs?.name || null;
+
+      return {
+        id: primary.programs?.id || primary.program_id,
+        name: baseName,
+        thumbnail_url: primary.programs?.thumbnail_url || null,
+        modified: primary.programs?.modified || null,
+        created: primary.programs?.created || null,
+        status: primary.programs?.status || null,
+        media_urls: mediaUrls,
+        program_ids: allProgramIds,
+        isActive: false,
+        campaign_start_at: primary.start_at,
+        campaign_end_at: primary.end_at,
+        campaign_hours_bought: Number(primary.hours_bought || 0),
+        campaign_minutes_bought: Math.floor(Number(primary.hours_bought || 0) * 60),
+        campaign_completion_percent: 0,
+        minutes_played_since_campaign_start: 0,
+        hours_played_since_campaign_start: 0,
+        campaign_completed_at: null,
+        share_of_voice_percent: null,
+        mode: primary.mode,
+      };
+    })
+  );
+}
+
 // GET /clientData - Aggregated client data: active programs, terminals playing them, latest GPS per terminal, and GPS heat map data
 router.get("/", async (req, res) => {
   try {
@@ -256,28 +310,7 @@ router.get("/", async (req, res) => {
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
 
-      const upcomingEventsForClient = await Promise.all(
-        (upcomingCampaignsData || []).map(async (c) => ({
-          id: c.programs?.id || c.program_id,
-          name: c.programs?.name || null,
-          thumbnail_url: c.programs?.thumbnail_url || null,
-          modified: c.programs?.modified || null,
-          created: c.programs?.created || null,
-          status: c.programs?.status || null,
-          media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
-          isActive: false,
-          campaign_start_at: c.start_at,
-          campaign_end_at: c.end_at,
-          campaign_hours_bought: Number(c.hours_bought || 0),
-          campaign_minutes_bought: Math.floor(Number(c.hours_bought || 0) * 60),
-          campaign_completion_percent: 0,
-          minutes_played_since_campaign_start: 0,
-          hours_played_since_campaign_start: 0,
-          campaign_completed_at: null,
-          share_of_voice_percent: null,
-          mode: c.mode,
-        }))
-      );
+      const upcomingEventsForClient = await buildUpcomingEvents(upcomingCampaignsData, client.id);
 
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
@@ -514,28 +547,7 @@ router.get("/", async (req, res) => {
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
 
-      const upcomingEventsEarly = await Promise.all(
-        (upcomingCampaignsEarly || []).map(async (c) => ({
-          id: c.programs?.id || c.program_id,
-          name: c.programs?.name || null,
-          thumbnail_url: c.programs?.thumbnail_url || null,
-          modified: c.programs?.modified || null,
-          created: c.programs?.created || null,
-          status: c.programs?.status || null,
-          media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
-          isActive: false,
-          campaign_start_at: c.start_at,
-          campaign_end_at: c.end_at,
-          campaign_hours_bought: Number(c.hours_bought || 0),
-          campaign_minutes_bought: Math.floor(Number(c.hours_bought || 0) * 60),
-          campaign_completion_percent: 0,
-          minutes_played_since_campaign_start: 0,
-          hours_played_since_campaign_start: 0,
-          campaign_completed_at: null,
-          share_of_voice_percent: null,
-          mode: c.mode,
-        }))
-      );
+      const upcomingEventsEarly = await buildUpcomingEvents(upcomingCampaignsEarly, client.id);
 
       return res.json({
         client: {
@@ -780,28 +792,7 @@ router.get("/", async (req, res) => {
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
-      upcomingEvents = await Promise.all(
-        (upcomingCampaigns || []).map(async (c) => ({
-          id: c.programs?.id || c.program_id,
-          name: c.programs?.name || null,
-          thumbnail_url: c.programs?.thumbnail_url || null,
-          modified: c.programs?.modified || null,
-          created: c.programs?.created || null,
-          status: c.programs?.status || null,
-          media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
-          isActive: false,
-          campaign_start_at: c.start_at,
-          campaign_end_at: c.end_at,
-          campaign_hours_bought: Number(c.hours_bought || 0),
-          campaign_minutes_bought: Math.floor(Number(c.hours_bought || 0) * 60),
-          campaign_completion_percent: 0,
-          minutes_played_since_campaign_start: 0,
-          hours_played_since_campaign_start: 0,
-          campaign_completed_at: null,
-          share_of_voice_percent: null,
-          mode: c.mode,
-        }))
-      );
+      upcomingEvents = await buildUpcomingEvents(upcomingCampaigns, client.id);
     } catch (eventsErr) {
       console.warn("Failed to fetch upcoming events:", eventsErr.message);
     }
