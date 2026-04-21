@@ -250,7 +250,7 @@ router.get("/", async (req, res) => {
     if (programIds.length === 0) {
       const { data: upcomingCampaignsData } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name)")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name, thumbnail_url)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -259,6 +259,7 @@ router.get("/", async (req, res) => {
       const upcomingEventsForClient = (upcomingCampaignsData || []).map((c) => ({
         program_id: c.program_id,
         program_name: c.programs?.name || null,
+        thumbnail_url: c.programs?.thumbnail_url || null,
         start_at: c.start_at,
         end_at: c.end_at,
         hours_bought: c.hours_bought,
@@ -494,7 +495,7 @@ router.get("/", async (req, res) => {
 
       const { data: upcomingCampaignsEarly } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name)")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name, thumbnail_url)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -503,6 +504,7 @@ router.get("/", async (req, res) => {
       const upcomingEventsEarly = (upcomingCampaignsEarly || []).map((c) => ({
         program_id: c.program_id,
         program_name: c.programs?.name || null,
+        thumbnail_url: c.programs?.thumbnail_url || null,
         start_at: c.start_at,
         end_at: c.end_at,
         hours_bought: c.hours_bought,
@@ -747,7 +749,7 @@ router.get("/", async (req, res) => {
     try {
       const { data: upcomingCampaigns } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name)")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name, thumbnail_url)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -755,6 +757,7 @@ router.get("/", async (req, res) => {
       upcomingEvents = (upcomingCampaigns || []).map((c) => ({
         program_id: c.program_id,
         program_name: c.programs?.name || null,
+        thumbnail_url: c.programs?.thumbnail_url || null,
         start_at: c.start_at,
         end_at: c.end_at,
         hours_bought: c.hours_bought,
