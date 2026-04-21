@@ -248,17 +248,28 @@ router.get("/", async (req, res) => {
     }
 
     if (programIds.length === 0) {
-      const { data: eventsData } = await supabase
-        .from("driver_events")
-        .select("id, title, description, event_date, location")
-        .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true });
+      const { data: upcomingCampaignsData } = await supabase
+        .from("campaign")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name)")
+        .eq("client_id", client.id)
+        .eq("status", "planned")
+        .gt("start_at", new Date().toISOString())
+        .order("start_at", { ascending: true });
+
+      const upcomingEventsForClient = (upcomingCampaignsData || []).map((c) => ({
+        program_id: c.program_id,
+        program_name: c.programs?.name || null,
+        start_at: c.start_at,
+        end_at: c.end_at,
+        hours_bought: c.hours_bought,
+        mode: c.mode,
+      }));
 
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
         programs: [],
         terminals: [],
-        upcoming_events: eventsData || [],
+        upcoming_events: upcomingEventsForClient,
         summary: {
           total_terminals: 0,
           terminals_playing: 0,
@@ -481,11 +492,22 @@ router.get("/", async (req, res) => {
         return { ...p, ...metrics };
       });
 
-      const { data: eventsDataEarly } = await supabase
-        .from("driver_events")
-        .select("id, title, description, event_date, location")
-        .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true });
+      const { data: upcomingCampaignsEarly } = await supabase
+        .from("campaign")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name)")
+        .eq("client_id", client.id)
+        .eq("status", "planned")
+        .gt("start_at", new Date().toISOString())
+        .order("start_at", { ascending: true });
+
+      const upcomingEventsEarly = (upcomingCampaignsEarly || []).map((c) => ({
+        program_id: c.program_id,
+        program_name: c.programs?.name || null,
+        start_at: c.start_at,
+        end_at: c.end_at,
+        hours_bought: c.hours_bought,
+        mode: c.mode,
+      }));
 
       return res.json({
         client: {
@@ -495,7 +517,7 @@ router.get("/", async (req, res) => {
         },
         programs: programsOut,
         terminals: [],
-        upcoming_events: eventsDataEarly || [],
+        upcoming_events: upcomingEventsEarly,
         summary: {
           total_terminals: 0,
           terminals_playing: 0,
@@ -720,15 +742,24 @@ router.get("/", async (req, res) => {
       return { ...p, ...metrics };
     });
 
-    // 6) Upcoming events
+    // 6) Upcoming events (future planned campaigns for this client)
     let upcomingEvents = [];
     try {
-      const { data: eventsData } = await supabase
-        .from("driver_events")
-        .select("id, title, description, event_date, location")
-        .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true });
-      upcomingEvents = eventsData || [];
+      const { data: upcomingCampaigns } = await supabase
+        .from("campaign")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name)")
+        .eq("client_id", client.id)
+        .eq("status", "planned")
+        .gt("start_at", new Date().toISOString())
+        .order("start_at", { ascending: true });
+      upcomingEvents = (upcomingCampaigns || []).map((c) => ({
+        program_id: c.program_id,
+        program_name: c.programs?.name || null,
+        start_at: c.start_at,
+        end_at: c.end_at,
+        hours_bought: c.hours_bought,
+        mode: c.mode,
+      }));
     } catch (eventsErr) {
       console.warn("Failed to fetch upcoming events:", eventsErr.message);
     }

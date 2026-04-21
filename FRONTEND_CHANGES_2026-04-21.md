@@ -4,7 +4,7 @@
 
 ## 1. `GET /clientData` — now includes upcoming events
 
-The response now contains a top-level `upcoming_events` array.
+The response now contains a top-level `upcoming_events` array showing the client's future planned campaigns.
 
 ```jsonc
 {
@@ -14,11 +14,12 @@ The response now contains a top-level `upcoming_events` array.
   "historical_terminals": [ ... ],
   "upcoming_events": [
     {
-      "id": 1,
-      "title": "Driver Meeting",
-      "description": "Monthly check-in at the office.",
-      "event_date": "2026-05-01T14:00:00Z",
-      "location": "123 Main St, Brooklyn"
+      "program_id": 2917691,
+      "program_name": "Gorgie - 2026-06-01 Split",
+      "start_at": "2026-06-01T00:08:00Z",
+      "end_at": "2026-07-01T00:00:00Z",
+      "hours_bought": 500,
+      "mode": "split"
     }
   ],
   "summary": { ... },
@@ -26,10 +27,10 @@ The response now contains a top-level `upcoming_events` array.
 }
 ```
 
-- Always present — empty array `[]` when there are no upcoming events.
-- Sorted ascending by `event_date` (soonest first).
-- Only future events — no query param needed.
-- `description` and `location` can be `null`.
+- Always present — empty array `[]` when there are no upcoming planned campaigns.
+- Sorted ascending by `start_at` (soonest first).
+- Only campaigns with `status = "planned"` and `start_at` in the future.
+- `program_name` can be `null` if the program record is missing.
 
 ---
 
