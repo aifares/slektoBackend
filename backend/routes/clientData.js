@@ -250,7 +250,7 @@ router.get("/", async (req, res) => {
     if (programIds.length === 0) {
       const { data: upcomingCampaignsData } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name, thumbnail_url)")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -258,13 +258,23 @@ router.get("/", async (req, res) => {
 
       const upcomingEventsForClient = await Promise.all(
         (upcomingCampaignsData || []).map(async (c) => ({
-          program_id: c.program_id,
-          program_name: c.programs?.name || null,
+          id: c.programs?.id || c.program_id,
+          name: c.programs?.name || null,
           thumbnail_url: c.programs?.thumbnail_url || null,
+          modified: c.programs?.modified || null,
+          created: c.programs?.created || null,
+          status: c.programs?.status || null,
           media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
-          start_at: c.start_at,
-          end_at: c.end_at,
-          hours_bought: c.hours_bought,
+          isActive: false,
+          campaign_start_at: c.start_at,
+          campaign_end_at: c.end_at,
+          campaign_hours_bought: Number(c.hours_bought || 0),
+          campaign_minutes_bought: Math.floor(Number(c.hours_bought || 0) * 60),
+          campaign_completion_percent: 0,
+          minutes_played_since_campaign_start: 0,
+          hours_played_since_campaign_start: 0,
+          campaign_completed_at: null,
+          share_of_voice_percent: null,
           mode: c.mode,
         }))
       );
@@ -498,7 +508,7 @@ router.get("/", async (req, res) => {
 
       const { data: upcomingCampaignsEarly } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name, thumbnail_url)")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -506,13 +516,23 @@ router.get("/", async (req, res) => {
 
       const upcomingEventsEarly = await Promise.all(
         (upcomingCampaignsEarly || []).map(async (c) => ({
-          program_id: c.program_id,
-          program_name: c.programs?.name || null,
+          id: c.programs?.id || c.program_id,
+          name: c.programs?.name || null,
           thumbnail_url: c.programs?.thumbnail_url || null,
+          modified: c.programs?.modified || null,
+          created: c.programs?.created || null,
+          status: c.programs?.status || null,
           media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
-          start_at: c.start_at,
-          end_at: c.end_at,
-          hours_bought: c.hours_bought,
+          isActive: false,
+          campaign_start_at: c.start_at,
+          campaign_end_at: c.end_at,
+          campaign_hours_bought: Number(c.hours_bought || 0),
+          campaign_minutes_bought: Math.floor(Number(c.hours_bought || 0) * 60),
+          campaign_completion_percent: 0,
+          minutes_played_since_campaign_start: 0,
+          hours_played_since_campaign_start: 0,
+          campaign_completed_at: null,
+          share_of_voice_percent: null,
           mode: c.mode,
         }))
       );
@@ -755,20 +775,30 @@ router.get("/", async (req, res) => {
     try {
       const { data: upcomingCampaigns } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(name, thumbnail_url)")
+        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
       upcomingEvents = await Promise.all(
         (upcomingCampaigns || []).map(async (c) => ({
-          program_id: c.program_id,
-          program_name: c.programs?.name || null,
+          id: c.programs?.id || c.program_id,
+          name: c.programs?.name || null,
           thumbnail_url: c.programs?.thumbnail_url || null,
+          modified: c.programs?.modified || null,
+          created: c.programs?.created || null,
+          status: c.programs?.status || null,
           media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
-          start_at: c.start_at,
-          end_at: c.end_at,
-          hours_bought: c.hours_bought,
+          isActive: false,
+          campaign_start_at: c.start_at,
+          campaign_end_at: c.end_at,
+          campaign_hours_bought: Number(c.hours_bought || 0),
+          campaign_minutes_bought: Math.floor(Number(c.hours_bought || 0) * 60),
+          campaign_completion_percent: 0,
+          minutes_played_since_campaign_start: 0,
+          hours_played_since_campaign_start: 0,
+          campaign_completed_at: null,
+          share_of_voice_percent: null,
           mode: c.mode,
         }))
       );
