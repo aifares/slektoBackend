@@ -426,7 +426,7 @@ router.post("/onboard", upload.array("images", 40), async (req, res) => {
     for (let i = 0; i < payload.playlists.length; i++) {
       const p = payload.playlists[i];
       const playlistSuffix =
-        payload.mode === "split" ? ` [${p.label || `Playlist ${i + 1}`}]` : "";
+        payload.mode === "split" ? ` ${p.label || `Playlist ${i + 1}`}` : "";
       const programName = `${company_name.trim()} - ${startAt.toISOString().split("T")[0]}${playlistSuffix}`;
 
       console.log(`📤 [${programName}] Uploading ${p.files.length} images to ColorLight...`);

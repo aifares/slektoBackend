@@ -95,15 +95,22 @@ router.post("/notify", async (req, res) => {
 
 /**
  * GET /admin/drivers/events
- * List all events (including past).
+ * List events. Defaults to upcoming only; pass ?include_past=true for all.
  */
 router.get("/events", async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { include_past } = req.query;
+
+    let query = supabase
       .from("driver_events")
       .select("*, drivers(name)")
-      .order("event_date", { ascending: false });
+      .order("event_date", { ascending: true });
 
+    if (include_past !== "true") {
+      query = query.gte("event_date", new Date().toISOString());
+    }
+
+    const { data, error } = await query;
     if (error) throw new Error(error.message);
     return res.json({ success: true, count: data.length, events: data });
   } catch (err) {

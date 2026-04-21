@@ -169,7 +169,7 @@ router.post("/campaigns", upload.array("images", 40), async (req, res) => {
       const p = payload.playlists[i];
       const playlistSuffix =
         payload.mode === "split"
-          ? ` [${p.label || `Playlist ${i + 1}`}]`
+          ? ` ${p.label || `Playlist ${i + 1}`}`
           : "";
       const programName = `${company_name.trim()} - ${startAt.toISOString().split("T")[0]}${playlistSuffix}`;
 
@@ -442,7 +442,7 @@ router.get("/campaigns", async (req, res) => {
     const result = campaigns.map((c) => {
       const programName = programNameById[c.program_id] || null;
       const company_name = programName
-        ? programName.replace(/\s*-\s*\d{4}-\d{2}-\d{2}(\s*\[.+\])?$/, "").trim()
+        ? programName.replace(/\s*-\s*\d{4}-\d{2}-\d{2}.*$/, "").trim()
         : null;
 
       const children = playlistsByCampaign[c.id] || [];
