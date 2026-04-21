@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { supabase } = require("../config/supabase");
-const { fetchMediaByProgramId } = require("../services/media");
+const { fetchMediaByProgramId, fetchMediaUrlsByProgramAndClient } = require("../services/media");
 const { buildGpsHeatmapData } = require("../services/heatmap");
 const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
@@ -256,15 +256,18 @@ router.get("/", async (req, res) => {
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
 
-      const upcomingEventsForClient = (upcomingCampaignsData || []).map((c) => ({
-        program_id: c.program_id,
-        program_name: c.programs?.name || null,
-        thumbnail_url: c.programs?.thumbnail_url || null,
-        start_at: c.start_at,
-        end_at: c.end_at,
-        hours_bought: c.hours_bought,
-        mode: c.mode,
-      }));
+      const upcomingEventsForClient = await Promise.all(
+        (upcomingCampaignsData || []).map(async (c) => ({
+          program_id: c.program_id,
+          program_name: c.programs?.name || null,
+          thumbnail_url: c.programs?.thumbnail_url || null,
+          media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
+          start_at: c.start_at,
+          end_at: c.end_at,
+          hours_bought: c.hours_bought,
+          mode: c.mode,
+        }))
+      );
 
       return res.json({
         client: { id: client.id, name: client.name, activePrograms: [] },
@@ -501,15 +504,18 @@ router.get("/", async (req, res) => {
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
 
-      const upcomingEventsEarly = (upcomingCampaignsEarly || []).map((c) => ({
-        program_id: c.program_id,
-        program_name: c.programs?.name || null,
-        thumbnail_url: c.programs?.thumbnail_url || null,
-        start_at: c.start_at,
-        end_at: c.end_at,
-        hours_bought: c.hours_bought,
-        mode: c.mode,
-      }));
+      const upcomingEventsEarly = await Promise.all(
+        (upcomingCampaignsEarly || []).map(async (c) => ({
+          program_id: c.program_id,
+          program_name: c.programs?.name || null,
+          thumbnail_url: c.programs?.thumbnail_url || null,
+          media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
+          start_at: c.start_at,
+          end_at: c.end_at,
+          hours_bought: c.hours_bought,
+          mode: c.mode,
+        }))
+      );
 
       return res.json({
         client: {
@@ -754,15 +760,18 @@ router.get("/", async (req, res) => {
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
         .order("start_at", { ascending: true });
-      upcomingEvents = (upcomingCampaigns || []).map((c) => ({
-        program_id: c.program_id,
-        program_name: c.programs?.name || null,
-        thumbnail_url: c.programs?.thumbnail_url || null,
-        start_at: c.start_at,
-        end_at: c.end_at,
-        hours_bought: c.hours_bought,
-        mode: c.mode,
-      }));
+      upcomingEvents = await Promise.all(
+        (upcomingCampaigns || []).map(async (c) => ({
+          program_id: c.program_id,
+          program_name: c.programs?.name || null,
+          thumbnail_url: c.programs?.thumbnail_url || null,
+          media_urls: await fetchMediaUrlsByProgramAndClient(c.program_id, client.id),
+          start_at: c.start_at,
+          end_at: c.end_at,
+          hours_bought: c.hours_bought,
+          mode: c.mode,
+        }))
+      );
     } catch (eventsErr) {
       console.warn("Failed to fetch upcoming events:", eventsErr.message);
     }
