@@ -73,13 +73,40 @@ class AdaptivePoller {
 
   async fetchTerminals() {
     const { COLORLIGHT_BASE_URL, AUTH_HEADER } = require("../utils");
+    const { supabase } = require("../config/supabase");
 
-    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
-      ...AUTH_HEADER,
-      timeout: 10000, // 10 second timeout
-    });
+    // Fetch all known terminal IDs from Supabase
+    const { data: terminalRows } = await supabase
+      .from("terminals")
+      .select("terminalid");
 
-    return response.data;
+    const knownIds = (terminalRows || []).map((t) => t.terminalid).filter(Boolean);
+
+    if (knownIds.length > 0) {
+      // Fetch using the terminals endpoint with explicit IDs (avoids pagination limits)
+      const response = await axios.get(
+        `${COLORLIGHT_BASE_URL}/terminals?terminalIds=${knownIds.join(",")}`,
+        { ...AUTH_HEADER, timeout: 15000 }
+      );
+      return Array.isArray(response.data) ? response.data : Object.values(response.data);
+    }
+
+    // Fallback: paginated fetch when no terminals in DB yet
+    console.warn("⚠️ No terminals in DB, falling back to paginated ColorLight fetch");
+    let page = 1;
+    let all = [];
+    while (true) {
+      const response = await axios.get(
+        `${COLORLIGHT_BASE_URL}?per_page=100&page=${page}`,
+        { ...AUTH_HEADER, timeout: 15000 }
+      );
+      const batch = Array.isArray(response.data) ? response.data : [];
+      if (batch.length === 0) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return all;
   }
 
   async processTerminals(terminals) {
