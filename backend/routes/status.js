@@ -12,9 +12,21 @@ router.get("/terminals", async (req, res) => {
     const { COLORLIGHT_BASE_URL, AUTH_HEADER } = require("../utils");
     const includeDrivers = req.query.includeDrivers === "true";
 
-    // Get fresh terminal data from ColorLight API
-    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, AUTH_HEADER);
-    const rawTerminals = response.data;
+    // Get fresh terminal data from ColorLight API — paginate to get all terminals
+    let rawTerminals = [];
+    let page = 1;
+    while (true) {
+      const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
+        ...AUTH_HEADER,
+        params: { per_page: 100, page },
+        timeout: 20000,
+      });
+      const batch = Array.isArray(response.data) ? response.data : [];
+      if (batch.length === 0) break;
+      rawTerminals = rawTerminals.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
 
     // Get current status for each terminal using fresh API data
     const terminalsWithStatus = await Promise.all(
