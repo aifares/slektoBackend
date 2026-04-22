@@ -3,6 +3,7 @@ const router = express.Router();
 
 const { supabase } = require("../config/supabase");
 const { buildGpsHeatmapData } = require("../services/heatmap");
+const { getPlaylistsByCampaignIds } = require("../services/campaignPlaylists");
 
 // GET /gps - Returns GPS data including latest GPS per terminal and heatmap data for client's active programs
 router.get("/", async (req, res) => {
@@ -24,7 +25,7 @@ router.get("/", async (req, res) => {
     const nowIso = new Date().toISOString();
     const { data: activeCampaigns, error: campaignsError } = await supabase
       .from("campaign")
-      .select("program_id, status, start_at, end_at, hours_bought")
+      .select("id, program_id, mode, status, start_at, end_at, hours_bought")
       .eq("client_id", client.id)
       .in("status", ["active", "planned"]) // consider planned in window
       .lte("start_at", nowIso)
@@ -37,8 +38,22 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // Expand split campaigns to include all playlist program_ids
+    const activeCampaignIds = (activeCampaigns || []).map((c) => c.id).filter(Boolean);
+    const playlistsByCampaign = activeCampaignIds.length > 0
+      ? await getPlaylistsByCampaignIds(activeCampaignIds)
+      : {};
+
+    const expandedCampaigns = (activeCampaigns || []).flatMap((c) => {
+      const playlists = playlistsByCampaign[c.id];
+      if (c.mode === "split" && playlists && playlists.length > 0) {
+        return playlists.map((p) => ({ ...c, program_id: p.program_id }));
+      }
+      return [c];
+    });
+
     const programIds = Array.from(
-      new Set((activeCampaigns || []).map((c) => c.program_id))
+      new Set(expandedCampaigns.map((c) => c.program_id))
     );
 
     console.log("Active campaigns found:", activeCampaigns?.length || 0);

@@ -180,8 +180,8 @@ async function buildGpsHeatmapData(
       )
       .in("terminal_id", terminalIds)
       .in("program_id", targetProgramIds)
-      .gte("started_at", startDate) // Use full timestamp
-      .lte("started_at", endDate) // Use full timestamp
+      .gte("started_at", startDate)
+      .lte("started_at", `${endDate}T23:59:59.999Z`)
       .order("started_at", { ascending: true });
 
     if (playingError) {
