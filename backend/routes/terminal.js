@@ -5,6 +5,7 @@ const router = express.Router();
 const { AUTH_HEADER, TERMINAL_ID, COLORLIGHT_BASE_URL } = require("../utils");
 const databaseService = require("../services/database");
 const driverAssignment = require("../services/driverAssignment");
+const { supabase } = require("../config/supabase");
 
 // Helper function to execute commands on multiple terminals
 async function executeCommandOnTerminals(terminalIds, commandData) {
@@ -64,12 +65,22 @@ router.get("/", async (req, res) => {
     req.query;
 
   try {
-    const targetTerminalIds = parseTerminalIds(terminalIds);
+    let targetTerminalIds;
 
-    const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
-      ...AUTH_HEADER,
-      params: { terminalIds: targetTerminalIds.join(",") },
-    });
+    if (terminalIds) {
+      // Explicit list provided
+      targetTerminalIds = parseTerminalIds(terminalIds);
+    } else {
+      // No filter — fetch all 31 known terminals from Supabase
+      const { data: dbRows } = await supabase.from("terminals").select("terminalid");
+      targetTerminalIds = (dbRows || []).map((r) => r.terminalid).filter(Boolean);
+      if (targetTerminalIds.length === 0) targetTerminalIds = [TERMINAL_ID];
+    }
+
+    const response = await axios.get(
+      `${COLORLIGHT_BASE_URL}/terminals?terminalIds=${targetTerminalIds.join(",")}`,
+      { ...AUTH_HEADER, timeout: 20000 },
+    );
 
     let terminals = response.data;
 
