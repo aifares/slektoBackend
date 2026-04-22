@@ -374,14 +374,70 @@ router.get("/", async (req, res) => {
     }
 
     // Remove internal _byCampaign field before sending to client
-    // _byCampaign is only used internally by campaignCompletion service
-    const { _byCampaign, ...campaignMetricsForClient } = playbackMetricsByProgram;
+    const { _byCampaign, ...rawMetrics } = playbackMetricsByProgram;
+
+    // Collapse split campaigns: merge per-playlist entries into one per campaign
+    // Build map: campaign_id → [program_ids], primary program_id = first one seen
+    const programIdsByCampaign = {};
+    const primaryProgramByCampaign = {};
+    for (const c of activeCampaignsOnly) {
+      const cid = c.id;
+      if (!programIdsByCampaign[cid]) {
+        programIdsByCampaign[cid] = [];
+        primaryProgramByCampaign[cid] = c.program_id;
+      }
+      if (!programIdsByCampaign[cid].includes(c.program_id)) {
+        programIdsByCampaign[cid].push(c.program_id);
+      }
+    }
+
+    const campaignMetricsForClient = {};
+    const mergedCampaigns = new Set();
+
+    for (const c of activeCampaignsOnly) {
+      const cid = c.id;
+      if (mergedCampaigns.has(cid)) continue;
+      mergedCampaigns.add(cid);
+
+      const siblingIds = programIdsByCampaign[cid] || [c.program_id];
+      const primaryId = primaryProgramByCampaign[cid];
+
+      if (siblingIds.length <= 1) {
+        if (rawMetrics[primaryId]) campaignMetricsForClient[primaryId] = rawMetrics[primaryId];
+        continue;
+      }
+
+      // Merge all playlist metrics into one entry keyed by primary program_id
+      const siblings = siblingIds.map((pid) => rawMetrics[pid]).filter(Boolean);
+      if (siblings.length === 0) continue;
+
+      const totalMinutesPlayed = siblings.reduce((s, m) => s + (m.minutes_played_since_campaign_start || 0), 0);
+      const totalHoursBought = siblings.reduce((s, m) => s + (m.campaign_hours_bought || 0), 0);
+      const totalMinutesBought = siblings.reduce((s, m) => s + (m.campaign_minutes_bought || 0), 0);
+      const totalHoursPlayed = parseFloat((totalMinutesPlayed / 60).toFixed(2));
+      const completionPct = totalMinutesBought > 0 ? Math.min(100, Math.round((totalMinutesPlayed / totalMinutesBought) * 100)) : 0;
+      const allMedia = [...new Set(siblings.flatMap((m) => m.media_urls || []))];
+      const sovValues = siblings.map((m) => m.share_of_voice_percent).filter((v) => v != null);
+      const sovAvg = sovValues.length > 0 ? parseFloat((sovValues.reduce((s, v) => s + v, 0) / sovValues.length).toFixed(1)) : null;
+
+      campaignMetricsForClient[primaryId] = {
+        ...siblings[0],
+        minutes_played_since_campaign_start: totalMinutesPlayed,
+        hours_played_since_campaign_start: totalHoursPlayed,
+        campaign_hours_bought: totalHoursBought,
+        campaign_minutes_bought: totalMinutesBought,
+        campaign_completion_percent: completionPct,
+        share_of_voice_percent: sovAvg,
+        media_urls: allMedia,
+        program_ids: siblingIds,
+      };
+    }
 
     const response = {
       client: {
         id: client.id,
         name: client.name,
-        activePrograms: activeProgramIds,
+        activePrograms: Object.keys(campaignMetricsForClient).map(Number),
       },
       terminals: terminalsOut,
       summary: {
