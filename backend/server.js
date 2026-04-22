@@ -90,6 +90,7 @@ app.use("/admin", adminCampaignsRoutes); // Campaign management endpoints
 app.use("/admin/drivers", adminDriversRoutes); // Driver notifications, events, pay
 app.use("/admin/clients", adminClientsRoutes); // Client account creation + management
 app.use("/api/v1", agencyCampaignsRoutes); // Third-party agency API
+app.use("/api", agencyCampaignsRoutes);   // Same routes accessible via /api/campaigns for proxy compat
 
 const server = app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
