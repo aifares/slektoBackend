@@ -75,6 +75,70 @@ async function buildUpcomingEvents(rawCampaigns, clientId) {
   );
 }
 
+/**
+ * Collapses split campaigns into one entry per campaign.
+ * Rotation campaigns pass through unchanged.
+ * Split campaigns are merged: stats summed, media combined, name stripped of label suffix.
+ */
+function collapseSplitCampaigns(programsOut, campaignsWithActiveStatus) {
+  // Build maps: program_id → campaign_id, campaign_id → [program_ids]
+  const campaignIdByProgramId = {};
+  const programIdsByCampaignId = {};
+  for (const c of campaignsWithActiveStatus) {
+    campaignIdByProgramId[c.program_id] = c.id;
+    if (!programIdsByCampaignId[c.id]) programIdsByCampaignId[c.id] = [];
+    if (!programIdsByCampaignId[c.id].includes(c.program_id)) {
+      programIdsByCampaignId[c.id].push(c.program_id);
+    }
+  }
+
+  const programsById = Object.fromEntries(programsOut.map((p) => [p.id, p]));
+  const seenCampaigns = new Set();
+  const result = [];
+
+  for (const program of programsOut) {
+    const campaignId = campaignIdByProgramId[program.id];
+    if (seenCampaigns.has(campaignId)) continue;
+    seenCampaigns.add(campaignId);
+
+    const siblingIds = programIdsByCampaignId[campaignId] || [program.id];
+    if (siblingIds.length <= 1) {
+      result.push(program);
+      continue;
+    }
+
+    // Merge all playlists into one campaign entry
+    const siblings = siblingIds.map((pid) => programsById[pid]).filter(Boolean);
+    const totalHours = siblings.reduce((s, p) => s + (p.campaign_hours_bought || 0), 0);
+    const totalMinutes = siblings.reduce((s, p) => s + (p.campaign_minutes_bought || 0), 0);
+    const totalMinutesPlayed = siblings.reduce((s, p) => s + (p.minutes_played_since_campaign_start || 0), 0);
+    const totalHoursPlayed = parseFloat((totalMinutesPlayed / 60).toFixed(2));
+    const completionPct = totalMinutes > 0 ? Math.min(100, Math.round((totalMinutesPlayed / totalMinutes) * 100)) : 0;
+    const allMedia = [...new Set(siblings.flatMap((p) => p.media_urls || []))];
+    const sovValues = siblings.map((p) => p.share_of_voice_percent).filter((v) => v != null);
+    const sovAvg = sovValues.length > 0 ? parseFloat((sovValues.reduce((s, v) => s + v, 0) / sovValues.length).toFixed(1)) : null;
+
+    // Strip playlist label suffix from name: "Company - 2026-07-21 3D" → "Company - 2026-07-21"
+    const cleanName = (program.name || "").replace(/(-\s*\d{4}-\d{2}-\d{2})\s+\S.*$/, "$1").trim();
+
+    result.push({
+      ...program,
+      name: cleanName,
+      program_ids: siblingIds,
+      media_urls: allMedia,
+      campaign_hours_bought: totalHours,
+      campaign_minutes_bought: totalMinutes,
+      minutes_played_since_campaign_start: totalMinutesPlayed,
+      hours_played_since_campaign_start: totalHoursPlayed,
+      campaign_completion_percent: completionPct,
+      share_of_voice_percent: sovAvg,
+      isActive: siblings.some((p) => p.isActive),
+    });
+  }
+
+  return result;
+}
+
 // GET /clientData - Aggregated client data: active programs, terminals playing them, latest GPS per terminal, and GPS heat map data
 router.get("/", async (req, res) => {
   try {
@@ -569,20 +633,8 @@ router.get("/", async (req, res) => {
         return { ...p, ...metrics };
       });
 
-      // Merge split campaign media_urls across sibling playlists
-      const cIdByProgId = {};
-      const progIdsByCampaign = {};
-      for (const c of campaignsWithActiveStatus) {
-        cIdByProgId[c.program_id] = c.id;
-        if (!progIdsByCampaign[c.id]) progIdsByCampaign[c.id] = [];
-        if (!progIdsByCampaign[c.id].includes(c.program_id)) progIdsByCampaign[c.id].push(c.program_id);
-      }
-      const mediaByPid = Object.fromEntries(programsOut.map((p) => [p.id, p.media_urls || []]));
-      const mergedProgramsOut = programsOut.map((p) => {
-        const siblings = progIdsByCampaign[cIdByProgId[p.id]] || [];
-        if (siblings.length <= 1) return p;
-        return { ...p, media_urls: [...new Set(siblings.flatMap((pid) => mediaByPid[pid] || []))] };
-      });
+      // Collapse split campaigns: one entry per campaign with all stats summed
+      const mergedProgramsOut = collapseSplitCampaigns(programsOut, campaignsWithActiveStatus);
 
       const { data: upcomingCampaignsEarly } = await supabase
         .from("campaign")
@@ -827,26 +879,8 @@ router.get("/", async (req, res) => {
       return { ...p, ...metrics };
     });
 
-    // For split campaigns, merge media_urls from all sibling playlists onto each program entry
-    const campaignIdByProgramId = {};
-    const programIdsByCampaignId = {};
-    for (const c of campaignsWithActiveStatus) {
-      campaignIdByProgramId[c.program_id] = c.id;
-      if (!programIdsByCampaignId[c.id]) programIdsByCampaignId[c.id] = [];
-      if (!programIdsByCampaignId[c.id].includes(c.program_id)) {
-        programIdsByCampaignId[c.id].push(c.program_id);
-      }
-    }
-    const mediaByProgramId = Object.fromEntries(
-      programsOut.map((p) => [p.id, p.media_urls || []])
-    );
-    const finalProgramsOut = programsOut.map((p) => {
-      const campaignId = campaignIdByProgramId[p.id];
-      const siblingIds = programIdsByCampaignId[campaignId] || [];
-      if (siblingIds.length <= 1) return p;
-      const allMedia = [...new Set(siblingIds.flatMap((pid) => mediaByProgramId[pid] || []))];
-      return { ...p, media_urls: allMedia };
-    });
+    // Collapse split campaigns: one entry per campaign with all stats summed
+    const finalProgramsOut = collapseSplitCampaigns(programsOut, campaignsWithActiveStatus);
 
     // 6) Upcoming events (future planned campaigns for this client)
     let upcomingEvents = [];
