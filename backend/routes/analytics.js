@@ -5,6 +5,7 @@ const { supabase } = require("../config/supabase");
 const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
+const { getPlaylistsByCampaignIds } = require("../services/campaignPlaylists");
 
 // Simple in-memory cache to prevent duplicate expensive queries (disabled via flag)
 // Key format: "clientId:zoneDays:zoneStartDate:zoneEndDate"
@@ -65,7 +66,7 @@ router.get("/", async (req, res) => {
     const { data: allCampaigns, error: campaignsError } = await supabase
       .from("campaign")
       .select(
-        "id, program_id, status, start_at, end_at, hours_bought, completed_at"
+        "id, program_id, mode, status, start_at, end_at, hours_bought, completed_at"
       )
       .eq("client_id", client.id)
       .in("status", ["active", "planned", "completed", "inactive"]);
@@ -79,13 +80,31 @@ router.get("/", async (req, res) => {
 
     // Mark each campaign as active or inactive based on date range
     // A campaign is active if: status="active" AND completed_at IS NULL AND within date range
-    const campaignsWithActiveStatus = (allCampaigns || []).map((campaign) => {
+    const rawCampaignsWithStatus = (allCampaigns || []).map((campaign) => {
       const isActive =
         campaign.start_at <= nowIso &&
         campaign.end_at >= nowIso &&
         campaign.status === "active" &&
         campaign.completed_at === null;
       return { ...campaign, isActive };
+    });
+
+    // Expand split campaigns: one entry per playlist so all program_ids are tracked
+    const allCampaignIds = rawCampaignsWithStatus.map((c) => c.id).filter(Boolean);
+    const playlistsByCampaign = allCampaignIds.length > 0
+      ? await getPlaylistsByCampaignIds(allCampaignIds)
+      : {};
+
+    const campaignsWithActiveStatus = rawCampaignsWithStatus.flatMap((c) => {
+      const playlists = playlistsByCampaign[c.id];
+      if (c.mode === "split" && playlists && playlists.length > 0) {
+        return playlists.map((p) => ({
+          ...c,
+          program_id: p.program_id,
+          hours_bought: p.hours_bought,
+        }));
+      }
+      return [c];
     });
 
     const programIds = Array.from(
