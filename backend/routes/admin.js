@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { syncMediaFromColorLight } = require("../services/mediaSync");
+const { supabase } = require("../config/supabase");
 
 /**
  * Admin Routes
@@ -123,6 +124,37 @@ router.get("/sync-media/status", async (req, res) => {
       error: "Failed to get media sync status",
       details: error.message,
     });
+  }
+});
+
+/**
+ * GET /admin/debug/playing
+ * Shows recent playing records (including null program_id) to diagnose analytics gaps.
+ */
+router.get("/debug/playing", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("playing")
+      .select("id, terminal_id, program_id, program_name, file_name, status, started_at, ended_at")
+      .order("started_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw new Error(error.message);
+
+    const nullCount = (data || []).filter((r) => !r.program_id).length;
+    const byTerminal = {};
+    for (const r of data || []) {
+      if (!byTerminal[r.terminal_id]) byTerminal[r.terminal_id] = [];
+      byTerminal[r.terminal_id].push(r);
+    }
+
+    return res.json({
+      total: data?.length || 0,
+      null_program_id_count: nullCount,
+      by_terminal: byTerminal,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
