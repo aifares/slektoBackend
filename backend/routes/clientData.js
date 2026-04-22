@@ -569,6 +569,21 @@ router.get("/", async (req, res) => {
         return { ...p, ...metrics };
       });
 
+      // Merge split campaign media_urls across sibling playlists
+      const cIdByProgId = {};
+      const progIdsByCampaign = {};
+      for (const c of campaignsWithActiveStatus) {
+        cIdByProgId[c.program_id] = c.id;
+        if (!progIdsByCampaign[c.id]) progIdsByCampaign[c.id] = [];
+        if (!progIdsByCampaign[c.id].includes(c.program_id)) progIdsByCampaign[c.id].push(c.program_id);
+      }
+      const mediaByPid = Object.fromEntries(programsOut.map((p) => [p.id, p.media_urls || []]));
+      const mergedProgramsOut = programsOut.map((p) => {
+        const siblings = progIdsByCampaign[cIdByProgId[p.id]] || [];
+        if (siblings.length <= 1) return p;
+        return { ...p, media_urls: [...new Set(siblings.flatMap((pid) => mediaByPid[pid] || []))] };
+      });
+
       const { data: upcomingCampaignsEarly } = await supabase
         .from("campaign")
         .select("id, program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
@@ -585,7 +600,7 @@ router.get("/", async (req, res) => {
           name: client.name,
           activePrograms: programIds,
         },
-        programs: programsOut,
+        programs: mergedProgramsOut,
         terminals: [],
         upcoming_events: upcomingEventsEarly,
         summary: {
@@ -812,6 +827,27 @@ router.get("/", async (req, res) => {
       return { ...p, ...metrics };
     });
 
+    // For split campaigns, merge media_urls from all sibling playlists onto each program entry
+    const campaignIdByProgramId = {};
+    const programIdsByCampaignId = {};
+    for (const c of campaignsWithActiveStatus) {
+      campaignIdByProgramId[c.program_id] = c.id;
+      if (!programIdsByCampaignId[c.id]) programIdsByCampaignId[c.id] = [];
+      if (!programIdsByCampaignId[c.id].includes(c.program_id)) {
+        programIdsByCampaignId[c.id].push(c.program_id);
+      }
+    }
+    const mediaByProgramId = Object.fromEntries(
+      programsOut.map((p) => [p.id, p.media_urls || []])
+    );
+    const finalProgramsOut = programsOut.map((p) => {
+      const campaignId = campaignIdByProgramId[p.id];
+      const siblingIds = programIdsByCampaignId[campaignId] || [];
+      if (siblingIds.length <= 1) return p;
+      const allMedia = [...new Set(siblingIds.flatMap((pid) => mediaByProgramId[pid] || []))];
+      return { ...p, media_urls: allMedia };
+    });
+
     // 6) Upcoming events (future planned campaigns for this client)
     let upcomingEvents = [];
     try {
@@ -829,7 +865,7 @@ router.get("/", async (req, res) => {
 
     const response = {
       client: { id: client.id, name: client.name, activePrograms: programIds },
-      programs: programsOut,
+      programs: finalProgramsOut,
       terminals: terminalsOut,
       historical_terminals: allHistoricalTerminals,
       upcoming_events: upcomingEvents,
