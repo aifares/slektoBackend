@@ -8,8 +8,12 @@ const {
 } = require("../services/campaignMetrics");
 const { fetchMediaUrlsByProgramAndClient } = require("../services/media");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
-const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
+const {
+  buildZoneCoverageMetrics,
+  mergeZoneCoverageForSplitCampaigns,
+} = require("../services/zoneCoverage");
 const { getCurrentShare } = require("../services/shareOfVoiceSnapshots");
+const { getPlaylistsByCampaignIds } = require("../services/campaignPlaylists");
 
 /**
  * Get share of voice for a program and client over a date range
@@ -94,15 +98,43 @@ router.get("/past", async (req, res) => {
       });
     }
 
-    // Extract unique program IDs from completed campaigns
+    // Fetch sibling playlist program_ids for every campaign so split-mode
+    // campaigns aggregate across all their playlists (not just the rollup
+    // program_id on the campaign row). Every campaign has at least one
+    // campaign_playlists row after migration 028.
+    const campaignIds = completedCampaigns.map((c) => c.id);
+    let playlistsByCampaign = {};
+    try {
+      playlistsByCampaign = await getPlaylistsByCampaignIds(campaignIds);
+    } catch (err) {
+      console.warn(
+        "Failed to fetch campaign_playlists (falling back to rollup program_id):",
+        err.message
+      );
+    }
+
+    // Per-campaign sibling program_ids. Primary is always campaign.program_id
+    // so that the response is keyed consistently with other endpoints.
+    const siblingProgramIdsByCampaign = {};
+    for (const c of completedCampaigns) {
+      const fromPlaylists = (playlistsByCampaign[c.id] || [])
+        .map((p) => p.program_id)
+        .filter(Boolean);
+      const set = new Set([c.program_id, ...fromPlaylists]);
+      siblingProgramIdsByCampaign[c.id] = Array.from(set);
+    }
+
+    // Union of every program_id we might need to query for (rollup + siblings)
     const programIds = Array.from(
-      new Set(completedCampaigns.map((c) => c.program_id))
+      new Set(
+        Object.values(siblingProgramIdsByCampaign).flat()
+      )
     );
 
     console.log(
       `Found ${completedCampaigns.length} completed campaigns for client ${client.id}`
     );
-    console.log("Program IDs from completed campaigns:", programIds);
+    console.log("Program IDs from completed campaigns (incl. siblings):", programIds);
 
     // ===== BATCH ALL DATABASE QUERIES =====
     // 1. Fetch playing sessions for all programs (single query) - include all fields needed
@@ -212,10 +244,18 @@ router.get("/past", async (req, res) => {
           Math.floor(totalHoursBought * 60)
         );
 
-        // Filter playing sessions for this campaign's program and date range
+        // All program_ids that belong to this campaign (split-mode = many).
+        const siblingProgramIds =
+          siblingProgramIdsByCampaign[campaign.id] &&
+          siblingProgramIdsByCampaign[campaign.id].length > 0
+            ? siblingProgramIdsByCampaign[campaign.id]
+            : [campaign.program_id];
+        const siblingProgramIdSet = new Set(siblingProgramIds);
+
+        // Filter playing sessions for any of this campaign's playlists and date range
         const campaignSessions = (allPlayingSessions || []).filter(
           (s) =>
-            s.program_id === campaign.program_id &&
+            siblingProgramIdSet.has(s.program_id) &&
             s.started_at <= windowEnd &&
             (s.ended_at === null || s.ended_at >= windowStart)
         );
@@ -238,17 +278,39 @@ router.get("/past", async (req, res) => {
         let totalMinutesPlayed = 0;
         let sharePercent = 1.0; // Default to 100% if no share data
 
-        // Try to use zone-based calculation via RPC (most accurate)
+        // Try to use zone-based calculation via RPC (most accurate).
+        // Pass all sibling program_ids so split-mode campaigns aggregate
+        // time across every playlist (not just the rollup program_id).
         const zoneTimeData = await getCampaignZoneTime(
-          [campaign.program_id],
+          siblingProgramIds,
           campaignTerminalIds.length > 0 ? campaignTerminalIds : null,
           windowStart,
           windowEnd
         );
 
-        if (zoneTimeData && zoneTimeData[campaign.program_id]) {
-          totalMinutesPlayed =
-            zoneTimeData[campaign.program_id].total_minutes_in_zones;
+        if (zoneTimeData) {
+          // Sum across every sibling program_id the RPC returned
+          let summed = 0;
+          let matched = false;
+          for (const pid of siblingProgramIds) {
+            const row = zoneTimeData[pid] || zoneTimeData[String(pid)];
+            if (row) {
+              summed += Number(row.total_minutes_in_zones) || 0;
+              matched = true;
+            }
+          }
+          if (matched) {
+            totalMinutesPlayed = summed;
+          } else {
+            for (const session of sessionsDuringCampaign) {
+              totalMinutesPlayed += computeOverlapMinutes(
+                session.started_at,
+                session.ended_at,
+                windowStart,
+                windowEnd
+              );
+            }
+          }
         } else {
           // Fallback to playing table calculation
           for (const session of sessionsDuringCampaign) {
@@ -347,10 +409,12 @@ router.get("/past", async (req, res) => {
           (t) => t.power_status === "off"
         ).length;
 
-        // Get historical terminals for this campaign's program
+        // Get historical terminals for any of this campaign's sibling programs
         const campaignHistoricalTerminals = allHistoricalTerminals.filter(
           (ht) =>
-            ht.programs_played.some((p) => p.program_id === campaign.program_id)
+            ht.programs_played.some((p) =>
+              siblingProgramIdSet.has(p.program_id)
+            )
         );
 
         // Calculate zone coverage for this campaign
@@ -362,7 +426,8 @@ router.get("/past", async (req, res) => {
                 new Set(campaignHistoricalTerminals.map((t) => t.terminal_id))
               );
 
-        // Calculate zone coverage for this campaign - exactly like analytics endpoint
+        // Calculate zone coverage for this campaign - pass all sibling
+        // program_ids so split-mode campaigns aggregate across every playlist.
         let zoneCoverageResult = {};
         if (windowStart && terminalIdsForCoverage.length > 0) {
           try {
@@ -371,7 +436,7 @@ router.get("/past", async (req, res) => {
             const zoneEndDateFinal = windowEnd; // Already ISO timestamp
 
             zoneCoverageResult = await buildZoneCoverageMetrics(
-              [campaign.program_id],
+              siblingProgramIds,
               terminalIdsForCoverage,
               zoneStartDateFinal,
               zoneEndDateFinal,
@@ -386,11 +451,23 @@ router.get("/past", async (req, res) => {
           }
         }
 
-        // Extract zone coverage for this specific program (handle both string and number keys)
+        // Merge sibling playlists into one zone-coverage entry keyed under the
+        // campaign's primary program_id, so split-mode campaigns behave like
+        // rotation-mode (one card per campaign).
+        const mergedZoneCoverage = mergeZoneCoverageForSplitCampaigns(
+          zoneCoverageResult,
+          [
+            {
+              primaryProgramId: campaign.program_id,
+              programIds: siblingProgramIds,
+            },
+          ]
+        );
+
         const programZoneCoverage =
-          zoneCoverageResult[campaign.program_id] ||
-          zoneCoverageResult[String(campaign.program_id)] ||
-          zoneCoverageResult[Number(campaign.program_id)] ||
+          mergedZoneCoverage[campaign.program_id] ||
+          mergedZoneCoverage[String(campaign.program_id)] ||
+          mergedZoneCoverage[Number(campaign.program_id)] ||
           {};
 
         return {
@@ -416,7 +493,14 @@ router.get("/past", async (req, res) => {
             campaign_end_at: windowEnd,
             share_of_voice_percent:
               sharePercent > 0 ? Number((sharePercent * 100).toFixed(1)) : null,
-            media_urls: mediaUrlsByProgram[campaign.program_id] || [],
+            media_urls: Array.from(
+              new Set(
+                siblingProgramIds.flatMap(
+                  (pid) => mediaUrlsByProgram[pid] || []
+                )
+              )
+            ),
+            program_ids: siblingProgramIds,
           },
           terminals: terminalsOut,
           summary: {

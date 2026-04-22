@@ -4,7 +4,10 @@ const router = express.Router();
 const { supabase } = require("../config/supabase");
 const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
-const { buildZoneCoverageMetrics } = require("../services/zoneCoverage");
+const {
+  buildZoneCoverageMetrics,
+  mergeZoneCoverageForSplitCampaigns,
+} = require("../services/zoneCoverage");
 const { getPlaylistsByCampaignIds } = require("../services/campaignPlaylists");
 
 // Simple in-memory cache to prevent duplicate expensive queries (disabled via flag)
@@ -390,6 +393,20 @@ router.get("/", async (req, res) => {
         programIdsByCampaign[cid].push(c.program_id);
       }
     }
+
+    // Apply the same split-campaign rollup to zone coverage so the
+    // zone_coverage entry is keyed by the primary program_id and sums
+    // time across all sibling playlists (matching campaign_metrics).
+    const siblingGroups = Object.entries(programIdsByCampaign).map(
+      ([cid, pids]) => ({
+        primaryProgramId: primaryProgramByCampaign[cid],
+        programIds: pids,
+      })
+    );
+    zoneCoverage = mergeZoneCoverageForSplitCampaigns(
+      zoneCoverage,
+      siblingGroups
+    );
 
     const campaignMetricsForClient = {};
     const mergedCampaigns = new Set();

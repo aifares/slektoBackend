@@ -686,6 +686,303 @@ async function buildZoneCoverageMetrics(
   }
 }
 
+/**
+ * Merge zone coverage entries across sibling programs that belong to the
+ * same split-mode campaign. In split mode a campaign has multiple
+ * campaign_playlists rows, each with its own program_id, but we want one
+ * zone-coverage card per campaign — keyed by the primary program_id — so
+ * the response matches how campaign_metrics is rolled up in the same
+ * endpoints.
+ *
+ * Input `zoneCoverageByProgram` is the output of `buildZoneCoverageMetrics`
+ * keyed by program_id. `siblingGroups` is an array describing how to merge:
+ *   [{ primaryProgramId: <number>, programIds: [<number>, ...] }, ...]
+ *
+ * Programs not covered by any group are passed through unchanged. Groups of
+ * size 1 are also passed through (re-keyed under the primary if needed).
+ *
+ * @param {Object} zoneCoverageByProgram
+ * @param {Array<{primaryProgramId:number, programIds:Array<number>}>} siblingGroups
+ * @returns {Object} merged map keyed by primary program_id
+ */
+function mergeZoneCoverageForSplitCampaigns(
+  zoneCoverageByProgram,
+  siblingGroups
+) {
+  if (!zoneCoverageByProgram || Object.keys(zoneCoverageByProgram).length === 0) {
+    return zoneCoverageByProgram || {};
+  }
+  if (!siblingGroups || siblingGroups.length === 0) {
+    return zoneCoverageByProgram;
+  }
+
+  const lookup = (pid) =>
+    zoneCoverageByProgram[pid] ||
+    zoneCoverageByProgram[String(pid)] ||
+    zoneCoverageByProgram[Number(pid)] ||
+    null;
+
+  const merged = {};
+  const consumed = new Set();
+
+  for (const group of siblingGroups) {
+    const { primaryProgramId, programIds } = group || {};
+    if (!primaryProgramId || !programIds || programIds.length === 0) continue;
+
+    const siblings = [];
+    for (const pid of programIds) {
+      consumed.add(String(pid));
+      const entry = lookup(pid);
+      if (entry) siblings.push(entry);
+    }
+
+    if (siblings.length === 0) continue;
+
+    // Single-sibling groups pass through; ensure we key under the primary
+    if (siblings.length === 1) {
+      merged[primaryProgramId] = {
+        ...siblings[0],
+        program_id: primaryProgramId,
+        program_ids: programIds,
+      };
+      continue;
+    }
+
+    // --- Multi-sibling merge ---
+
+    // Merge per-zone entries (same zone_id across siblings → sum time fields)
+    const zonesByZoneId = new Map();
+    for (const sib of siblings) {
+      for (const zone of sib.zones || []) {
+        const existing = zonesByZoneId.get(zone.zone_id);
+        if (!existing) {
+          zonesByZoneId.set(zone.zone_id, {
+            ...zone,
+            time_breakdown: {
+              morning: { ...zone.time_breakdown.morning },
+              afternoon: { ...zone.time_breakdown.afternoon },
+              evening: { ...zone.time_breakdown.evening },
+              night: { ...zone.time_breakdown.night },
+              rush_hour: { ...zone.time_breakdown.rush_hour },
+            },
+          });
+        } else {
+          existing.minutes_spent += Number(zone.minutes_spent) || 0;
+          existing.hours_spent += Number(zone.hours_spent) || 0;
+          existing.weighted_exposure += Number(zone.weighted_exposure) || 0;
+          existing.demographics_enhanced_exposure =
+            (Number(existing.demographics_enhanced_exposure) || 0) +
+            (Number(zone.demographics_enhanced_exposure) || 0);
+          for (const period of [
+            "morning",
+            "afternoon",
+            "evening",
+            "night",
+            "rush_hour",
+          ]) {
+            existing.time_breakdown[period].minutes +=
+              Number(zone.time_breakdown?.[period]?.minutes) || 0;
+            existing.time_breakdown[period].hours +=
+              Number(zone.time_breakdown?.[period]?.hours) || 0;
+          }
+        }
+      }
+    }
+
+    const mergedZones = Array.from(zonesByZoneId.values());
+
+    // Sum scalar totals across siblings
+    const totalMinutes = siblings.reduce(
+      (s, sib) => s + (Number(sib.total_minutes_in_zones) || 0),
+      0
+    );
+    const totalExposure = siblings.reduce(
+      (s, sib) => s + (Number(sib.high_value_exposure_score) || 0),
+      0
+    );
+
+    // Rebuild time_zone_distribution by summing across siblings
+    const tzd = {
+      morning: { minutes: 0 },
+      afternoon: { minutes: 0 },
+      evening: { minutes: 0 },
+      night: { minutes: 0 },
+      rush_hour: { minutes: 0 },
+    };
+    for (const sib of siblings) {
+      for (const period of Object.keys(tzd)) {
+        tzd[period].minutes +=
+          Number(sib.time_zone_distribution?.[period]?.minutes) || 0;
+      }
+    }
+
+    const totalTimeForPct =
+      tzd.morning.minutes +
+      tzd.afternoon.minutes +
+      tzd.evening.minutes +
+      tzd.night.minutes;
+
+    for (const period of [
+      "morning",
+      "afternoon",
+      "evening",
+      "night",
+      "rush_hour",
+    ]) {
+      tzd[period].hours = Math.round((tzd[period].minutes / 60) * 100) / 100;
+      tzd[period].percentage =
+        totalTimeForPct > 0
+          ? Math.round((tzd[period].minutes / totalTimeForPct) * 1000) / 10
+          : 0;
+      tzd[period].minutes = Math.round(tzd[period].minutes * 100) / 100;
+    }
+
+    // Rebuild zone_type_distribution from merged zones (distinct zones per type)
+    const ztd = {
+      tourist: { zones_count: 0, minutes: 0 },
+      shopping: { zones_count: 0, minutes: 0 },
+      residential: { zones_count: 0, minutes: 0 },
+      mixed: { zones_count: 0, minutes: 0 },
+    };
+    for (const z of mergedZones) {
+      if (ztd[z.zone_type]) {
+        ztd[z.zone_type].zones_count += 1;
+        ztd[z.zone_type].minutes += Number(z.minutes_spent) || 0;
+      }
+    }
+    const ztdTotal =
+      ztd.tourist.minutes +
+      ztd.shopping.minutes +
+      ztd.residential.minutes +
+      ztd.mixed.minutes;
+    for (const type of ["tourist", "shopping", "residential", "mixed"]) {
+      ztd[type].hours = Math.round((ztd[type].minutes / 60) * 100) / 100;
+      ztd[type].percentage =
+        ztdTotal > 0
+          ? Math.round((ztd[type].minutes / ztdTotal) * 1000) / 10
+          : 0;
+      ztd[type].minutes = Math.round(ztd[type].minutes * 100) / 100;
+    }
+
+    // Finalize per-zone rounding and recompute percentages against merged totals
+    mergedZones.forEach((z) => {
+      z.minutes_spent = Math.round(z.minutes_spent * 100) / 100;
+      z.hours_spent = Math.round((z.minutes_spent / 60) * 100) / 100;
+      z.weighted_exposure = Math.round(z.weighted_exposure * 100) / 100;
+      z.demographics_enhanced_exposure =
+        Math.round((z.demographics_enhanced_exposure || 0) * 100) / 100;
+      z.percentage_of_total_time =
+        totalTimeForPct > 0
+          ? Math.round((z.minutes_spent / totalTimeForPct) * 1000) / 10
+          : 0;
+
+      const zoneTotal =
+        z.time_breakdown.morning.minutes +
+        z.time_breakdown.afternoon.minutes +
+        z.time_breakdown.evening.minutes +
+        z.time_breakdown.night.minutes;
+
+      for (const period of [
+        "morning",
+        "afternoon",
+        "evening",
+        "night",
+        "rush_hour",
+      ]) {
+        z.time_breakdown[period].minutes =
+          Math.round(z.time_breakdown[period].minutes * 100) / 100;
+        z.time_breakdown[period].hours =
+          Math.round((z.time_breakdown[period].minutes / 60) * 100) / 100;
+        z.time_breakdown[period].percentage =
+          zoneTotal > 0
+            ? Math.round(
+                (z.time_breakdown[period].minutes / zoneTotal) * 1000
+              ) / 10
+            : 0;
+      }
+    });
+
+    mergedZones.sort((a, b) => b.weighted_exposure - a.weighted_exposure);
+
+    // Average share of voice across siblings that had a value
+    const sovValues = siblings
+      .map((s) => s.share_of_voice_percent)
+      .filter((v) => v != null);
+    const sovAvg =
+      sovValues.length > 0
+        ? parseFloat(
+            (sovValues.reduce((s, v) => s + v, 0) / sovValues.length).toFixed(1)
+          )
+        : null;
+
+    // Date range = earliest start, latest end across siblings
+    const starts = siblings
+      .map((s) => s.date_range?.start)
+      .filter(Boolean)
+      .map((d) => new Date(d));
+    const ends = siblings
+      .map((s) => s.date_range?.end)
+      .filter(Boolean)
+      .map((d) => new Date(d));
+    const dateRange = {
+      start:
+        starts.length > 0
+          ? new Date(Math.min(...starts)).toISOString()
+          : siblings[0].date_range?.start || null,
+      end:
+        ends.length > 0
+          ? new Date(Math.max(...ends)).toISOString()
+          : siblings[0].date_range?.end || null,
+    };
+
+    const totalZonesAvailable = Math.max(
+      ...siblings.map((s) => Number(s.total_zones_available) || 0)
+    );
+    const totalZonesVisited = mergedZones.length;
+    const coveragePercentage =
+      totalZonesAvailable > 0
+        ? Math.round((totalZonesVisited / totalZonesAvailable) * 1000) / 10
+        : 0;
+
+    // Strip trailing split-playlist label like "Company - 2026-07-21 3D" → "Company - 2026-07-21"
+    const baseName = siblings[0].program_name || "";
+    const cleanName =
+      baseName.replace(/(-\s*\d{4}-\d{2}-\d{2})\s+\S.*$/, "$1").trim() ||
+      baseName;
+
+    merged[primaryProgramId] = {
+      ...siblings[0],
+      program_id: primaryProgramId,
+      program_name: cleanName || null,
+      program_ids: programIds,
+      total_zones_visited: totalZonesVisited,
+      total_zones_available: totalZonesAvailable,
+      coverage_percentage: coveragePercentage,
+      total_minutes_in_zones: Math.round(totalMinutes * 100) / 100,
+      total_hours_in_zones: Math.round((totalMinutes / 60) * 100) / 100,
+      high_value_exposure_score: Math.round(totalExposure * 100) / 100,
+      zones: mergedZones,
+      zone_type_distribution: ztd,
+      time_zone_distribution: tzd,
+      date_range: dateRange,
+      share_of_voice_percent: sovAvg,
+      demographics_summary: calculateAggregateDemographics(mergedZones),
+      isActive: siblings.some((s) => s.isActive),
+    };
+  }
+
+  // Pass through any programs not covered by a sibling group
+  for (const [pid, coverage] of Object.entries(zoneCoverageByProgram)) {
+    if (consumed.has(String(pid))) continue;
+    if (!(pid in merged)) {
+      merged[pid] = coverage;
+    }
+  }
+
+  return merged;
+}
+
 module.exports = {
   buildZoneCoverageMetrics,
+  mergeZoneCoverageForSplitCampaigns,
 };
