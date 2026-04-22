@@ -71,11 +71,13 @@ router.get("/", async (req, res) => {
       // Explicit list provided
       targetTerminalIds = parseTerminalIds(terminalIds);
     } else {
-      // No filter — fetch all 31 known terminals from Supabase
+      // No filter — fetch all known terminals from Supabase
       const { data: dbRows } = await supabase.from("terminals").select("terminalid");
       targetTerminalIds = (dbRows || []).map((r) => r.terminalid).filter(Boolean);
       if (targetTerminalIds.length === 0) targetTerminalIds = [TERMINAL_ID];
     }
+
+    console.log(`📡 GET /terminals — fetching ${targetTerminalIds.length} terminals from ColorLight`);
 
     const response = await axios.get(
       `${COLORLIGHT_BASE_URL}/terminals?terminalIds=${targetTerminalIds.join(",")}`,
