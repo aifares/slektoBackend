@@ -65,26 +65,36 @@ router.get("/", async (req, res) => {
     req.query;
 
   try {
-    let targetTerminalIds;
+    let terminals;
 
     if (terminalIds) {
-      // Explicit list provided
-      targetTerminalIds = parseTerminalIds(terminalIds);
+      // Explicit list provided — use the /terminals?terminalIds=... endpoint
+      const targetTerminalIds = parseTerminalIds(terminalIds);
+      const response = await axios.get(
+        `${COLORLIGHT_BASE_URL}/terminals?terminalIds=${targetTerminalIds.join(",")}`,
+        { ...AUTH_HEADER, timeout: 20000 },
+      );
+      terminals = Array.isArray(response.data) ? response.data : Object.values(response.data || {});
     } else {
-      // No filter — fetch all known terminals from Supabase
-      const { data: dbRows } = await supabase.from("terminals").select("terminalid");
-      targetTerminalIds = (dbRows || []).map((r) => r.terminalid).filter(Boolean);
-      if (targetTerminalIds.length === 0) targetTerminalIds = [TERMINAL_ID];
+      // No filter — paginate through all terminals from ColorLight
+      let all = [];
+      let page = 1;
+      while (true) {
+        const response = await axios.get(`${COLORLIGHT_BASE_URL}`, {
+          ...AUTH_HEADER,
+          params: { per_page: 100, page },
+          timeout: 20000,
+        });
+        const batch = Array.isArray(response.data) ? response.data : [];
+        if (batch.length === 0) break;
+        all = all.concat(batch);
+        if (batch.length < 100) break;
+        page++;
+      }
+      terminals = all;
     }
 
-    console.log(`📡 GET /terminals — fetching ${targetTerminalIds.length} terminals from ColorLight`);
-
-    const response = await axios.get(
-      `${COLORLIGHT_BASE_URL}/terminals?terminalIds=${targetTerminalIds.join(",")}`,
-      { ...AUTH_HEADER, timeout: 20000 },
-    );
-
-    let terminals = response.data;
+    console.log(`📡 GET /terminals — fetched ${terminals.length} terminals from ColorLight`);
 
     // Auto-update database with latest terminal data (unless explicitly disabled)
     if (skipDbUpdate !== "true") {
