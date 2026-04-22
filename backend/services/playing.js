@@ -193,6 +193,22 @@ async function markCurrentPlayingAsCompleted(terminalId) {
   return { updated: updatedRecords.length, records: updatedRecords };
 }
 
+async function resolveFileToProgram(fileName) {
+  if (!fileName) return null;
+  const { data } = await supabase
+    .from("files")
+    .select("program_id")
+    .eq("name", fileName)
+    .is("removed_at", null)
+    .limit(1)
+    .single();
+  if (data?.program_id) {
+    console.log(`🔍 Resolved program_id ${data.program_id} from files table for: ${fileName}`);
+    return data.program_id;
+  }
+  return null;
+}
+
 async function handleTerminalPlayingRecords(terminalData) {
   const { determineOnlineStatus } = require("./statusTracking");
   const { parseTerminalData } = require("./parser");
@@ -244,6 +260,11 @@ async function handleTerminalPlayingRecords(terminalData) {
             // Close old record and create fresh one
             await markCurrentPlayingAsCompleted(terminalData.id);
 
+            // Resolve program_id via files table if parser couldn't match
+            if (!parsedData.playing.program_id && parsedData.playing.file_name) {
+              parsedData.playing.program_id = await resolveFileToProgram(parsedData.playing.file_name);
+            }
+
             // Create fresh playing data with current timestamp
             const freshPlayingData = {
               ...parsedData.playing,
@@ -256,6 +277,18 @@ async function handleTerminalPlayingRecords(terminalData) {
             );
             return { action: "content_changed", record: freshPlaying };
           } else {
+            // Heal existing record if it has no program_id but we can now resolve it
+            if (!currentPlaying.program_id && currentPlaying.file_name) {
+              const resolvedId = await resolveFileToProgram(currentPlaying.file_name);
+              if (resolvedId) {
+                await supabase
+                  .from("playing")
+                  .update({ program_id: resolvedId })
+                  .eq("id", currentPlaying.id);
+                currentPlaying.program_id = resolvedId;
+                console.log(`🩹 Healed program_id for existing playing record ${currentPlaying.id}: ${resolvedId}`);
+              }
+            }
             console.log(
               `📹 Same content still playing on terminal ${terminalData.id}: ${currentPlaying.file_name}`
             );
@@ -265,6 +298,11 @@ async function handleTerminalPlayingRecords(terminalData) {
           // No current record, create one
           const parsedData = parseTerminalData(terminalData);
           if (parsedData.playing) {
+            // Resolve program_id via files table if parser couldn't match
+            if (!parsedData.playing.program_id && parsedData.playing.file_name) {
+              parsedData.playing.program_id = await resolveFileToProgram(parsedData.playing.file_name);
+            }
+
             // Create fresh playing data with current timestamp
             const freshPlayingData = {
               ...parsedData.playing,
@@ -292,6 +330,7 @@ async function handleTerminalPlayingRecords(terminalData) {
 }
 
 module.exports = {
+  resolveFileToProgram,
   upsertPlaying,
   getCurrentlyPlaying,
   getRecentlyPlayed,
