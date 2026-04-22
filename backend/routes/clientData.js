@@ -6,6 +6,7 @@ const { fetchMediaByProgramId, fetchMediaUrlsByProgramAndClient } = require("../
 const { buildGpsHeatmapData } = require("../services/heatmap");
 const { buildCampaignPlaybackMetrics } = require("../services/campaignMetrics");
 const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
+const { getPlaylistsByCampaignIds } = require("../services/campaignPlaylists");
 
 // moved to services/heatmap.js
 
@@ -16,48 +17,59 @@ const { fetchHistoricalTerminals } = require("../services/historicalTerminals");
 async function buildUpcomingEvents(rawCampaigns, clientId) {
   if (!rawCampaigns || rawCampaigns.length === 0) return [];
 
-  // Group campaigns that share the same start+end window (split playlists)
-  const groups = {};
-  for (const c of rawCampaigns) {
-    const key = `${c.start_at}|${c.end_at}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(c);
-  }
+  // Fetch all campaign_playlists to capture every split playlist program_id
+  const campaignIds = rawCampaigns.map((c) => c.id).filter(Boolean);
+  const playlistsByCampaign = campaignIds.length > 0
+    ? await getPlaylistsByCampaignIds(campaignIds)
+    : {};
 
+  // One visual card per campaign (single campaign row = one card)
   return Promise.all(
-    Object.values(groups).map(async (group) => {
-      const primary = group[0];
-      const allProgramIds = group.map((g) => g.program_id);
+    rawCampaigns.map(async (c) => {
+      // Collect all program_ids: rollup + all playlist children
+      const programIdSet = new Set([c.program_id]);
+      for (const p of playlistsByCampaign[c.id] || []) {
+        if (p.program_id) programIdSet.add(p.program_id);
+      }
+      const allProgramIds = [...programIdSet];
 
-      // Fetch media from all programs in the group in parallel
+      // Fetch media from all programs in parallel
       const allMedia = await Promise.all(
         allProgramIds.map((pid) => fetchMediaUrlsByProgramAndClient(pid, clientId))
       );
       const mediaUrls = [...new Set(allMedia.flat())];
 
-      // Strip playlist-specific label from name to get a clean campaign name
-      const baseName = (primary.programs?.name || null)?.replace(/\s*[-\[].*(Image|Playlist|label).*$/i, "").trim() || primary.programs?.name || null;
+      // Sum hours across playlists (or fall back to rollup hours_bought)
+      const playlists = playlistsByCampaign[c.id] || [];
+      const totalHours = playlists.length > 0
+        ? playlists.reduce((sum, p) => sum + Number(p.hours_bought || 0), 0)
+        : Number(c.hours_bought || 0);
+
+      // Strip playlist-specific label suffix to get a clean campaign name
+      const baseName = (c.programs?.name || null)
+        ?.replace(/\s*[-\[].*(Image|Playlist|label).*$/i, "").trim()
+        || c.programs?.name || null;
 
       return {
-        id: primary.programs?.id || primary.program_id,
+        id: c.programs?.id || c.program_id,
         name: baseName,
-        thumbnail_url: primary.programs?.thumbnail_url || null,
-        modified: primary.programs?.modified || null,
-        created: primary.programs?.created || null,
-        status: primary.programs?.status || null,
+        thumbnail_url: c.programs?.thumbnail_url || null,
+        modified: c.programs?.modified || null,
+        created: c.programs?.created || null,
+        status: c.programs?.status || null,
         media_urls: mediaUrls,
         program_ids: allProgramIds,
         isActive: false,
-        campaign_start_at: primary.start_at,
-        campaign_end_at: primary.end_at,
-        campaign_hours_bought: Number(primary.hours_bought || 0),
-        campaign_minutes_bought: Math.floor(Number(primary.hours_bought || 0) * 60),
+        campaign_start_at: c.start_at,
+        campaign_end_at: c.end_at,
+        campaign_hours_bought: totalHours,
+        campaign_minutes_bought: Math.floor(totalHours * 60),
         campaign_completion_percent: 0,
         minutes_played_since_campaign_start: 0,
         hours_played_since_campaign_start: 0,
         campaign_completed_at: null,
         share_of_voice_percent: null,
-        mode: primary.mode,
+        mode: c.mode,
       };
     })
   );
@@ -91,7 +103,7 @@ router.get("/", async (req, res) => {
     const { data: activeStatusCampaigns, error: activeError } = await supabase
       .from("campaign")
       .select(
-        "program_id, status, start_at, end_at, hours_bought, client_id, completed_at"
+        "id, program_id, mode, status, start_at, end_at, hours_bought, client_id, completed_at"
       )
       .eq("client_id", client.id)
       .eq("status", "active")
@@ -101,7 +113,7 @@ router.get("/", async (req, res) => {
     const { data: plannedCampaigns, error: plannedError } = await supabase
       .from("campaign")
       .select(
-        "program_id, status, start_at, end_at, hours_bought, client_id, completed_at"
+        "id, program_id, mode, status, start_at, end_at, hours_bought, client_id, completed_at"
       )
       .eq("client_id", client.id)
       .eq("status", "planned")
@@ -122,8 +134,26 @@ router.get("/", async (req, res) => {
       });
     }
 
+    // For split campaigns, expand to one entry per playlist so all program_ids are included
+    const activeCampaignIds = activeCampaigns.map((c) => c.id).filter(Boolean);
+    const activePlaylists = activeCampaignIds.length > 0
+      ? await getPlaylistsByCampaignIds(activeCampaignIds)
+      : {};
+
+    const expandedCampaigns = activeCampaigns.flatMap((c) => {
+      const playlists = activePlaylists[c.id];
+      if (c.mode === "split" && playlists && playlists.length > 0) {
+        return playlists.map((p) => ({
+          ...c,
+          program_id: p.program_id,
+          hours_bought: p.hours_bought,
+        }));
+      }
+      return [c];
+    });
+
     // Compute isActive per campaign: status="active" AND completed_at IS NULL
-    const campaignsWithActiveStatus = (activeCampaigns || []).map((c) => {
+    const campaignsWithActiveStatus = expandedCampaigns.map((c) => {
       const isActive = c.status === "active" && c.completed_at === null;
       return { ...c, isActive };
     });
@@ -304,7 +334,7 @@ router.get("/", async (req, res) => {
     if (programIds.length === 0) {
       const { data: upcomingCampaignsData } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
+        .select("id, program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -541,7 +571,7 @@ router.get("/", async (req, res) => {
 
       const { data: upcomingCampaignsEarly } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
+        .select("id, program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
@@ -787,7 +817,7 @@ router.get("/", async (req, res) => {
     try {
       const { data: upcomingCampaigns } = await supabase
         .from("campaign")
-        .select("program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
+        .select("id, program_id, start_at, end_at, hours_bought, mode, status, programs(id, name, thumbnail_url, modified, created, status)")
         .eq("client_id", client.id)
         .eq("status", "planned")
         .gt("start_at", new Date().toISOString())
