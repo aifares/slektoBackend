@@ -16,6 +16,7 @@
     "axios": "^1.11.0",
     "body-parser": "^2.2.0",
     "compression": "^1.7.4",
+    "dotenv": "^17.4.2",
     "express": "^5.1.0",
     "fly": "^4.6.16",
     "multer": "^2.0.2",

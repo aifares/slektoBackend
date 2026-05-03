@@ -1,24 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const { supabase } = require("../config/supabase");
+const { supabaseAdmin } = require("../config/supabaseAdmin");
+const {
+  sendVerification,
+  checkVerification,
+  toE164,
+} = require("../services/twilioService");
 
-// Normalize any local phone format to E.164
-// "9174702290" or "19174702290" → "+19174702290"
-function toE164(phone) {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("1") && digits.length === 11) return `+${digits}`;
-  if (digits.length === 10) return `+1${digits}`;
-  return `+${digits}`;
-}
-
-// Strip leading +1 to match stored format "9174702290"
+// Strip leading +1 to match the local format stored in `drivers.phone` ("9174702290")
 function toLocalFormat(e164) {
   return e164.replace(/^\+1/, "");
 }
 
 /**
  * POST /auth/driver/send-otp
- * Request an OTP SMS to the driver's phone number.
+ * Request an OTP SMS to the driver's phone number via Twilio Verify.
  * Body: { "phone": "9174702290" }
  */
 router.post("/send-otp", async (req, res) => {
@@ -29,9 +26,8 @@ router.post("/send-otp", async (req, res) => {
     }
 
     const e164 = toE164(phone);
-
-    // Verify a driver record exists for this phone before sending OTP
     const localPhone = toLocalFormat(e164);
+
     const { data: driver, error: lookupError } = await supabase
       .from("drivers")
       .select("id, status, name")
@@ -57,17 +53,19 @@ router.post("/send-otp", async (req, res) => {
       return res.status(403).json({ error: "Driver account is inactive" });
     }
 
-    // Send OTP via Supabase Phone Auth (Supabase calls Twilio internally)
-    const { error: otpError } = await supabase.auth.signInWithOtp({ phone: e164 });
-    if (otpError) {
-      console.error("❌ OTP send error:", otpError);
-      return res.status(500).json({
-        error: "Failed to send OTP",
-        details: otpError.message,
+    try {
+      const verification = await sendVerification(e164);
+      console.log(
+        `📱 Twilio Verify code sent to driver ${driver.id} at ${e164} (sid=${verification.sid}, status=${verification.status})`
+      );
+    } catch (twilioErr) {
+      console.error("❌ Twilio Verify send error:", twilioErr);
+      return res.status(502).json({
+        error: "Failed to send verification code",
+        details: twilioErr.message,
       });
     }
 
-    console.log(`📱 OTP sent to driver ${driver.id} at ${e164}`);
     return res.json({
       success: true,
       message: "OTP sent",
@@ -82,8 +80,12 @@ router.post("/send-otp", async (req, res) => {
 
 /**
  * POST /auth/driver/verify-otp
- * Verify OTP code, link auth user to driver record on first login, return JWT.
+ * Verify the Twilio code, then mint a Supabase session for the driver.
  * Body: { "phone": "9174702290", "token": "123456" }
+ *
+ * Strategy: Twilio Verify confirms the user owns the phone. After that,
+ * we use the driver's `email` to issue a Supabase session via an admin-generated
+ * magic link, which we immediately exchange for an access/refresh token pair.
  */
 router.post("/verify-otp", async (req, res) => {
   try {
@@ -93,28 +95,20 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     const e164 = toE164(phone);
-
-    const { data: sessionData, error: verifyError } =
-      await supabase.auth.verifyOtp({ phone: e164, token, type: "sms" });
-
-    if (verifyError || !sessionData?.session) {
-      return res.status(401).json({
-        error: "Invalid or expired OTP",
-        details: verifyError?.message,
-      });
-    }
-
-    const { session, user } = sessionData;
     const localPhone = toLocalFormat(e164);
 
-    // Fetch the driver row (already pre-validated in send-otp, but verify again)
     const { data: driver, error: driverError } = await supabase
       .from("drivers")
-      .select("id, name, status, auth_user_id")
+      .select("id, name, email, status, auth_user_id")
       .eq("phone", localPhone)
       .maybeSingle();
 
-    if (driverError || !driver) {
+    if (driverError) {
+      console.error("❌ Driver lookup error:", driverError);
+      return res.status(500).json({ error: "Failed to look up driver" });
+    }
+
+    if (!driver) {
       return res.status(404).json({ error: "No driver account found for this phone number" });
     }
 
@@ -133,9 +127,74 @@ router.post("/verify-otp", async (req, res) => {
       return res.status(403).json({ error: "Driver account is inactive" });
     }
 
-    // First-time login: link the Supabase auth user to the driver record
+    if (!driver.email) {
+      return res.status(500).json({
+        error: "Driver record is missing an email address — contact an administrator",
+      });
+    }
+
+    let twilioResult;
+    try {
+      twilioResult = await checkVerification(e164, token);
+    } catch (twilioErr) {
+      console.error("❌ Twilio Verify check error:", twilioErr);
+      return res.status(502).json({
+        error: "Failed to verify code",
+        details: twilioErr.message,
+      });
+    }
+
+    if (!twilioResult.approved) {
+      return res.status(401).json({
+        error: "Invalid or expired OTP",
+        status: twilioResult.status,
+      });
+    }
+
+    const driverEmail = driver.email.trim().toLowerCase();
+
+    // Mint a Supabase session by generating a magic link (creates the auth user
+    // on first call) and immediately consuming its hashed token.
+    let linkData;
+    try {
+      const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+        type: "magiclink",
+        email: driverEmail,
+      });
+      if (error) throw error;
+      linkData = data;
+    } catch (linkErr) {
+      console.error("❌ Failed to generate magic link for driver:", linkErr);
+      return res.status(500).json({
+        error: "Failed to issue session",
+        details: linkErr.message,
+      });
+    }
+
+    const tokenHash = linkData?.properties?.hashed_token;
+    if (!tokenHash) {
+      console.error("❌ Magic link response missing hashed_token", linkData);
+      return res.status(500).json({ error: "Failed to issue session" });
+    }
+
+    const { data: sessionData, error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "magiclink",
+    });
+
+    if (verifyError || !sessionData?.session || !sessionData?.user) {
+      console.error("❌ Magic link verify failed:", verifyError);
+      return res.status(500).json({
+        error: "Failed to issue session",
+        details: verifyError?.message,
+      });
+    }
+
+    const { session, user } = sessionData;
+
+    // First-time login: link the Supabase auth user to the driver row.
     if (!driver.auth_user_id) {
-      const { error: linkError } = await supabase
+      const { error: linkError } = await supabaseAdmin
         .from("drivers")
         .update({ auth_user_id: user.id })
         .eq("id", driver.id);

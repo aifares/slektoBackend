@@ -1078,5 +1078,6 @@ CLIENT_EMAIL_DOMAIN=clients.slekto.com
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
+TWILIO_VERIFY_SERVICE_SID=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Twilio Verify Service SID for driver OTP login
 DRIVER_HOURLY_RATE=3.00
 ```

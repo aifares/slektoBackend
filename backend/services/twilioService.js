@@ -11,15 +11,23 @@ function getTwilioClient() {
   return twilio(accountSid, authToken);
 }
 
+function getVerifyService() {
+  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!serviceSid) {
+    throw new Error("TWILIO_VERIFY_SERVICE_SID must be set");
+  }
+  return getTwilioClient().verify.v2.services(serviceSid);
+}
+
 function toE164(phone) {
-  const digits = phone.replace(/\D/g, "");
+  const digits = String(phone || "").replace(/\D/g, "");
   if (digits.startsWith("1") && digits.length === 11) return `+${digits}`;
   if (digits.length === 10) return `+1${digits}`;
   return `+${digits}`;
 }
 
 /**
- * Send an SMS to a single phone number.
+ * Send an SMS to a single phone number (general-purpose messaging).
  */
 async function sendSMS(phone, message) {
   const client = getTwilioClient();
@@ -28,6 +36,42 @@ async function sendSMS(phone, message) {
     from: process.env.TWILIO_PHONE_NUMBER,
     to: toE164(phone),
   });
+}
+
+/**
+ * Trigger a Twilio Verify code SMS to the given phone.
+ * Returns the Verify resource (status is typically "pending").
+ */
+async function sendVerification(phone, channel = "sms") {
+  return getVerifyService().verifications.create({
+    to: toE164(phone),
+    channel,
+  });
+}
+
+/**
+ * Check a Twilio Verify code for the given phone.
+ * Returns { approved: boolean, status: string, raw }.
+ * `approved` is true only when Twilio returns status === "approved" && valid === true.
+ */
+async function checkVerification(phone, code) {
+  try {
+    const result = await getVerifyService().verificationChecks.create({
+      to: toE164(phone),
+      code,
+    });
+    return {
+      approved: result.status === "approved" && result.valid === true,
+      status: result.status,
+      raw: result,
+    };
+  } catch (err) {
+    // Twilio returns 404 when the verification has expired or was already consumed.
+    if (err?.status === 404) {
+      return { approved: false, status: "expired", raw: null };
+    }
+    throw err;
+  }
 }
 
 /**
@@ -61,4 +105,10 @@ async function broadcastToDrivers(message, driverIds = null) {
   return { sent, failed: errors.length, total: drivers.length, errors };
 }
 
-module.exports = { sendSMS, broadcastToDrivers };
+module.exports = {
+  sendSMS,
+  sendVerification,
+  checkVerification,
+  broadcastToDrivers,
+  toE164,
+};
