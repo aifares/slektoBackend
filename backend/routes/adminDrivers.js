@@ -31,9 +31,55 @@ router.use(requireAdmin);
  *   "driver_ids": [1, 2, 3]                   (omit to broadcast to all)
  * }
  */
+// Normalize driver_ids into an array of positive integers, or null for "all".
+// Accepts: array of numbers/strings, a single number, a single string,
+// comma-separated string, empty array, or "all"/"*" sentinels.
+// Returns { ids: number[]|null, broadcast: boolean, invalid: boolean }.
+//   - broadcast=true means "send to everyone" (ids will be null)
+//   - invalid=true means caller sent something we couldn't parse
+function normalizeDriverIds(input) {
+  if (input === undefined || input === null || input === "") {
+    return { ids: null, broadcast: true, invalid: false };
+  }
+
+  if (typeof input === "string") {
+    const trimmed = input.trim().toLowerCase();
+    if (trimmed === "all" || trimmed === "*") {
+      return { ids: null, broadcast: true, invalid: false };
+    }
+  }
+
+  let raw;
+  if (Array.isArray(input)) {
+    if (input.length === 0) return { ids: null, broadcast: true, invalid: false };
+    raw = input;
+  } else if (typeof input === "string") {
+    raw = input.split(",");
+  } else {
+    raw = [input];
+  }
+
+  const ids = raw
+    .map((v) => parseInt(v, 10))
+    .filter((n) => Number.isInteger(n) && n > 0);
+
+  if (ids.length === 0) return { ids: null, broadcast: false, invalid: true };
+  return { ids, broadcast: false, invalid: false };
+}
+
 router.post("/notify", async (req, res) => {
   try {
-    const { title, body, sent_via = "in_app", driver_ids } = req.body;
+    const { title, body, sent_via = "in_app" } = req.body;
+    // Accept driver_ids as array, single value, comma-separated string, or "all"/"*".
+    // Also accept legacy `driver_id` (singular) for convenience.
+    const rawIds = req.body.driver_ids ?? req.body.driver_id;
+    const { ids: driverIds, invalid } = normalizeDriverIds(rawIds);
+
+    if (invalid) {
+      return res.status(400).json({
+        error: "driver_ids must be an array of positive integers, a single integer, or \"all\"",
+      });
+    }
 
     if (!title || !body) {
       return res.status(400).json({ error: "title and body are required" });
@@ -47,9 +93,9 @@ router.post("/notify", async (req, res) => {
     // Insert in-app notifications
     let smsResult = null;
     if (sent_via === "in_app" || sent_via === "both") {
-      if (driver_ids && driver_ids.length > 0) {
+      if (driverIds) {
         // Targeted: one row per driver
-        const rows = driver_ids.map((id) => ({
+        const rows = driverIds.map((id) => ({
           driver_id: id,
           title,
           body,
@@ -73,14 +119,15 @@ router.post("/notify", async (req, res) => {
 
     // Send SMS via Twilio
     if (sent_via === "sms" || sent_via === "both") {
-      smsResult = await broadcastToDrivers(`${title}: ${body}`, driver_ids || null);
+      smsResult = await broadcastToDrivers(`${title}: ${body}`, driverIds);
     }
 
-    console.log(`✅ Admin notification sent — channel: ${sent_via}, targets: ${driver_ids?.length || "all"}`);
+    console.log(`✅ Admin notification sent — channel: ${sent_via}, targets: ${driverIds?.length || "all"}`);
 
     return res.json({
       success: true,
       message: "Notification sent",
+      targets: driverIds || "all",
       sms: smsResult,
     });
   } catch (err) {
